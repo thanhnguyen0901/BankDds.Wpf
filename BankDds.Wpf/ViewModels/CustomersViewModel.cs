@@ -1,6 +1,7 @@
 using Caliburn.Micro;
 using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
+using BankDds.Wpf.Helpers;
 using System.Collections.ObjectModel;
 
 namespace BankDds.Wpf.ViewModels;
@@ -62,6 +63,9 @@ public class CustomersViewModel : Screen
         {
             _isEditing = value;
             NotifyOfPropertyChange(() => IsEditing);
+            NotifyOfPropertyChange(() => CanAdd);
+            NotifyOfPropertyChange(() => CanEdit);
+            NotifyOfPropertyChange(() => CanDelete);
             NotifyOfPropertyChange(() => CanSave);
             NotifyOfPropertyChange(() => CanCancel);
         }
@@ -74,8 +78,18 @@ public class CustomersViewModel : Screen
         {
             _errorMessage = value;
             NotifyOfPropertyChange(() => ErrorMessage);
+            NotifyOfPropertyChange(() => HasError);
         }
     }
+
+    public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
+
+    // CanExecute properties - Standard CRUD pattern
+    public bool CanAdd => !IsEditing;
+    public bool CanEdit => SelectedCustomer != null && !IsEditing;
+    public bool CanDelete => SelectedCustomer != null && !IsEditing;
+    public bool CanSave => IsEditing && !string.IsNullOrWhiteSpace(EditingCustomer.CMND);
+    public bool CanCancel => IsEditing;
 
     protected override async Task OnActivateAsync(CancellationToken cancellationToken)
     {
@@ -110,10 +124,10 @@ public class CustomersViewModel : Screen
     public void Add()
     {
         EditingCustomer = new Customer { MaCN = _userSession.SelectedBranch };
+        SelectedCustomer = null;
         IsEditing = true;
+        ErrorMessage = string.Empty;
     }
-
-    public bool CanEdit => SelectedCustomer != null && !IsEditing;
 
     public void Edit()
     {
@@ -130,13 +144,20 @@ public class CustomersViewModel : Screen
             MaCN = SelectedCustomer.MaCN
         };
         IsEditing = true;
+        ErrorMessage = string.Empty;
     }
-
-    public bool CanDelete => SelectedCustomer != null && !IsEditing;
 
     public async Task Delete()
     {
         if (SelectedCustomer == null) return;
+
+        // Show confirmation dialog
+        var confirmed = DialogHelper.ShowConfirmation(
+            $"Are you sure you want to delete customer '{SelectedCustomer.FullName}'?",
+            "Delete Confirmation"
+        );
+
+        if (!confirmed) return;
 
         try
         {
@@ -144,6 +165,7 @@ public class CustomersViewModel : Screen
             if (result)
             {
                 await LoadCustomersAsync();
+                SelectedCustomer = null;
                 ErrorMessage = string.Empty;
             }
             else
@@ -156,8 +178,6 @@ public class CustomersViewModel : Screen
             ErrorMessage = $"Error: {ex.Message}";
         }
     }
-
-    public bool CanSave => IsEditing && !string.IsNullOrWhiteSpace(EditingCustomer.CMND);
 
     public async Task Save()
     {
@@ -178,6 +198,7 @@ public class CustomersViewModel : Screen
             {
                 IsEditing = false;
                 await LoadCustomersAsync();
+                SelectedCustomer = null;
                 ErrorMessage = string.Empty;
             }
             else
@@ -191,12 +212,10 @@ public class CustomersViewModel : Screen
         }
     }
 
-    public bool CanCancel => IsEditing;
-
     public void Cancel()
     {
         IsEditing = false;
         EditingCustomer = new Customer();
-        SelectedCustomer = null;
+        ErrorMessage = string.Empty;
     }
 }

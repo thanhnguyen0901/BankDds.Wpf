@@ -9,7 +9,7 @@
     Background="#F5F5F5"
     mc:Ignorable="d">
     <UserControl.Resources>
-        <!-- ComboBox Style -->
+        <!--  ComboBox Style  -->
         <Style x:Key="ModernComboBoxStyle" TargetType="ComboBox">
             <Setter Property="Background" Value="White" />
             <Setter Property="Foreground" Value="#333333" />
@@ -54,9 +54,9 @@
                                         Grid.ColumnSpan="2"
                                         Background="Transparent"
                                         BorderThickness="0"
+                                        ClickMode="Press"
                                         Focusable="False"
-                                        IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
-                                        ClickMode="Press" />
+                                        IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" />
                                 </Grid>
                             </Border>
                             <Popup
@@ -100,7 +100,7 @@
             </Setter>
         </Style>
 
-        <!-- ComboBoxItem Style -->
+        <!--  ComboBoxItem Style  -->
         <Style TargetType="ComboBoxItem">
             <Setter Property="Padding" Value="12,8" />
             <Setter Property="FontSize" Value="14" />
@@ -130,7 +130,7 @@
             </Setter>
         </Style>
     </UserControl.Resources>
-    
+
     <Grid>
         <Border
             Width="500"
@@ -200,9 +200,9 @@
                         Text="Branch" />
                     <ComboBox
                         x:Name="SelectedBranch"
-                        Style="{StaticResource ModernComboBoxStyle}"
                         ItemsSource="{Binding Branches}"
-                        SelectedItem="{Binding SelectedBranch, Mode=TwoWay}" />
+                        SelectedItem="{Binding SelectedBranch, Mode=TwoWay}"
+                        Style="{StaticResource ModernComboBoxStyle}" />
                 </StackPanel>
 
                 <!--  User Name  -->

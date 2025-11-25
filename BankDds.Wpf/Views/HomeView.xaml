@@ -11,7 +11,9 @@
     mc:Ignorable="d">
     <UserControl.Resources>
         <converters:BoolToVisibilityConverter x:Key="BoolToVisConverter" />
+        <converters:ActiveItemConverter x:Key="ActiveItemConverter" />
 
+        <!--  Menu Button Style with Active State  -->
         <Style x:Key="MenuButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="#0078D7" />
             <Setter Property="Foreground" Value="White" />
@@ -19,9 +21,52 @@
             <Setter Property="Padding" Value="20,10" />
             <Setter Property="Margin" Value="5,0" />
             <Setter Property="FontSize" Value="14" />
-            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontWeight" Value="Normal" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="MinWidth" Value="120" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border
+                            x:Name="border"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="#005A9E"
+                            BorderThickness="0,0,0,3"
+                            CornerRadius="4,4,0,0">
+                            <ContentPresenter
+                                Margin="{TemplateBinding Padding}"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#005A9E" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#004578" />
+                                <Setter TargetName="border" Property="BorderThickness" Value="0,0,0,4" />
+                                <Setter Property="FontWeight" Value="Bold" />
+                            </Trigger>
+                            <!--  Active Tab Style  -->
+                            <Trigger Property="Tag" Value="Active">
+                                <Setter TargetName="border" Property="Background" Value="#004578" />
+                                <Setter TargetName="border" Property="BorderThickness" Value="0,0,0,4" />
+                                <Setter Property="FontWeight" Value="Bold" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style
+            x:Key="LogoutButtonStyle"
+            BasedOn="{StaticResource MenuButtonStyle}"
+            TargetType="Button">
+            <Setter Property="Background" Value="#DC143C" />
+            <Setter Property="Padding" Value="25,10" />
+            <Setter Property="MinWidth" Value="100" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -37,23 +82,6 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#005A9E" />
-                </Trigger>
-                <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="#004578" />
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-
-        <Style
-            x:Key="LogoutButtonStyle"
-            BasedOn="{StaticResource MenuButtonStyle}"
-            TargetType="Button">
-            <Setter Property="Background" Value="#DC143C" />
-            <Setter Property="Padding" Value="25,10" />
-            <Setter Property="MinWidth" Value="100" />
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="#B22222" />
@@ -127,36 +155,78 @@
                     ShadowDepth="2"
                     Color="Black" />
             </Border.Effect>
-            <WrapPanel HorizontalAlignment="Center" Orientation="Horizontal">
+            <WrapPanel HorizontalAlignment="Left" Orientation="Horizontal">
                 <Button
                     x:Name="ShowCustomers"
                     Content="Customers"
                     Style="{StaticResource MenuButtonStyle}"
-                    Visibility="{Binding CanViewCustomers, Converter={StaticResource BoolToVisConverter}}" />
+                    Visibility="{Binding CanViewCustomers, Converter={StaticResource BoolToVisConverter}}">
+                    <Button.Tag>
+                        <MultiBinding Converter="{StaticResource ActiveItemConverter}">
+                            <Binding Path="ActiveItem" />
+                            <Binding Source="Customers" />
+                        </MultiBinding>
+                    </Button.Tag>
+                </Button>
                 <Button
                     x:Name="ShowAccounts"
                     Content="Accounts"
                     Style="{StaticResource MenuButtonStyle}"
-                    Visibility="{Binding CanViewAccounts, Converter={StaticResource BoolToVisConverter}}" />
+                    Visibility="{Binding CanViewAccounts, Converter={StaticResource BoolToVisConverter}}">
+                    <Button.Tag>
+                        <MultiBinding Converter="{StaticResource ActiveItemConverter}">
+                            <Binding Path="ActiveItem" />
+                            <Binding Source="Accounts" />
+                        </MultiBinding>
+                    </Button.Tag>
+                </Button>
                 <Button
                     x:Name="ShowEmployees"
                     Content="Employees"
                     Style="{StaticResource MenuButtonStyle}"
-                    Visibility="{Binding CanViewEmployees, Converter={StaticResource BoolToVisConverter}}" />
+                    Visibility="{Binding CanViewEmployees, Converter={StaticResource BoolToVisConverter}}">
+                    <Button.Tag>
+                        <MultiBinding Converter="{StaticResource ActiveItemConverter}">
+                            <Binding Path="ActiveItem" />
+                            <Binding Source="Employees" />
+                        </MultiBinding>
+                    </Button.Tag>
+                </Button>
                 <Button
                     x:Name="ShowTransactions"
                     Content="Transactions"
                     Style="{StaticResource MenuButtonStyle}"
-                    Visibility="{Binding CanViewTransactions, Converter={StaticResource BoolToVisConverter}}" />
+                    Visibility="{Binding CanViewTransactions, Converter={StaticResource BoolToVisConverter}}">
+                    <Button.Tag>
+                        <MultiBinding Converter="{StaticResource ActiveItemConverter}">
+                            <Binding Path="ActiveItem" />
+                            <Binding Source="Transactions" />
+                        </MultiBinding>
+                    </Button.Tag>
+                </Button>
                 <Button
                     x:Name="ShowReports"
                     Content="Reports"
-                    Style="{StaticResource MenuButtonStyle}" />
+                    Style="{StaticResource MenuButtonStyle}">
+                    <Button.Tag>
+                        <MultiBinding Converter="{StaticResource ActiveItemConverter}">
+                            <Binding Path="ActiveItem" />
+                            <Binding Source="Reports" />
+                        </MultiBinding>
+                    </Button.Tag>
+                </Button>
                 <Button
                     x:Name="ShowAdmin"
                     Content="Admin"
                     Style="{StaticResource MenuButtonStyle}"
-                    Visibility="{Binding CanViewAdmin, Converter={StaticResource BoolToVisConverter}}" />
+                    Visibility="{Binding CanViewAdmin, Converter={StaticResource BoolToVisConverter}}">
+                    <Button.Tag>
+                        <MultiBinding Converter="{StaticResource ActiveItemConverter}">
+                            <Binding Path="ActiveItem" />
+                            <Binding Source="Admin" />
+                        </MultiBinding>
+                    </Button.Tag>
+                </Button>
             </WrapPanel>
         </Border>
 

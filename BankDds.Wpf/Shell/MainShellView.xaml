@@ -13,6 +13,6 @@
     ResizeMode="CanResize"
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
-    <!-- ActiveItem will display the current screen (Login or Home) -->
+    <!--  ActiveItem will display the current screen (Login or Home)  -->
     <ContentControl x:Name="ActiveItem" />
 </Window>

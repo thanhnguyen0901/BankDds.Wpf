@@ -10,5 +10,6 @@ public interface IEmployeeService
     Task<bool> AddEmployeeAsync(Employee employee);
     Task<bool> UpdateEmployeeAsync(Employee employee);
     Task<bool> DeleteEmployeeAsync(int manv);
+    Task<bool> RestoreEmployeeAsync(int manv);
     Task<bool> TransferEmployeeAsync(int manv, string newBranch);
 }

@@ -96,4 +96,16 @@ public class ReportService : IReportService
             .GroupBy(c => c.MaCN)
             .ToDictionary(g => g.Key, g => g.Count());
     }
+
+    public async Task<List<Customer>> GetCustomersByBranchReportAsync(string? branchCode = null)
+    {
+        var customers = await _customerService.GetAllCustomersAsync();
+        
+        if (!string.IsNullOrEmpty(branchCode))
+        {
+            customers = customers.Where(c => c.MaCN == branchCode).ToList();
+        }
+        
+        return customers.OrderBy(c => c.FullName).ToList();
+    }
 }
