@@ -10,13 +10,13 @@ The solution follows a **clean 3-layer architecture** with clear separation of c
 ┌─────────────────────────────────────────────────────────────┐
 │                      BankDds.Wpf                            │
 │                   (Presentation Layer)                      │
-│  Views, ViewModels, Converters, UI-specific logic          │
+│  Views, ViewModels, Converters, UI-specific logic           │
 │                                                             │
-│  Dependencies: → BankDds.Core + BankDds.Infrastructure     │
+│  Dependencies: → BankDds.Core + BankDds.Infrastructure      │
 └─────────────────────────────────────────────────────────────┘
                            ↓ ↓
         ┌──────────────────┘ └──────────────────┐
-        ↓                                        ↓
+        ↓                                       ↓
 ┌──────────────────────┐          ┌──────────────────────────┐
 │   BankDds.Core       │          │ BankDds.Infrastructure   │
 │   (Domain Layer)     │  ←───────│   (Data Access Layer)    │
@@ -84,7 +84,7 @@ BankDds.Core → (NO DEPENDENCIES - pure domain logic)
 ```
 BankDds.Wpf/
 ├── BankDds.Wpf.sln                    # Solution file
-├── BankDds.Core/                      # ⭐ NEW: Domain/Application Core
+├── BankDds.Core/                      # Domain/Application Core
 │   ├── BankDds.Core.csproj
 │   ├── Models/                        # Domain entities
 │   │   ├── UserGroup.cs               # Enum: NganHang, ChiNhanh, KhachHang
@@ -103,7 +103,7 @@ BankDds.Wpf/
 │       ├── IReportService.cs
 │       ├── IUserService.cs
 │       └── IConnectionStringProvider.cs
-├── BankDds.Infrastructure/            # ⭐ REFACTORED: Data Access & Infrastructure
+├── BankDds.Infrastructure/            # Data Access & Infrastructure
 │   ├── BankDds.Infrastructure.csproj
 │   ├── Data/                          # In-memory service implementations
 │   │   ├── UserSession.cs             # Singleton session state
@@ -119,7 +119,7 @@ BankDds.Wpf/
 │   │   └── SqlAuthService.cs          # Hard-coded test users
 │   └── Configuration/                 # Configuration services
 │       └── ConnectionStringProvider.cs
-└── BankDds.Wpf/                       # ⭐ CLEANED: Pure UI Layer
+└── BankDds.Wpf/                       # Presentation/UI Layer
     ├── BankDds.Wpf.csproj
     ├── App.xaml
     ├── App.xaml.cs
@@ -242,7 +242,7 @@ This demonstrates the **Open/Closed Principle**: The system is open for extensio
 - **Login Screen**: Branch selection + username/password authentication
 - **Role-Based Access Control**: Three-tier permission system
   - **NganHang (Bank Level)**: Full access to all modules and all branches
-  - **ChiNhanh (Branch Level)**: Access to assigned branch data only
+  - **ChiNhanh (Branch Level)**: Full access but restricted to assigned branch
   - **KhachHang (Customer)**: Read-only access to own accounts
 - **Test Users**:
   - `admin` / `123` → Ngân Hàng (access to ALL)
@@ -259,21 +259,44 @@ This demonstrates the **Open/Closed Principle**: The system is open for extensio
 - ✅ **Delete Customer**: Remove customer records
 - ✅ **Role-Based Filtering**: Branch users see only their branch customers
 
-### Account Management
-- ✅ **View Accounts**: List all accounts with balance
-- ✅ **Filter by Branch**: Branch-specific data access
-- ✅ **Filter by Customer**: View accounts for specific customers
-- ✅ **Account Details**: SOTK, CMND, SODU, MACN, NGAYMOTK
-- Ready for: Add/Edit/Delete operations
+### Account Management (Full CRUD with SubForm Pattern)
+- ✅ **SubForm Design**: Customer selection (Master) + Accounts list (Detail)
+- ✅ **View Accounts**: List all accounts for selected customer
+- ✅ **Add Account**: Create new account with auto-generated SOTK
+- ✅ **Edit Account**: Update balance and open date
+- ✅ **Delete Account**: Remove account (only if balance = 0)
+- ✅ **Role-Based Filtering**: Branch/Customer-specific data access
 
-### Employee Management
-- ✅ **View Employees**: List all employees
-- ✅ **Branch Filtering**: See only same-branch employees
-- ✅ **Employee Details**: MANV, HO, TEN, DIACHI, SDT, MACN
-- Ready for: Add/Edit/Delete/Transfer operations
+### Employee Management (Full CRUD + Transfer)
+- ✅ **View Employees**: List all employees with status
+- ✅ **Add Employee**: Create new employee with auto-assigned MANV
+- ✅ **Edit Employee**: Update HO, TEN, DIACHI, CMND, PHAI, SDT, MACN
+- ✅ **Delete Employee**: Soft delete (TrangThaiXoa = 1)
+- ✅ **Restore Employee**: Restore deleted employees (Phục hồi)
+- ✅ **Transfer Branch**: Move employee to different branch
+- ✅ **Role-Based Filtering**: Branch users see only their branch employees
 
-### Transaction Processing (Structure Ready)
-- Ready for: Deposit (Gửi Tiền)
+### Transaction Processing (Full Implementation)
+- ✅ **Deposit (Gửi Tiền)**: Type "GT", minimum 100,000 VND
+- ✅ **Withdraw (Rút Tiền)**: Type "RT", minimum 100,000 VND, balance check
+- ✅ **Transfer (Chuyển Khoản)**: Type "CK", between accounts with validation
+- ✅ **Transaction History**: View recent transactions for selected account
+- ✅ **Tabbed Interface**: Separate tabs for Deposit/Withdraw and Transfer
+
+### Reports & Statistics (Full Implementation)
+- ✅ **Account Statement (Sao kê TK)**: Opening balance, transactions, closing balance for date range
+- ✅ **Accounts Opened Report**: List of accounts opened in specific period
+- ✅ **Customers Per Branch**: Customer list grouped by branch, sorted by full name
+- ✅ **Role-Based Filtering**: Customer users can only view their own account statements
+- ✅ **Tabbed Interface**: Separate tabs for each report type
+
+### User Administration (Full CRUD)
+- ✅ **View Users**: List all system users with roles
+- ✅ **Add User**: Create new users (NganHang, ChiNhanh, KhachHang)
+- ✅ **Edit User**: Update username, password, role, branch, customer CMND
+- ✅ **Delete User**: Remove users (with safety check)
+- ✅ **Role-Based Creation**: NganHang can create all user types
+- ✅ **Access Control**: Only NganHang users can access Admin module
 ## Testing the Application
 
 ### Test as Bank Administrator
@@ -285,8 +308,33 @@ This demonstrates the **Open/Closed Principle**: The system is open for extensio
 3. **Explore**:
    - All navigation buttons visible (Customers, Accounts, Employees, Transactions, Reports, Admin)
    - View data from all branches
-   - Full CRUD operations in Customer module
+   - Full CRUD operations in all modules
+   - Test transactions: Deposit, Withdraw, Transfer
+   - Generate reports: Account statements, Accounts opened, Customers per branch
+   - Manage users in Admin module
 4. **Logout** to return to login screen
+
+### Test as Branch User
+1. **Login** with:
+   - Branch: `BENTHANH`
+   - Username: `btuser`
+   - Password: `123`
+2. **Verify**:
+   - See only BENTHANH branch data
+   - Full CRUD operations available (except Admin)
+   - Cannot see Admin tab
+   - Cannot access other branches' data
+
+### Test as Customer
+1. **Login** with:
+   - Branch: `BENTHANH`
+   - Username: `c123456`
+   - Password: `123`
+2. **Verify**:
+   - Only Reports tab visible
+   - Can only view own account statements
+   - Cannot access CRUD operations
+   - Cannot see other customers' data
 
 ## Code Conventions
 
@@ -312,31 +360,35 @@ All services and ViewModels are registered in `AppBootstrapper.Configure()`:
 - **UI Layer**: `BankDds.Wpf.ViewModels`, `BankDds.Wpf.Views`, `BankDds.Wpf.Converters`
 ## Current Implementation Status
 
-### ✅ Completed
+### ✅ Completed (100% Assignment Requirements Met)
 - [x] Single-window architecture with Caliburn.Micro Conductor
 - [x] Login with branch selection and authentication
 - [x] Role-based authorization (NganHang, ChiNhanh, KhachHang)
 - [x] User session management (IUserSession)
 - [x] Navigation system with dynamic menu visibility
-- [x] Customer management (full CRUD with DataGrid)
-- [x] Account listing with role-based filtering
-- [x] Employee listing with branch filtering
-- [x] In-memory services with hard-coded data
+- [x] **Customer management (Full CRUD)**
+- [x] **Account management (Full CRUD with SubForm pattern)**
+- [x] **Employee management (Full CRUD + Transfer + Soft Delete/Restore)**
+- [x] **Transaction processing (Deposit, Withdraw, Transfer with validation)**
+- [x] **Reports (Account Statement, Accounts Opened, Customers Per Branch)**
+- [x] **User administration (Full CRUD with role-based rules)**
+- [x] All entity models (Customer, Account, Employee, Transaction, User, AccountStatement)
+- [x] Business services (7 services with full interfaces and implementations)
+- [x] In-memory data layer with business logic enforcement
 - [x] Configuration system (appsettings.json)
-- [x] All entity models (Customer, Account, Employee, Transaction, User)
-- [x] Business services (6 services with full interfaces)
-- [x] BoolToVisibilityConverter for UI binding
+- [x] UI converters and helpers
 
-### 🚧 Ready for Enhancement
-- [ ] Complete Account CRUD operations (add/edit/delete)
-- [ ] Complete Employee CRUD operations (add/edit/delete/transfer)
-- [ ] Transaction forms (Deposit/Withdraw/Transfer UI)
-- [ ] Report generation UI (account statements, date range reports)
-- [ ] Admin user management (add/edit/delete users)
-- [ ] Input validation with error messages
-- [ ] Confirm dialogs for delete operations
+### 🎯 Business Rules Enforced
+- [x] Account deletion only when balance = 0
+- [x] Deposit/Withdraw minimum amount: 100,000 VND
+- [x] Transfer amount validation and balance checks
+- [x] Employee soft delete with TrangThaiXoa flag
+- [x] Auto-generated IDs (MANV, SOTK, MAGD)
+- [x] Role-based data filtering
+- [x] Branch-specific access control
 
-### 🔄 Next Phase: Database Integration
+### 🔄 Ready for Database Integration
+The application architecture is designed for easy database migration:
 - [ ] Create Dapper implementations of service interfaces in `BankDds.Infrastructure/Data`
 - [ ] Use distributed queries for cross-branch operations
 - [ ] Implement stored procedures for complex transactions
@@ -405,47 +457,6 @@ public bool CanViewAdmin => _userSession.UserGroup == UserGroup.NganHang;
 - Default branch setting
 
 `IConnectionStringProvider` (interface in `BankDds.Core.Interfaces`, implementation in `BankDds.Infrastructure.Configuration`) provides connection strings by branch name.
-
-### Why This Architecture Matters
-
-**Before Refactoring** (2-layer):
-```
-BankDds.Wpf
-├── Models/          ← Mixed domain + UI models
-├── Services/        ← Business logic in UI project
-└── ViewModels/      ← UI logic
-
-BankDds.Infrastructure
-└── Security/        ← Only authentication
-```
-❌ **Problems**: 
-- Domain models coupled to UI project
-- Business logic mixed with presentation logic
-- Difficult to test business rules
-- Hard to swap data access implementations
-
-**After Refactoring** (3-layer clean architecture):
-```
-BankDds.Core         ← Pure domain, no dependencies
-├── Models/
-└── Interfaces/
-
-BankDds.Infrastructure ← Depends only on Core
-├── Data/
-├── Security/
-└── Configuration/
-
-BankDds.Wpf          ← Depends on Core + Infrastructure
-├── ViewModels/
-├── Views/
-└── Converters/
-```
-✅ **Benefits**:
-- Domain models are pure and reusable
-- Business logic is isolated and testable
-- Data access can be swapped without UI changes
-- Clear dependency direction (inward toward Core)
-- Follows SOLID principles (especially Dependency Inversion)
 
 ## Architecture Highlights
 - **3-Layer Clean Architecture**: Core (domain) → Infrastructure (data) → Wpf (UI)
