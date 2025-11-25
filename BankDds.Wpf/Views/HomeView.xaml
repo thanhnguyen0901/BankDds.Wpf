@@ -1,0 +1,223 @@
+<UserControl
+    x:Class="BankDds.Wpf.Views.HomeView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="clr-namespace:BankDds.Wpf.Converters"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    d:DesignHeight="1000"
+    d:DesignWidth="1100"
+    Background="#F5F5F5"
+    mc:Ignorable="d">
+    <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisConverter" />
+
+        <Style x:Key="MenuButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#0078D7" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="20,10" />
+            <Setter Property="Margin" Value="5,0" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="MinWidth" Value="120" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border
+                            Background="{TemplateBinding Background}"
+                            BorderThickness="0"
+                            CornerRadius="4">
+                            <ContentPresenter
+                                Margin="{TemplateBinding Padding}"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#005A9E" />
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#004578" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style
+            x:Key="LogoutButtonStyle"
+            BasedOn="{StaticResource MenuButtonStyle}"
+            TargetType="Button">
+            <Setter Property="Background" Value="#DC143C" />
+            <Setter Property="Padding" Value="25,10" />
+            <Setter Property="MinWidth" Value="100" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#B22222" />
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#8B0000" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+    <DockPanel>
+        <!--  Top Menu Bar  -->
+        <Border
+            Padding="20,12"
+            Background="#0078D7"
+            DockPanel.Dock="Top">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!--  User Info  -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        FontSize="14"
+                        Foreground="White"
+                        Text="Welcome, " />
+                    <TextBlock
+                        x:Name="Username"
+                        VerticalAlignment="Center"
+                        FontSize="14"
+                        FontWeight="Bold"
+                        Foreground="White" />
+                    <TextBlock
+                        Margin="15,0,0,0"
+                        VerticalAlignment="Center"
+                        FontSize="14"
+                        Foreground="White"
+                        Text=" | Role: " />
+                    <TextBlock
+                        x:Name="RoleText"
+                        VerticalAlignment="Center"
+                        FontSize="14"
+                        FontWeight="Bold"
+                        Foreground="White" />
+                </StackPanel>
+
+                <!--  Logout Button  -->
+                <Button
+                    x:Name="Logout"
+                    Grid.Column="1"
+                    Content="Logout"
+                    Style="{StaticResource LogoutButtonStyle}" />
+            </Grid>
+        </Border>
+
+        <!--  Navigation Menu  -->
+        <Border
+            Padding="15,12"
+            Background="White"
+            BorderBrush="#CCCCCC"
+            BorderThickness="0,0,0,1"
+            DockPanel.Dock="Top">
+            <Border.Effect>
+                <DropShadowEffect
+                    BlurRadius="5"
+                    Direction="270"
+                    Opacity="0.1"
+                    ShadowDepth="2"
+                    Color="Black" />
+            </Border.Effect>
+            <WrapPanel HorizontalAlignment="Center" Orientation="Horizontal">
+                <Button
+                    x:Name="ShowCustomers"
+                    Content="Customers"
+                    Style="{StaticResource MenuButtonStyle}"
+                    Visibility="{Binding CanViewCustomers, Converter={StaticResource BoolToVisConverter}}" />
+                <Button
+                    x:Name="ShowAccounts"
+                    Content="Accounts"
+                    Style="{StaticResource MenuButtonStyle}"
+                    Visibility="{Binding CanViewAccounts, Converter={StaticResource BoolToVisConverter}}" />
+                <Button
+                    x:Name="ShowEmployees"
+                    Content="Employees"
+                    Style="{StaticResource MenuButtonStyle}"
+                    Visibility="{Binding CanViewEmployees, Converter={StaticResource BoolToVisConverter}}" />
+                <Button
+                    x:Name="ShowTransactions"
+                    Content="Transactions"
+                    Style="{StaticResource MenuButtonStyle}"
+                    Visibility="{Binding CanViewTransactions, Converter={StaticResource BoolToVisConverter}}" />
+                <Button
+                    x:Name="ShowReports"
+                    Content="Reports"
+                    Style="{StaticResource MenuButtonStyle}" />
+                <Button
+                    x:Name="ShowAdmin"
+                    Content="Admin"
+                    Style="{StaticResource MenuButtonStyle}"
+                    Visibility="{Binding CanViewAdmin, Converter={StaticResource BoolToVisConverter}}" />
+            </WrapPanel>
+        </Border>
+
+        <!--  Content Region - Shows active screen  -->
+        <Grid>
+            <!--  Welcome screen when no item is active  -->
+            <Border
+                Margin="20"
+                Padding="40"
+                Background="White"
+                CornerRadius="8">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ActiveItem}" Value="{x:Null}">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <Border.Effect>
+                    <DropShadowEffect
+                        BlurRadius="10"
+                        Direction="270"
+                        Opacity="0.1"
+                        ShadowDepth="2"
+                        Color="Black" />
+                </Border.Effect>
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock
+                        Margin="0,0,0,25"
+                        HorizontalAlignment="Center"
+                        FontSize="80"
+                        Text="&#127974;" />
+                    <TextBlock
+                        Margin="0,0,0,15"
+                        HorizontalAlignment="Center"
+                        FontSize="28"
+                        FontWeight="Bold"
+                        Foreground="#0078D7"
+                        Text="Distributed Banking System" />
+                    <TextBlock
+                        Margin="0,0,0,10"
+                        HorizontalAlignment="Center"
+                        FontSize="18"
+                        Foreground="#666666"
+                        Text="Welcome to the system" />
+                    <TextBlock
+                        MaxWidth="600"
+                        HorizontalAlignment="Center"
+                        FontSize="14"
+                        Foreground="#999999"
+                        Text="Use the navigation menu above to access different modules"
+                        TextAlignment="Center"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <!--  Active child screen  -->
+            <ContentControl x:Name="ActiveItem" />
+        </Grid>
+    </DockPanel>
+</UserControl>

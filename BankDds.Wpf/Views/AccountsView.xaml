@@ -1,0 +1,56 @@
+<UserControl
+    x:Class="BankDds.Wpf.Views.AccountsView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    d:DesignHeight="600"
+    d:DesignWidth="1000"
+    Background="White"
+    mc:Ignorable="d">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <TextBlock
+            Grid.Row="0"
+            Margin="0,0,0,15"
+            FontSize="24"
+            FontWeight="Bold"
+            Foreground="#0078D7"
+            Text="Account Management" />
+
+        <DataGrid
+            x:Name="Accounts"
+            Grid.Row="1"
+            AutoGenerateColumns="False"
+            CanUserAddRows="False"
+            IsReadOnly="True"
+            SelectedItem="{Binding SelectedAccount, Mode=TwoWay}">
+            <DataGrid.Columns>
+                <DataGridTextColumn
+                    Width="120"
+                    Binding="{Binding SOTK}"
+                    Header="Account Number" />
+                <DataGridTextColumn
+                    Width="120"
+                    Binding="{Binding CMND}"
+                    Header="CMND" />
+                <DataGridTextColumn
+                    Width="150"
+                    Binding="{Binding SODU, StringFormat=N0}"
+                    Header="Balance" />
+                <DataGridTextColumn
+                    Width="100"
+                    Binding="{Binding MACN}"
+                    Header="Branch" />
+                <DataGridTextColumn
+                    Width="*"
+                    Binding="{Binding NGAYMOTK, StringFormat=dd/MM/yyyy}"
+                    Header="Open Date" />
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</UserControl>
