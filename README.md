@@ -127,6 +127,11 @@ BankDds.Wpf/
     ├── appsettings.json               # Connection strings and settings
     ├── Converters/
     │   └── BoolToVisibilityConverter.cs
+    ├── Helpers/
+    │   └── DialogHelper.cs            # UI dialog utilities
+    ├── Models/                        # UI-specific models (empty)
+    ├── Resources/
+    │   └── Styles.xaml                # WPF styles and resources
     ├── ViewModels/                    # All ViewModels (pure UI logic)
     │   ├── MainShellViewModel.cs      # Root conductor
     │   ├── LoginViewModel.cs
@@ -156,9 +161,11 @@ BankDds.Wpf/
 - **WPF** - Windows Presentation Foundation
 - **Caliburn.Micro 4.0.212** - MVVM framework with conventions
 - **Autofac 8.1.0** - Dependency injection container
-- **Microsoft.Extensions.Configuration** - Configuration management
-- **Microsoft.Data.SqlClient** - SQL Server data provider (ready for integration)
-- **Dapper** - Micro ORM (ready for integration)
+- **Autofac.Extensions.DependencyInjection 10.0.0** - Autofac integration
+- **Microsoft.Extensions.Configuration 8.0.0** - Configuration management
+- **Microsoft.Extensions.Configuration.Json 8.0.0** - JSON configuration provider
+- **Microsoft.Data.SqlClient 5.2.2** - SQL Server data provider (ready for integration)
+- **Dapper 2.1.35** - Micro ORM (ready for integration)
 
 ## Key Design Patterns & Practices
 
@@ -424,13 +431,14 @@ The application uses **one window** (`MainShellView`) that contains all screens:
 - Ready for SQL Server authentication integration
 
 ### Service Layer
-Six business service interfaces (defined in `BankDds.Core.Interfaces`) manage data operations:
+Seven business service interfaces (defined in `BankDds.Core.Interfaces`) manage data operations:
 - `ICustomerService` - Customer CRUD operations
 - `IAccountService` - Account management
 - `IEmployeeService` - Employee management (includes transfer)
 - `ITransactionService` - Deposit/Withdraw/Transfer with balance validation
 - `IReportService` - Generate various reports
 - `IUserService` - User administration
+- `IUserSession` - Session state management
 
 **Current implementations** (in `BankDds.Infrastructure.Data`) use in-memory `List<T>` with hard-coded data.  
 **Easy to replace** with Dapper/EF Core implementations without touching Core or UI layers.
