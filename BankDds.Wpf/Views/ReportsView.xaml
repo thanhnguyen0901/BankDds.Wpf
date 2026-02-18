@@ -83,6 +83,24 @@
                                     Content="Generate"
                                     Style="{StaticResource PrimaryButtonStyle}" />
                             </StackPanel>
+                            <StackPanel VerticalAlignment="Bottom" Margin="10,0,0,0">
+                                <TextBlock Text="Export:" FontSize="10" Margin="0,0,0,2" />
+                                <StackPanel Orientation="Horizontal">
+                                    <Button
+                                        x:Name="ExportStatementToPdf"
+                                        Height="42"
+                                        Width="60"
+                                        Content="PDF"
+                                        Margin="0,0,5,0"
+                                        Style="{StaticResource SuccessButtonStyle}" />
+                                    <Button
+                                        x:Name="ExportStatementToExcel"
+                                        Height="42"
+                                        Width="70"
+                                        Content="Excel"
+                                        Style="{StaticResource SuccessButtonStyle}" />
+                                </StackPanel>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
                     <Border
@@ -201,6 +219,24 @@
                                     Content="Generate"
                                     Style="{StaticResource PrimaryButtonStyle}" />
                             </StackPanel>
+                            <StackPanel VerticalAlignment="Bottom" Margin="10,0,0,0">
+                                <TextBlock Text="Export:" FontSize="10" Margin="0,0,0,2" />
+                                <StackPanel Orientation="Horizontal">
+                                    <Button
+                                        x:Name="ExportAccountsToPdf"
+                                        Height="42"
+                                        Width="60"
+                                        Content="PDF"
+                                        Margin="0,0,5,0"
+                                        Style="{StaticResource SuccessButtonStyle}" />
+                                    <Button
+                                        x:Name="ExportAccountsToExcel"
+                                        Height="42"
+                                        Width="70"
+                                        Content="Excel"
+                                        Style="{StaticResource SuccessButtonStyle}" />
+                                </StackPanel>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
                     <DataGrid
@@ -262,6 +298,24 @@
                                     Content="Generate"
                                     Style="{StaticResource PrimaryButtonStyle}" />
                             </StackPanel>
+                            <StackPanel VerticalAlignment="Bottom" Margin="10,0,0,0">
+                                <TextBlock Text="Export:" FontSize="10" Margin="0,0,0,2" />
+                                <StackPanel Orientation="Horizontal">
+                                    <Button
+                                        x:Name="ExportCustomersToPdf"
+                                        Height="42"
+                                        Width="60"
+                                        Content="PDF"
+                                        Margin="0,0,5,0"
+                                        Style="{StaticResource SuccessButtonStyle}" />
+                                    <Button
+                                        x:Name="ExportCustomersToExcel"
+                                        Height="42"
+                                        Width="70"
+                                        Content="Excel"
+                                        Style="{StaticResource SuccessButtonStyle}" />
+                                </StackPanel>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
                     <DataGrid
@@ -291,6 +345,186 @@
                                 Header="Branch" />
                         </DataGrid.Columns>
                     </DataGrid>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Transaction Summary">
+                <Grid Margin="15">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="20" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Border
+                        Grid.Row="0"
+                        Padding="15"
+                        Background="#F8F9FA"
+                        BorderBrush="#DEE2E6"
+                        BorderThickness="1"
+                        CornerRadius="5">
+                        <StackPanel Orientation="Horizontal">
+                            <StackPanel Width="150" Margin="0,0,20,0">
+                                <TextBlock Style="{StaticResource StandardLabelStyle}" Text="From Date:" />
+                                <DatePicker
+                                    x:Name="TransactionSummaryFromDate"
+                                    MinHeight="32"
+                                    Padding="10"
+                                    FontSize="14" />
+                            </StackPanel>
+                            <StackPanel Width="150" Margin="0,0,20,0">
+                                <TextBlock Style="{StaticResource StandardLabelStyle}" Text="To Date:" />
+                                <DatePicker
+                                    x:Name="TransactionSummaryToDate"
+                                    MinHeight="32"
+                                    Padding="10"
+                                    FontSize="14" />
+                            </StackPanel>
+                            <StackPanel Width="150" Margin="0,0,20,0">
+                                <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Branch:" />
+                                <ComboBox
+                                    x:Name="SelectedBranchForTransactionSummary"
+                                    Height="42"
+                                    ItemsSource="{Binding AvailableBranches}"
+                                    Style="{StaticResource StandardComboBoxStyle}" />
+                            </StackPanel>
+                            <StackPanel VerticalAlignment="Bottom">
+                                <Button
+                                    x:Name="GenerateTransactionSummaryReport"
+                                    Height="42"
+                                    Content="Generate"
+                                    Style="{StaticResource PrimaryButtonStyle}" />
+                            </StackPanel>
+                            <StackPanel VerticalAlignment="Bottom" Margin="10,0,0,0">
+                                <TextBlock Text="Export:" FontSize="10" Margin="0,0,0,2" />
+                                <StackPanel Orientation="Horizontal">
+                                    <Button
+                                        x:Name="ExportTransactionSummaryToPdf"
+                                        Height="42"
+                                        Width="60"
+                                        Content="PDF"
+                                        Margin="0,0,5,0"
+                                        Style="{StaticResource SuccessButtonStyle}" />
+                                    <Button
+                                        x:Name="ExportTransactionSummaryToExcel"
+                                        Height="42"
+                                        Width="70"
+                                        Content="Excel"
+                                        Style="{StaticResource SuccessButtonStyle}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    <Border
+                        Grid.Row="2"
+                        Padding="15"
+                        Background="White"
+                        BorderBrush="#DEE2E6"
+                        BorderThickness="1"
+                        CornerRadius="5"
+                        Visibility="{Binding HasTransactionSummary, Converter={StaticResource BoolToVisConverter}}">
+                        <StackPanel>
+                            <!-- Summary Statistics -->
+                            <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Summary Statistics:" />
+                            <Grid Margin="0,10,0,15">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock FontWeight="Bold" Text="Total Transactions:" />
+                                    <TextBlock
+                                        FontSize="24"
+                                        Foreground="#0078D7"
+                                        Text="{Binding TransactionSummary.TotalTransactionCount}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock FontWeight="Bold" Text="Deposits:" />
+                                    <TextBlock
+                                        FontSize="16"
+                                        Foreground="#28A745"
+                                        Text="{Binding TransactionSummary.DepositCount, StringFormat={}{0} transactions}" />
+                                    <TextBlock
+                                        FontSize="14"
+                                        Text="{Binding TransactionSummary.TotalDepositAmount, StringFormat={}{0:N0} VND}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock FontWeight="Bold" Text="Withdrawals:" />
+                                    <TextBlock
+                                        FontSize="16"
+                                        Foreground="#DC3545"
+                                        Text="{Binding TransactionSummary.WithdrawalCount, StringFormat={}{0} transactions}" />
+                                    <TextBlock
+                                        FontSize="14"
+                                        Text="{Binding TransactionSummary.TotalWithdrawalAmount, StringFormat={}{0:N0} VND}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="3">
+                                    <TextBlock FontWeight="Bold" Text="Transfers:" />
+                                    <TextBlock
+                                        FontSize="16"
+                                        Foreground="#17A2B8"
+                                        Text="{Binding TransactionSummary.TransferCount, StringFormat={}{0} transactions}" />
+                                    <TextBlock
+                                        FontSize="14"
+                                        Text="{Binding TransactionSummary.TotalTransferAmount, StringFormat={}{0:N0} VND}" />
+                                </StackPanel>
+                            </Grid>
+                            <Border
+                                Padding="10"
+                                Background="#E7F3FF"
+                                BorderBrush="#0078D7"
+                                BorderThickness="2"
+                                CornerRadius="5"
+                                Margin="0,0,0,15">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" FontWeight="Bold" FontSize="16" Text="Total Transaction Amount:" />
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        FontSize="20"
+                                        FontWeight="Bold"
+                                        Foreground="#0078D7"
+                                        Text="{Binding TransactionSummary.TotalAmount, StringFormat={}{0:N0} VND}" />
+                                </Grid>
+                            </Border>
+                            <Separator Margin="0,0,0,15" />
+                            <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Transaction Details:" />
+                            <DataGrid
+                                Height="300"
+                                ItemsSource="{Binding TransactionSummary.Transactions}"
+                                Style="{StaticResource StandardDataGridStyle}">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn
+                                        Width="100"
+                                        Binding="{Binding MAGD}"
+                                        Header="Trans. ID" />
+                                    <DataGridTextColumn
+                                        Width="120"
+                                        Binding="{Binding SOTK}"
+                                        Header="Account" />
+                                    <DataGridTextColumn
+                                        Width="80"
+                                        Binding="{Binding LOAIGD}"
+                                        Header="Type" />
+                                    <DataGridTextColumn
+                                        Width="120"
+                                        Binding="{Binding NGAYGD, StringFormat=dd/MM/yyyy}"
+                                        Header="Date" />
+                                    <DataGridTextColumn
+                                        Width="*"
+                                        Binding="{Binding SOTIEN, StringFormat=N0}"
+                                        Header="Amount" />
+                                    <DataGridTextColumn
+                                        Width="120"
+                                        Binding="{Binding SOTK_NHAN}"
+                                        Header="To Account" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </StackPanel>
+                    </Border>
                 </Grid>
             </TabItem>
         </TabControl>

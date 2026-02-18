@@ -1,15 +1,18 @@
-using Caliburn.Micro;
 using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
+using BankDds.Core.Validators;
+using Microsoft.Extensions.Configuration;
 using System.Collections.ObjectModel;
 
 namespace BankDds.Wpf.ViewModels;
 
-public class TransactionsViewModel : Screen
+public class TransactionsViewModel : BaseViewModel
 {
     private readonly ITransactionService _transactionService;
     private readonly IAccountService _accountService;
     private readonly IUserSession _userSession;
+    private readonly IConfiguration _configuration;
+    private readonly TransactionValidator _validator;
 
     private string _selectedAccountNumber = string.Empty;
     private string _amount = string.Empty;
@@ -18,12 +21,31 @@ public class TransactionsViewModel : Screen
     private ObservableCollection<Transaction> _recentTransactions = new();
     private int _selectedTabIndex = 0;
 
-    public TransactionsViewModel(ITransactionService transactionService, IAccountService accountService, IUserSession userSession)
+    // Transaction limits from configuration
+    private readonly decimal _minAmount;
+    private readonly decimal _maxSingleAmount;
+    private readonly decimal _maxDailyWithdrawal;
+    private readonly decimal _maxDailyTransfer;
+
+    public TransactionsViewModel(
+        ITransactionService transactionService,
+        IAccountService accountService,
+        IUserSession userSession,
+        IConfiguration configuration,
+        TransactionValidator validator)
     {
         _transactionService = transactionService;
         _accountService = accountService;
         _userSession = userSession;
+        _configuration = configuration;
+        _validator = validator;
         DisplayName = "Transactions";
+
+        // Load transaction limits from configuration
+        _minAmount = decimal.Parse(_configuration["TransactionLimits:MinTransactionAmount"] ?? "100000");
+        _maxSingleAmount = decimal.Parse(_configuration["TransactionLimits:MaxSingleTransactionAmount"] ?? "50000000");
+        _maxDailyWithdrawal = decimal.Parse(_configuration["TransactionLimits:MaxDailyWithdrawalAmount"] ?? "100000000");
+        _maxDailyTransfer = decimal.Parse(_configuration["TransactionLimits:MaxDailyTransferAmount"] ?? "200000000");
     }
 
     public string SelectedAccountNumber
@@ -98,15 +120,15 @@ public class TransactionsViewModel : Screen
     }
 
     // CanExecute properties
-    public bool CanDeposit => !string.IsNullOrWhiteSpace(SelectedAccountNumber) && 
-                              decimal.TryParse(Amount, out var amt) && amt >= 100000;
-    
-    public bool CanWithdraw => !string.IsNullOrWhiteSpace(SelectedAccountNumber) && 
-                               decimal.TryParse(Amount, out var amt) && amt >= 100000;
-    
-    public bool CanTransfer => !string.IsNullOrWhiteSpace(SelectedAccountNumber) && 
+    public bool CanDeposit => !string.IsNullOrWhiteSpace(SelectedAccountNumber) &&
+                              decimal.TryParse(Amount, out var amt) && amt >= _minAmount;
+
+    public bool CanWithdraw => !string.IsNullOrWhiteSpace(SelectedAccountNumber) &&
+                               decimal.TryParse(Amount, out var amt) && amt >= _minAmount;
+
+    public bool CanTransfer => !string.IsNullOrWhiteSpace(SelectedAccountNumber) &&
                                !string.IsNullOrWhiteSpace(TransferToAccount) &&
-                               decimal.TryParse(Amount, out var amt) && amt > 0;
+                               decimal.TryParse(Amount, out var amt) && amt >= _minAmount;
 
     protected override Task OnActivateAsync(CancellationToken cancellationToken)
     {
@@ -122,142 +144,178 @@ public class TransactionsViewModel : Screen
             return;
         }
 
-        try
+        await ExecuteWithLoadingAsync(async () =>
         {
             var transactions = await _transactionService.GetTransactionsByAccountAsync(SelectedAccountNumber);
             RecentTransactions = new ObservableCollection<Transaction>(transactions.OrderByDescending(t => t.NGAYGD).Take(20));
-            ErrorMessage = string.Empty;
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Error loading transactions: {ex.Message}";
-        }
+        });
     }
 
     public async Task Deposit()
     {
         if (!CanDeposit) return;
 
-        try
+        if (!decimal.TryParse(Amount, out var amount))
         {
-            if (!decimal.TryParse(Amount, out var amount))
-            {
-                ErrorMessage = "Invalid amount format.";
-                return;
-            }
+            ErrorMessage = "Invalid amount format.";
+            return;
+        }
 
-            if (amount < 100000)
-            {
-                ErrorMessage = "Minimum deposit amount is 100,000 VND.";
-                return;
-            }
+        // Validate amount limits before transaction
+        if (amount < _minAmount)
+        {
+            ErrorMessage = $"Minimum deposit amount is {_minAmount:N0} VND.";
+            return;
+        }
 
-            // Get employee ID from session (in real app, this would be the logged-in employee)
-            int employeeId = 1; // Default to admin for now
+        if (amount > _maxSingleAmount)
+        {
+            ErrorMessage = $"Maximum single transaction amount is {_maxSingleAmount:N0} VND.";
+            return;
+        }
 
-            var result = await _transactionService.DepositAsync(SelectedAccountNumber, amount, employeeId);
-            
+        // Get employee ID from session
+        if (!_userSession.EmployeeId.HasValue)
+        {
+            ErrorMessage = "Employee ID not found in session. Please log in again.";
+            return;
+        }
+
+        await ExecuteWithLoadingAsync(async () =>
+        {
+            var result = await _transactionService.DepositAsync(SelectedAccountNumber, amount, _userSession.EmployeeId.Value);
+
             if (result)
             {
-                ErrorMessage = $"Successfully deposited {amount:N0} VND.";
+                SuccessMessage = $"Successfully deposited {amount:N0} VND.";
                 Amount = string.Empty;
                 await LoadTransactionsAsync();
             }
             else
             {
-                ErrorMessage = "Failed to process deposit.";
+                ErrorMessage = "Failed to process deposit. Check transaction history for details.";
             }
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Error processing deposit: {ex.Message}";
-        }
+        });
     }
 
     public async Task Withdraw()
     {
         if (!CanWithdraw) return;
 
-        try
+        if (!decimal.TryParse(Amount, out var amount))
         {
-            if (!decimal.TryParse(Amount, out var amount))
-            {
-                ErrorMessage = "Invalid amount format.";
-                return;
-            }
+            ErrorMessage = "Invalid amount format.";
+            return;
+        }
 
-            if (amount < 100000)
-            {
-                ErrorMessage = "Minimum withdrawal amount is 100,000 VND.";
-                return;
-            }
+        // Validate amount limits before transaction
+        if (amount < _minAmount)
+        {
+            ErrorMessage = $"Minimum withdrawal amount is {_minAmount:N0} VND.";
+            return;
+        }
 
-            // Get employee ID from session
-            int employeeId = 1;
+        if (amount > _maxSingleAmount)
+        {
+            ErrorMessage = $"Maximum single transaction amount is {_maxSingleAmount:N0} VND.";
+            return;
+        }
 
-            var result = await _transactionService.WithdrawAsync(SelectedAccountNumber, amount, employeeId);
-            
+        // Check daily withdrawal limit
+        var dailyTotal = await _transactionService.GetDailyWithdrawalTotalAsync(SelectedAccountNumber, DateTime.Today);
+        if (dailyTotal + amount > _maxDailyWithdrawal)
+        {
+            ErrorMessage = $"Daily withdrawal limit exceeded. Today's total: {dailyTotal:N0} VND. " +
+                          $"Limit: {_maxDailyWithdrawal:N0} VND. " +
+                          $"Available: {_maxDailyWithdrawal - dailyTotal:N0} VND.";
+            return;
+        }
+
+        // Get employee ID from session
+        if (!_userSession.EmployeeId.HasValue)
+        {
+            ErrorMessage = "Employee ID not found in session. Please log in again.";
+            return;
+        }
+
+        await ExecuteWithLoadingAsync(async () =>
+        {
+            var result = await _transactionService.WithdrawAsync(SelectedAccountNumber, amount, _userSession.EmployeeId.Value);
+
             if (result)
             {
-                ErrorMessage = $"Successfully withdrew {amount:N0} VND.";
+                SuccessMessage = $"Successfully withdrew {amount:N0} VND.";
                 Amount = string.Empty;
                 await LoadTransactionsAsync();
             }
             else
             {
-                ErrorMessage = "Failed to process withdrawal. Check account balance.";
+                ErrorMessage = "Failed to process withdrawal. Check transaction history for details.";
             }
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Error processing withdrawal: {ex.Message}";
-        }
+        });
     }
 
     public async Task Transfer()
     {
         if (!CanTransfer) return;
 
-        try
+        if (!decimal.TryParse(Amount, out var amount))
         {
-            if (!decimal.TryParse(Amount, out var amount))
-            {
-                ErrorMessage = "Invalid amount format.";
-                return;
-            }
+            ErrorMessage = "Invalid amount format.";
+            return;
+        }
 
-            if (amount <= 0)
-            {
-                ErrorMessage = "Transfer amount must be greater than 0.";
-                return;
-            }
+        // Validate amount limits before transaction
+        if (amount < _minAmount)
+        {
+            ErrorMessage = $"Minimum transfer amount is {_minAmount:N0} VND.";
+            return;
+        }
 
-            if (SelectedAccountNumber == TransferToAccount)
-            {
-                ErrorMessage = "Cannot transfer to the same account.";
-                return;
-            }
+        if (amount > _maxSingleAmount)
+        {
+            ErrorMessage = $"Maximum single transaction amount is {_maxSingleAmount:N0} VND.";
+            return;
+        }
 
-            // Get employee ID from session
-            int employeeId = 1;
+        if (SelectedAccountNumber == TransferToAccount)
+        {
+            ErrorMessage = "Cannot transfer to the same account.";
+            return;
+        }
 
-            var result = await _transactionService.TransferAsync(SelectedAccountNumber, TransferToAccount, amount, employeeId);
-            
+        // Check daily transfer limit
+        var dailyTotal = await _transactionService.GetDailyTransferTotalAsync(SelectedAccountNumber, DateTime.Today);
+        if (dailyTotal + amount > _maxDailyTransfer)
+        {
+            ErrorMessage = $"Daily transfer limit exceeded. Today's total: {dailyTotal:N0} VND. " +
+                          $"Limit: {_maxDailyTransfer:N0} VND. " +
+                          $"Available: {_maxDailyTransfer - dailyTotal:N0} VND.";
+            return;
+        }
+
+        // Get employee ID from session
+        if (!_userSession.EmployeeId.HasValue)
+        {
+            ErrorMessage = "Employee ID not found in session. Please log in again.";
+            return;
+        }
+
+        await ExecuteWithLoadingAsync(async () =>
+        {
+            var result = await _transactionService.TransferAsync(SelectedAccountNumber, TransferToAccount, amount, _userSession.EmployeeId.Value);
+
             if (result)
             {
-                ErrorMessage = $"Successfully transferred {amount:N0} VND to {TransferToAccount}.";
+                SuccessMessage = $"Successfully transferred {amount:N0} VND to {TransferToAccount}.";
                 Amount = string.Empty;
                 TransferToAccount = string.Empty;
                 await LoadTransactionsAsync();
             }
             else
             {
-                ErrorMessage = "Failed to process transfer. Check account balances and account numbers.";
+                ErrorMessage = "Failed to process transfer. Check transaction history for details.";
             }
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Error processing transfer: {ex.Message}";
-        }
+        });
     }
 }

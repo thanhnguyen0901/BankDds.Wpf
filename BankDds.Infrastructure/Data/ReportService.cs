@@ -108,4 +108,55 @@ public class ReportService : IReportService
         
         return customers.OrderBy(c => c.FullName).ToList();
     }
+
+    public async Task<TransactionSummary> GetTransactionSummaryAsync(DateTime fromDate, DateTime toDate, string? branchCode = null)
+    {
+        List<Transaction> transactions;
+        
+        if (string.IsNullOrEmpty(branchCode))
+        {
+            // Get all transactions across all branches
+            var allAccounts = await _accountService.GetAllAccountsAsync();
+            var allTransactions = new List<Transaction>();
+            
+            foreach (var account in allAccounts)
+            {
+                var accountTransactions = await _transactionService.GetTransactionsByAccountAsync(account.SOTK);
+                allTransactions.AddRange(accountTransactions);
+            }
+            
+            transactions = allTransactions
+                .Where(t => t.NGAYGD >= fromDate && t.NGAYGD <= toDate)
+                .OrderByDescending(t => t.NGAYGD)
+                .ToList();
+        }
+        else
+        {
+            // Get transactions for specific branch
+            transactions = await _transactionService.GetTransactionsByBranchAsync(branchCode, fromDate, toDate);
+        }
+
+        // Remove duplicates (a transaction might be counted twice if it involves two accounts)
+        var uniqueTransactions = transactions
+            .GroupBy(t => t.MAGD)
+            .Select(g => g.First())
+            .ToList();
+
+        var summary = new TransactionSummary
+        {
+            FromDate = fromDate,
+            ToDate = toDate,
+            BranchCode = branchCode,
+            Transactions = uniqueTransactions,
+            TotalTransactionCount = uniqueTransactions.Count,
+            DepositCount = uniqueTransactions.Count(t => t.LOAIGD == "GT"),
+            WithdrawalCount = uniqueTransactions.Count(t => t.LOAIGD == "RT"),
+            TransferCount = uniqueTransactions.Count(t => t.LOAIGD == "CK"),
+            TotalDepositAmount = uniqueTransactions.Where(t => t.LOAIGD == "GT").Sum(t => t.SOTIEN),
+            TotalWithdrawalAmount = uniqueTransactions.Where(t => t.LOAIGD == "RT").Sum(t => t.SOTIEN),
+            TotalTransferAmount = uniqueTransactions.Where(t => t.LOAIGD == "CK").Sum(t => t.SOTIEN)
+        };
+
+        return summary;
+    }
 }

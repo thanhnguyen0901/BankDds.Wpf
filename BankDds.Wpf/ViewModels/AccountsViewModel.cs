@@ -1,16 +1,19 @@
 using Caliburn.Micro;
 using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
-using BankDds.Wpf.Helpers;
+using BankDds.Core.Validators;
+
 using System.Collections.ObjectModel;
 
 namespace BankDds.Wpf.ViewModels;
 
-public class AccountsViewModel : Screen
+public class AccountsViewModel : BaseViewModel
 {
     private readonly IAccountService _accountService;
     private readonly ICustomerService _customerService;
     private readonly IUserSession _userSession;
+    private readonly IDialogService _dialogService;
+    private readonly AccountValidator _validator;
     
     private ObservableCollection<Customer> _customers = new();
     private Customer? _selectedCustomer;
@@ -20,11 +23,13 @@ public class AccountsViewModel : Screen
     private bool _isEditing;
     private string _errorMessage = string.Empty;
 
-    public AccountsViewModel(IAccountService accountService, ICustomerService customerService, IUserSession userSession)
+    public AccountsViewModel(IAccountService accountService, ICustomerService customerService, IUserSession userSession, IDialogService dialogService, AccountValidator validator)
     {
         _accountService = accountService;
         _customerService = customerService;
         _userSession = userSession;
+        _dialogService = dialogService;
+        _validator = validator;
         DisplayName = "Account Management";
     }
 
@@ -69,6 +74,8 @@ public class AccountsViewModel : Screen
             NotifyOfPropertyChange(() => SelectedAccount);
             NotifyOfPropertyChange(() => CanEdit);
             NotifyOfPropertyChange(() => CanDelete);
+            NotifyOfPropertyChange(() => CanClose);
+            NotifyOfPropertyChange(() => CanReopen);
         }
     }
 
@@ -115,6 +122,8 @@ public class AccountsViewModel : Screen
     public bool CanAdd => SelectedCustomer != null && !IsEditing;
     public bool CanEdit => SelectedAccount != null && !IsEditing;
     public bool CanDelete => SelectedAccount != null && !IsEditing;
+    public bool CanClose => SelectedAccount != null && SelectedAccount.Status == "Active" && !IsEditing;
+    public bool CanReopen => SelectedAccount != null && SelectedAccount.Status == "Closed" && !IsEditing;
     public bool CanSave => IsEditing && !string.IsNullOrWhiteSpace(EditingAccount.SOTK) && SelectedCustomer != null;
     public bool CanCancel => IsEditing;
 
@@ -126,7 +135,7 @@ public class AccountsViewModel : Screen
 
     private async Task LoadCustomersAsync()
     {
-        try
+        await ExecuteWithLoadingAsync(async () =>
         {
             List<Customer> customers;
             
@@ -145,12 +154,7 @@ public class AccountsViewModel : Screen
             }
 
             Customers = new ObservableCollection<Customer>(customers);
-            ErrorMessage = string.Empty;
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Error loading customers: {ex.Message}";
-        }
+        });
     }
 
     private async Task LoadAccountsForCustomerAsync()
@@ -161,16 +165,11 @@ public class AccountsViewModel : Screen
             return;
         }
 
-        try
+        await ExecuteWithLoadingAsync(async () =>
         {
             var accounts = await _accountService.GetAccountsByCustomerAsync(SelectedCustomer.CMND);
             Accounts = new ObservableCollection<Account>(accounts);
-            ErrorMessage = string.Empty;
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Error loading accounts: {ex.Message}";
-        }
+        });
     }
 
     public void Add()
@@ -208,7 +207,17 @@ public class AccountsViewModel : Screen
 
     public async Task Save()
     {
-        try
+        // Validate before saving
+        var validationResult = await _validator.ValidateAsync(EditingAccount);
+        if (!validationResult.IsValid)
+        {
+            // Aggregate all validation errors
+            ErrorMessage = string.Join(Environment.NewLine, 
+                validationResult.Errors.Select(e => e.ErrorMessage));
+            return;
+        }
+
+        await ExecuteWithLoadingAsync(async () =>
         {
             bool result;
 
@@ -232,11 +241,7 @@ public class AccountsViewModel : Screen
             {
                 ErrorMessage = "Failed to save account.";
             }
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Error saving account: {ex.Message}";
-        }
+        });
     }
 
     public async Task Delete()
@@ -245,19 +250,19 @@ public class AccountsViewModel : Screen
 
         if (SelectedAccount.SODU != 0)
         {
-            DialogHelper.ShowWarning("Cannot delete account with non-zero balance.", "Delete Account");
+            await _dialogService.ShowWarningAsync("Cannot delete account with non-zero balance.", "Delete Account");
             return;
         }
 
         // Show confirmation dialog
-        var confirmed = DialogHelper.ShowConfirmation(
+        var confirmed = await _dialogService.ShowConfirmationAsync(
             $"Are you sure you want to delete account '{SelectedAccount.SOTK}'?",
             "Delete Confirmation"
         );
 
         if (!confirmed) return;
 
-        try
+        await ExecuteWithLoadingAsync(async () =>
         {
             var result = await _accountService.DeleteAccountAsync(SelectedAccount.SOTK);
             if (result)
@@ -270,11 +275,7 @@ public class AccountsViewModel : Screen
             {
                 ErrorMessage = "Failed to delete account.";
             }
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Error deleting account: {ex.Message}";
-        }
+        });
     }
 
     public void Cancel()
@@ -282,6 +283,66 @@ public class AccountsViewModel : Screen
         IsEditing = false;
         EditingAccount = new Account();
         ErrorMessage = string.Empty;
+    }
+
+    public async Task Close()
+    {
+        if (SelectedAccount == null) return;
+
+        if (SelectedAccount.SODU != 0)
+        {
+            await _dialogService.ShowWarningAsync("Cannot close account with non-zero balance.", "Close Account");
+            return;
+        }
+
+        var confirmed = await _dialogService.ShowConfirmationAsync(
+            $"Are you sure you want to close account '{SelectedAccount.SOTK}'?",
+            "Close Account Confirmation"
+        );
+
+        if (!confirmed) return;
+
+        await ExecuteWithLoadingAsync(async () =>
+        {
+            var result = await _accountService.CloseAccountAsync(SelectedAccount.SOTK);
+            if (result)
+            {
+                await LoadAccountsForCustomerAsync();
+                SelectedAccount = null;
+                ErrorMessage = string.Empty;
+            }
+            else
+            {
+                ErrorMessage = "Failed to close account.";
+            }
+        });
+    }
+
+    public async Task Reopen()
+    {
+        if (SelectedAccount == null) return;
+
+        var confirmed = await _dialogService.ShowConfirmationAsync(
+            $"Are you sure you want to reopen account '{SelectedAccount.SOTK}'?",
+            "Reopen Account Confirmation"
+        );
+
+        if (!confirmed) return;
+
+        await ExecuteWithLoadingAsync(async () =>
+        {
+            var result = await _accountService.ReopenAccountAsync(SelectedAccount.SOTK);
+            if (result)
+            {
+                await LoadAccountsForCustomerAsync();
+                SelectedAccount = null;
+                ErrorMessage = string.Empty;
+            }
+            else
+            {
+                ErrorMessage = "Failed to reopen account.";
+            }
+        });
     }
 
     private string GenerateAccountNumber()

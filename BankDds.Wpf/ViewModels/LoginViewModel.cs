@@ -115,14 +115,15 @@ public class LoginViewModel : Screen
                     return;
             }
 
-            // Set user session
+            // Set user session with employee ID
             _userSession.SetSession(
                 UserName,
                 UserName, // Use username as display name
                 userGroup,
                 SelectedBranch,
                 permittedBranches,
-                result.CustomerCMND);
+                result.CustomerCMND,
+                result.EmployeeId);
 
             // Navigate to Home through parent conductor
             if (Parent is MainShellViewModel mainShell)

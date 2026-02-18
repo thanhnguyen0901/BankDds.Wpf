@@ -1,26 +1,37 @@
 using Caliburn.Micro;
 using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
-using BankDds.Wpf.Helpers;
+using BankDds.Core.Validators;
+
 using System.Collections.ObjectModel;
 
 namespace BankDds.Wpf.ViewModels;
 
-public class AdminViewModel : Screen
+public class AdminViewModel : BaseViewModel
 {
     private readonly IUserService _userService;
     private readonly IUserSession _userSession;
+    private readonly IDialogService _dialogService;
+    private readonly UserValidator _validator;
     
     private ObservableCollection<User> _users = new();
     private User? _selectedUser;
     private User _editingUser = new();
     private bool _isEditing;
-    private string _errorMessage = string.Empty;
+    private string _newPassword = string.Empty;
+    private string _confirmPassword = string.Empty;
+    private string _passwordValidationMessage = string.Empty;
 
-    public AdminViewModel(IUserService userService, IUserSession userSession)
+    public AdminViewModel(
+        IUserService userService, 
+        IUserSession userSession, 
+        IDialogService dialogService,
+        UserValidator validator)
     {
         _userService = userService;
         _userSession = userSession;
+        _dialogService = dialogService;
+        _validator = validator;
         DisplayName = "User Administration";
     }
 
@@ -72,18 +83,43 @@ public class AdminViewModel : Screen
         }
     }
 
-    public string ErrorMessage
+    public string NewPassword
     {
-        get => _errorMessage;
+        get => _newPassword;
         set
         {
-            _errorMessage = value;
-            NotifyOfPropertyChange(() => ErrorMessage);
-            NotifyOfPropertyChange(() => HasError);
+            _newPassword = value;
+            NotifyOfPropertyChange(() => NewPassword);
+            NotifyOfPropertyChange(() => CanSave);
+            ValidatePassword();
         }
     }
 
-    public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
+    public string ConfirmPassword
+    {
+        get => _confirmPassword;
+        set
+        {
+            _confirmPassword = value;
+            NotifyOfPropertyChange(() => ConfirmPassword);
+            NotifyOfPropertyChange(() => CanSave);
+            ValidatePassword();
+        }
+    }
+
+    public string PasswordValidationMessage
+    {
+        get => _passwordValidationMessage;
+        set
+        {
+            _passwordValidationMessage = value;
+            NotifyOfPropertyChange(() => PasswordValidationMessage);
+            NotifyOfPropertyChange(() => IsPasswordValid);
+        }
+    }
+
+    public bool IsPasswordValid => string.IsNullOrEmpty(NewPassword) || 
+                                   PasswordValidationMessage.StartsWith("?");
 
     public ObservableCollection<string> AvailableUserGroups { get; } = new() { "NganHang", "ChiNhanh", "KhachHang" };
     public ObservableCollection<string> AvailableBranches { get; } = new() { "BENTHANH", "TANDINH", "ALL" };
@@ -93,9 +129,51 @@ public class AdminViewModel : Screen
     public bool CanEdit => SelectedUser != null && !IsEditing;
     public bool CanDelete => SelectedUser != null && !IsEditing;
     public bool CanSave => IsEditing && 
-                           !string.IsNullOrWhiteSpace(EditingUser.Username) && 
-                           !string.IsNullOrWhiteSpace(EditingUser.Password);
+                           !string.IsNullOrWhiteSpace(EditingUser.Username) &&
+                           (SelectedUser != null || !string.IsNullOrWhiteSpace(NewPassword)) && // Password required for new users
+                           (string.IsNullOrWhiteSpace(NewPassword) || (NewPassword == ConfirmPassword && IsPasswordValid));
     public bool CanCancel => IsEditing;
+
+    private void ValidatePassword()
+    {
+        if (string.IsNullOrEmpty(NewPassword))
+        {
+            PasswordValidationMessage = SelectedUser != null ? "Leave blank to keep current password" : string.Empty;
+            return;
+        }
+        
+        if (NewPassword.Length < 8)
+        {
+            PasswordValidationMessage = "Password must be at least 8 characters";
+            return;
+        }
+        
+        if (!NewPassword.Any(char.IsUpper))
+        {
+            PasswordValidationMessage = "Password must contain at least one uppercase letter";
+            return;
+        }
+        
+        if (!NewPassword.Any(char.IsLower))
+        {
+            PasswordValidationMessage = "Password must contain at least one lowercase letter";
+            return;
+        }
+        
+        if (!NewPassword.Any(char.IsDigit))
+        {
+            PasswordValidationMessage = "Password must contain at least one number";
+            return;
+        }
+        
+        if (NewPassword != ConfirmPassword)
+        {
+            PasswordValidationMessage = "Passwords do not match";
+            return;
+        }
+        
+        PasswordValidationMessage = "? Password meets requirements";
+    }
 
     protected override async Task OnActivateAsync(CancellationToken cancellationToken)
     {
@@ -112,16 +190,11 @@ public class AdminViewModel : Screen
 
     private async Task LoadUsersAsync()
     {
-        try
+        await ExecuteWithLoadingAsync(async () =>
         {
             var users = await _userService.GetAllUsersAsync();
             Users = new ObservableCollection<User>(users);
-            ErrorMessage = string.Empty;
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Error loading users: {ex.Message}";
-        }
+        });
     }
 
     public void Add()
@@ -134,6 +207,10 @@ public class AdminViewModel : Screen
         IsEditing = true;
         SelectedUser = null;
         ErrorMessage = string.Empty;
+        SuccessMessage = string.Empty;
+        NewPassword = string.Empty;
+        ConfirmPassword = string.Empty;
+        PasswordValidationMessage = string.Empty;
     }
 
     public void Edit()
@@ -143,30 +220,58 @@ public class AdminViewModel : Screen
         EditingUser = new User
         {
             Username = SelectedUser.Username,
-            Password = SelectedUser.Password,
+            PasswordHash = SelectedUser.PasswordHash,
             UserGroup = SelectedUser.UserGroup,
             DefaultBranch = SelectedUser.DefaultBranch,
             CustomerCMND = SelectedUser.CustomerCMND
         };
         IsEditing = true;
         ErrorMessage = string.Empty;
+        SuccessMessage = string.Empty;
+        NewPassword = string.Empty;
+        ConfirmPassword = string.Empty;
+        PasswordValidationMessage = "Leave blank to keep current password";
     }
 
     public async Task Save()
     {
-        try
+        // Validation before loading indicator
+        if (_userSession.UserGroup != UserGroup.NganHang && 
+            EditingUser.UserGroup == UserGroup.NganHang)
         {
-            if (_userSession.UserGroup != UserGroup.NganHang && 
-                EditingUser.UserGroup == UserGroup.NganHang)
+            ErrorMessage = "Only Bank administrators can create Bank-level users.";
+            return;
+        }
+
+        if (EditingUser.UserGroup == UserGroup.KhachHang && 
+            string.IsNullOrWhiteSpace(EditingUser.CustomerCMND))
+        {
+            ErrorMessage = "CustomerCMND is required for customer users.";
+            return;
+        }
+
+        await ExecuteWithLoadingAsync(async () =>
+        {
+            // Hash password if provided
+            if (!string.IsNullOrWhiteSpace(NewPassword))
             {
-                ErrorMessage = "Only Bank administrators can create Bank-level users.";
-                return;
+                EditingUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(NewPassword);
             }
 
-            if (EditingUser.UserGroup == UserGroup.KhachHang && 
-                string.IsNullOrWhiteSpace(EditingUser.CustomerCMND))
+            // Validate user object (skip password hash validation if updating existing user without password change)
+            var validationContext = new FluentValidation.ValidationContext<User>(EditingUser);
+            if (SelectedUser != null && string.IsNullOrWhiteSpace(NewPassword))
             {
-                ErrorMessage = "CustomerCMND is required for customer users.";
+                // When updating and not changing password, don't validate PasswordHash
+                validationContext.RootContextData["SkipPasswordValidation"] = true;
+            }
+
+            var validationResult = await _validator.ValidateAsync(validationContext);
+            if (!validationResult.IsValid)
+            {
+                // Aggregate all validation errors
+                ErrorMessage = string.Join(Environment.NewLine, 
+                    validationResult.Errors.Select(e => e.ErrorMessage));
                 return;
             }
 
@@ -175,28 +280,30 @@ public class AdminViewModel : Screen
             if (SelectedUser == null)
             {
                 result = await _userService.AddUserAsync(EditingUser);
+                if (result)
+                {
+                    SuccessMessage = $"User '{EditingUser.Username}' created successfully.";
+                }
             }
             else
             {
                 result = await _userService.UpdateUserAsync(EditingUser);
+                if (result)
+                {
+                    SuccessMessage = $"User '{EditingUser.Username}' updated successfully.";
+                }
             }
 
             if (result)
             {
-                IsEditing = false;
                 await LoadUsersAsync();
-                SelectedUser = null;
-                ErrorMessage = string.Empty;
+                Cancel();
             }
             else
             {
                 ErrorMessage = "Failed to save user. Username may already exist.";
             }
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Error saving user: {ex.Message}";
-        }
+        });
     }
 
     public async Task Delete()
@@ -205,36 +312,32 @@ public class AdminViewModel : Screen
 
         if (SelectedUser.Username.Equals(_userSession.Username, StringComparison.OrdinalIgnoreCase))
         {
-            DialogHelper.ShowWarning("Cannot delete your own account.", "Delete User");
+            await _dialogService.ShowWarningAsync("Cannot delete your own account.", "Delete User");
             return;
         }
 
         // Show confirmation dialog
-        var confirmed = DialogHelper.ShowConfirmation(
+        var confirmed = await _dialogService.ShowConfirmationAsync(
             $"Are you sure you want to delete user '{SelectedUser.Username}'?",
             "Delete Confirmation"
         );
 
         if (!confirmed) return;
 
-        try
+        await ExecuteWithLoadingAsync(async () =>
         {
             var result = await _userService.DeleteUserAsync(SelectedUser.Username);
             if (result)
             {
                 await LoadUsersAsync();
                 SelectedUser = null;
-                ErrorMessage = string.Empty;
+                SuccessMessage = "User deleted successfully.";
             }
             else
             {
                 ErrorMessage = "Failed to delete user.";
             }
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Error deleting user: {ex.Message}";
-        }
+        });
     }
 
     public void Cancel()
@@ -242,5 +345,9 @@ public class AdminViewModel : Screen
         IsEditing = false;
         EditingUser = new User();
         ErrorMessage = string.Empty;
+        SuccessMessage = string.Empty;
+        NewPassword = string.Empty;
+        ConfirmPassword = string.Empty;
+        PasswordValidationMessage = string.Empty;
     }
 }

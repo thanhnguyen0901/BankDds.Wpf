@@ -5,10 +5,12 @@ using Autofac;
 using Caliburn.Micro;
 using Microsoft.Extensions.Configuration;
 using BankDds.Core.Interfaces;
+using BankDds.Core.Validators;
 using BankDds.Infrastructure.Configuration;
 using BankDds.Infrastructure.Data;
 using BankDds.Infrastructure.Security;
 using BankDds.Wpf.ViewModels;
+using BankDds.Wpf.Services;
 
 namespace BankDds.Wpf;
 
@@ -45,6 +47,16 @@ public class AppBootstrapper : BootstrapperBase
                .As<IWindowManager>()
                .SingleInstance();
 
+        // Dialog service
+        builder.RegisterType<DialogService>()
+               .As<IDialogService>()
+               .SingleInstance();
+
+        // Report Export service
+        builder.RegisterType<ReportExportService>()
+               .As<IReportExportService>()
+               .SingleInstance();
+
         // Configuration services
         builder.RegisterType<ConnectionStringProvider>()
                .As<IConnectionStringProvider>()
@@ -59,6 +71,13 @@ public class AppBootstrapper : BootstrapperBase
         builder.RegisterType<SqlAuthService>()
                .As<IAuthService>()
                .SingleInstance();
+
+        // Validators - Register as singletons (they're stateless)
+        builder.RegisterType<CustomerValidator>().AsSelf().SingleInstance();
+        builder.RegisterType<AccountValidator>().AsSelf().SingleInstance();
+        builder.RegisterType<EmployeeValidator>().AsSelf().SingleInstance();
+        builder.RegisterType<TransactionValidator>().AsSelf().SingleInstance();
+        builder.RegisterType<UserValidator>().AsSelf().SingleInstance();
 
         // Business services - SingleInstance for in-memory data
         builder.RegisterType<CustomerService>()

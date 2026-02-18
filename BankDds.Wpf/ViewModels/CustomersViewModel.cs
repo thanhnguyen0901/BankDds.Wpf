@@ -1,15 +1,17 @@
 using Caliburn.Micro;
 using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
-using BankDds.Wpf.Helpers;
+using BankDds.Core.Validators;
 using System.Collections.ObjectModel;
 
 namespace BankDds.Wpf.ViewModels;
 
-public class CustomersViewModel : Screen
+public class CustomersViewModel : BaseViewModel
 {
     private readonly ICustomerService _customerService;
     private readonly IUserSession _userSession;
+    private readonly IDialogService _dialogService;
+    private readonly CustomerValidator _validator;
     
     private ObservableCollection<Customer> _customers = new();
     private Customer? _selectedCustomer;
@@ -17,10 +19,12 @@ public class CustomersViewModel : Screen
     private bool _isEditing;
     private string _errorMessage = string.Empty;
 
-    public CustomersViewModel(ICustomerService customerService, IUserSession userSession)
+    public CustomersViewModel(ICustomerService customerService, IUserSession userSession, IDialogService dialogService, CustomerValidator validator)
     {
         _customerService = customerService;
         _userSession = userSession;
+        _dialogService = dialogService;
+        _validator = validator;
         DisplayName = "Customer Management";
     }
 
@@ -43,6 +47,7 @@ public class CustomersViewModel : Screen
             NotifyOfPropertyChange(() => SelectedCustomer);
             NotifyOfPropertyChange(() => CanEdit);
             NotifyOfPropertyChange(() => CanDelete);
+            NotifyOfPropertyChange(() => CanRestore);
         }
     }
 
@@ -66,6 +71,7 @@ public class CustomersViewModel : Screen
             NotifyOfPropertyChange(() => CanAdd);
             NotifyOfPropertyChange(() => CanEdit);
             NotifyOfPropertyChange(() => CanDelete);
+            NotifyOfPropertyChange(() => CanRestore);
             NotifyOfPropertyChange(() => CanSave);
             NotifyOfPropertyChange(() => CanCancel);
         }
@@ -84,10 +90,11 @@ public class CustomersViewModel : Screen
 
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
 
-    // CanExecute properties - Standard CRUD pattern
+    // CanExecute properties - Standard CRUD pattern with soft delete
     public bool CanAdd => !IsEditing;
-    public bool CanEdit => SelectedCustomer != null && !IsEditing;
-    public bool CanDelete => SelectedCustomer != null && !IsEditing;
+    public bool CanEdit => SelectedCustomer != null && SelectedCustomer.TrangThaiXoa == 0 && !IsEditing;
+    public bool CanDelete => SelectedCustomer != null && SelectedCustomer.TrangThaiXoa == 0 && !IsEditing;
+    public bool CanRestore => SelectedCustomer != null && SelectedCustomer.TrangThaiXoa == 1 && !IsEditing;
     public bool CanSave => IsEditing && !string.IsNullOrWhiteSpace(EditingCustomer.CMND);
     public bool CanCancel => IsEditing;
 
@@ -99,7 +106,7 @@ public class CustomersViewModel : Screen
 
     private async Task LoadCustomersAsync()
     {
-        try
+        await ExecuteWithLoadingAsync(async () =>
         {
             List<Customer> customers;
             
@@ -113,12 +120,7 @@ public class CustomersViewModel : Screen
             }
 
             Customers = new ObservableCollection<Customer>(customers);
-            ErrorMessage = string.Empty;
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Error loading customers: {ex.Message}";
-        }
+        });
     }
 
     public void Add()
@@ -152,36 +154,69 @@ public class CustomersViewModel : Screen
         if (SelectedCustomer == null) return;
 
         // Show confirmation dialog
-        var confirmed = DialogHelper.ShowConfirmation(
+        var confirmed = await _dialogService.ShowConfirmationAsync(
             $"Are you sure you want to delete customer '{SelectedCustomer.FullName}'?",
             "Delete Confirmation"
         );
 
         if (!confirmed) return;
 
-        try
+        await ExecuteWithLoadingAsync(async () =>
         {
             var result = await _customerService.DeleteCustomerAsync(SelectedCustomer.CMND);
             if (result)
             {
                 await LoadCustomersAsync();
                 SelectedCustomer = null;
-                ErrorMessage = string.Empty;
+                SuccessMessage = "Customer deleted successfully.";
             }
             else
             {
                 ErrorMessage = "Failed to delete customer";
             }
-        }
-        catch (Exception ex)
+        });
+    }
+
+    public async Task Restore()
+    {
+        if (SelectedCustomer == null) return;
+
+        // Show confirmation dialog
+        var confirmed = await _dialogService.ShowConfirmationAsync(
+            $"Are you sure you want to restore customer '{SelectedCustomer.FullName}'?",
+            "Restore Confirmation"
+        );
+
+        if (!confirmed) return;
+
+        await ExecuteWithLoadingAsync(async () =>
         {
-            ErrorMessage = $"Error: {ex.Message}";
-        }
+            var result = await _customerService.RestoreCustomerAsync(SelectedCustomer.CMND);
+            if (result)
+            {
+                await LoadCustomersAsync();
+                SuccessMessage = "Customer restored successfully.";
+            }
+            else
+            {
+                ErrorMessage = "Failed to restore customer";
+            }
+        });
     }
 
     public async Task Save()
     {
-        try
+        // Validate before saving
+        var validationResult = await _validator.ValidateAsync(EditingCustomer);
+        if (!validationResult.IsValid)
+        {
+            // Aggregate all validation errors
+            ErrorMessage = string.Join(Environment.NewLine, 
+                validationResult.Errors.Select(e => e.ErrorMessage));
+            return;
+        }
+
+        await ExecuteWithLoadingAsync(async () =>
         {
             bool result;
             
@@ -199,17 +234,13 @@ public class CustomersViewModel : Screen
                 IsEditing = false;
                 await LoadCustomersAsync();
                 SelectedCustomer = null;
-                ErrorMessage = string.Empty;
+                SuccessMessage = "Customer saved successfully.";
             }
             else
             {
                 ErrorMessage = "Failed to save customer";
             }
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Error: {ex.Message}";
-        }
+        });
     }
 
     public void Cancel()

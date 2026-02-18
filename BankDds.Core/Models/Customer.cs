@@ -9,6 +9,8 @@ public class Customer
     public string SDT { get; set; } = string.Empty;
     public string Phai { get; set; } = string.Empty;
     public string MaCN { get; set; } = string.Empty;
+    public int TrangThaiXoa { get; set; } = 0; // 0 = Active, 1 = Deleted
 
     public string FullName => $"{Ho} {Ten}";
+    public string StatusText => TrangThaiXoa == 0 ? "Active" : "Deleted";
 }

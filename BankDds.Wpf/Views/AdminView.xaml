@@ -88,11 +88,35 @@
                         Style="{StaticResource StandardTextBoxStyle}"
                         Text="{Binding EditingUser.Username, UpdateSourceTrigger=PropertyChanged}" />
 
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Password:" />
-                    <TextBox
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="New Password:" />
+                    <PasswordBox
+                        x:Name="NewPasswordBox"
                         Margin="0,0,0,12"
-                        Style="{StaticResource StandardTextBoxStyle}"
-                        Text="{Binding EditingUser.Password, UpdateSourceTrigger=PropertyChanged}" />
+                        PasswordChanged="OnNewPasswordChanged"
+                        Style="{StaticResource StandardPasswordBoxStyle}" />
+
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Confirm Password:" />
+                    <PasswordBox
+                        x:Name="ConfirmPasswordBox"
+                        Margin="0,0,0,12"
+                        PasswordChanged="OnConfirmPasswordChanged"
+                        Style="{StaticResource StandardPasswordBoxStyle}" />
+
+                    <TextBlock
+                        Margin="0,0,0,12"
+                        FontSize="12"
+                        Text="{Binding PasswordValidationMessage}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="#D32F2F" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsPasswordValid}" Value="True">
+                                        <Setter Property="Foreground" Value="#388E3C" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
 
                     <TextBlock Style="{StaticResource StandardLabelStyle}" Text="User Group:" />
                     <ComboBox
@@ -135,10 +159,42 @@
             </ScrollViewer>
         </Border>
 
-        <!--  Error Message  -->
-        <TextBlock
-            x:Name="ErrorMessage"
-            Grid.Row="3"
-            Style="{StaticResource ErrorMessageStyle}" />
+        <!--  Messages  -->
+        <StackPanel Grid.Row="3" Margin="0,10,0,0">
+            <TextBlock
+                Text="{Binding SuccessMessage}"
+                Foreground="#388E3C"
+                FontWeight="SemiBold"
+                Margin="0,0,0,5">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding SuccessMessage.Length, FallbackValue=0}" Value="0">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding SuccessMessage}" Value="">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding SuccessMessage}" Value="{x:Null}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+            <TextBlock
+                x:Name="ErrorMessage"
+                Style="{StaticResource ErrorMessageStyle}" />
+        </StackPanel>
+        
+        <!-- Loading Overlay -->
+        <Grid Grid.Row="0" Grid.RowSpan="4" Style="{StaticResource LoadingOverlayStyle}">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <ProgressBar Style="{StaticResource LoadingSpinnerStyle}"/>
+                <TextBlock Text="Loading..." Foreground="White" Margin="0,10,0,0" 
+                           HorizontalAlignment="Center" FontSize="14"/>
+            </StackPanel>
+        </Grid>
     </Grid>
 </UserControl>

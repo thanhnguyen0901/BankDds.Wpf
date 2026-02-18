@@ -7,11 +7,11 @@ public class AccountService : IAccountService
 {
     private readonly List<Account> _accounts = new()
     {
-        new Account { SOTK = "001001", CMND = "123456", SODU = 10000000, MACN = "BENTHANH", NGAYMOTK = DateTime.Now.AddMonths(-6) },
-        new Account { SOTK = "001002", CMND = "234567", SODU = 5000000, MACN = "BENTHANH", NGAYMOTK = DateTime.Now.AddMonths(-3) },
-        new Account { SOTK = "002001", CMND = "345678", SODU = 8000000, MACN = "TANDINH", NGAYMOTK = DateTime.Now.AddMonths(-12) },
-        new Account { SOTK = "002002", CMND = "456789", SODU = 15000000, MACN = "TANDINH", NGAYMOTK = DateTime.Now.AddMonths(-8) },
-        new Account { SOTK = "001003", CMND = "c123456", SODU = 3000000, MACN = "BENTHANH", NGAYMOTK = DateTime.Now.AddMonths(-1) }
+        new Account { SOTK = "001001", CMND = "123456", SODU = 10000000, MACN = "BENTHANH", NGAYMOTK = DateTime.Now.AddMonths(-6), Status = "Active" },
+        new Account { SOTK = "001002", CMND = "234567", SODU = 5000000, MACN = "BENTHANH", NGAYMOTK = DateTime.Now.AddMonths(-3), Status = "Active" },
+        new Account { SOTK = "002001", CMND = "345678", SODU = 8000000, MACN = "TANDINH", NGAYMOTK = DateTime.Now.AddMonths(-12), Status = "Active" },
+        new Account { SOTK = "002002", CMND = "456789", SODU = 15000000, MACN = "TANDINH", NGAYMOTK = DateTime.Now.AddMonths(-8), Status = "Active" },
+        new Account { SOTK = "001003", CMND = "c123456", SODU = 3000000, MACN = "BENTHANH", NGAYMOTK = DateTime.Now.AddMonths(-1), Status = "Active" }
     };
 
     public Task<List<Account>> GetAccountsByBranchAsync(string branchCode)
@@ -53,6 +53,7 @@ public class AccountService : IAccountService
             return Task.FromResult(false);
 
         existing.SODU = account.SODU;
+        existing.Status = account.Status;
         return Task.FromResult(true);
     }
 
@@ -66,6 +67,32 @@ public class AccountService : IAccountService
             return Task.FromResult(false); // Cannot delete account with balance
 
         _accounts.Remove(account);
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> CloseAccountAsync(string sotk)
+    {
+        var account = _accounts.FirstOrDefault(a => a.SOTK == sotk);
+        if (account == null)
+            return Task.FromResult(false);
+
+        if (account.SODU != 0)
+            return Task.FromResult(false); // Cannot close account with non-zero balance
+
+        account.Status = "Closed";
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> ReopenAccountAsync(string sotk)
+    {
+        var account = _accounts.FirstOrDefault(a => a.SOTK == sotk);
+        if (account == null)
+            return Task.FromResult(false);
+
+        if (account.Status != "Closed")
+            return Task.FromResult(false); // Account must be closed to reopen
+
+        account.Status = "Active";
         return Task.FromResult(true);
     }
 }

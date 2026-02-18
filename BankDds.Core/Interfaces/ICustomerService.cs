@@ -10,4 +10,5 @@ public interface ICustomerService
     Task<bool> AddCustomerAsync(Customer customer);
     Task<bool> UpdateCustomerAsync(Customer customer);
     Task<bool> DeleteCustomerAsync(string cmnd);
+    Task<bool> RestoreCustomerAsync(string cmnd);
 }

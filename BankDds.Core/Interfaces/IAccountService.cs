@@ -11,4 +11,6 @@ public interface IAccountService
     Task<bool> AddAccountAsync(Account account);
     Task<bool> UpdateAccountAsync(Account account);
     Task<bool> DeleteAccountAsync(string sotk);
+    Task<bool> CloseAccountAsync(string sotk);
+    Task<bool> ReopenAccountAsync(string sotk);
 }

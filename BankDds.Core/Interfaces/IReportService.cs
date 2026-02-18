@@ -8,4 +8,5 @@ public interface IReportService
     Task<List<Account>> GetAccountsOpenedInPeriodAsync(DateTime fromDate, DateTime toDate);
     Task<Dictionary<string, int>> GetCustomerCountByBranchAsync();
     Task<List<Customer>> GetCustomersByBranchReportAsync(string? branchCode = null);
+    Task<TransactionSummary> GetTransactionSummaryAsync(DateTime fromDate, DateTime toDate, string? branchCode = null);
 }

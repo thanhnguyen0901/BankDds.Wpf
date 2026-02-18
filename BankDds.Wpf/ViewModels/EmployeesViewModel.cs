@@ -1,7 +1,6 @@
 using Caliburn.Micro;
 using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
-using BankDds.Wpf.Helpers;
 using System.Collections.ObjectModel;
 
 namespace BankDds.Wpf.ViewModels;
@@ -10,6 +9,7 @@ public class EmployeesViewModel : Screen
 {
     private readonly IEmployeeService _employeeService;
     private readonly IUserSession _userSession;
+    private readonly IDialogService _dialogService;
     
     private ObservableCollection<Employee> _employees = new();
     private Employee? _selectedEmployee;
@@ -18,10 +18,11 @@ public class EmployeesViewModel : Screen
     private string _errorMessage = string.Empty;
     private string _transferBranch = string.Empty;
 
-    public EmployeesViewModel(IEmployeeService employeeService, IUserSession userSession)
+    public EmployeesViewModel(IEmployeeService employeeService, IUserSession userSession, IDialogService dialogService)
     {
         _employeeService = employeeService;
         _userSession = userSession;
+        _dialogService = dialogService;
         DisplayName = "Employee Management";
     }
 
@@ -210,7 +211,7 @@ public class EmployeesViewModel : Screen
     {
         if (SelectedEmployee == null) return;
 
-        var confirmed = DialogHelper.ShowConfirmation(
+        var confirmed = await _dialogService.ShowConfirmationAsync(
             $"Are you sure you want to delete employee '{SelectedEmployee.FullName}'?",
             "Delete Confirmation"
         );
@@ -241,7 +242,7 @@ public class EmployeesViewModel : Screen
     {
         if (SelectedEmployee == null) return;
 
-        var confirmed = DialogHelper.ShowConfirmation(
+        var confirmed = await _dialogService.ShowConfirmationAsync(
             $"Are you sure you want to restore employee '{SelectedEmployee.FullName}'?",
             "Restore Confirmation"
         );
@@ -279,7 +280,7 @@ public class EmployeesViewModel : Screen
     {
         if (SelectedEmployee == null || string.IsNullOrWhiteSpace(TransferBranch)) return;
 
-        var confirmed = DialogHelper.ShowConfirmation(
+        var confirmed = await _dialogService.ShowConfirmationAsync(
             $"Are you sure you want to transfer employee '{SelectedEmployee.FullName}' to branch '{TransferBranch}'?",
             "Transfer Confirmation"
         );

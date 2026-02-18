@@ -11,6 +11,7 @@ public class UserSession : IUserSession
     public string SelectedBranch { get; private set; } = string.Empty;
     public List<string> PermittedBranches { get; private set; } = new();
     public string? CustomerCMND { get; private set; }
+    public int? EmployeeId { get; private set; }
     public bool IsAuthenticated { get; private set; }
 
     public void SetSession(
@@ -19,7 +20,8 @@ public class UserSession : IUserSession
         UserGroup userGroup,
         string selectedBranch,
         List<string> permittedBranches,
-        string? customerCMND = null)
+        string? customerCMND = null,
+        int? employeeId = null)
     {
         Username = username;
         DisplayName = displayName;
@@ -27,6 +29,7 @@ public class UserSession : IUserSession
         SelectedBranch = selectedBranch;
         PermittedBranches = permittedBranches ?? new List<string>();
         CustomerCMND = customerCMND;
+        EmployeeId = employeeId;
         IsAuthenticated = true;
     }
 
@@ -38,6 +41,7 @@ public class UserSession : IUserSession
         SelectedBranch = string.Empty;
         PermittedBranches.Clear();
         CustomerCMND = null;
+        EmployeeId = null;
         IsAuthenticated = false;
     }
 }

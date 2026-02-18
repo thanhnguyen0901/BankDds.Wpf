@@ -16,12 +16,16 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
+
         <TextBlock
             Grid.Row="0"
             Style="{StaticResource PageTitleStyle}"
             Text="Transaction Management" />
+
+        <!--  Error Message  -->
         <Border
             Grid.Row="1"
             Margin="0,0,0,10"
@@ -32,12 +36,39 @@
             CornerRadius="5"
             Visibility="{Binding HasError, Converter={StaticResource BoolToVisConverter}}">
             <TextBlock
+                x:Name="ErrorMessage"
                 FontWeight="SemiBold"
                 Foreground="#856404"
-                Text="{Binding ErrorMessage}"
                 TextWrapping="Wrap" />
         </Border>
-        <TabControl Grid.Row="2" SelectedIndex="{Binding SelectedTabIndex}">
+
+        <!--  Success Message  -->
+        <StackPanel Grid.Row="2" Margin="0,0,0,10">
+            <TextBlock
+                Margin="0,0,0,5"
+                FontWeight="SemiBold"
+                Foreground="#388E3C"
+                Text="{Binding SuccessMessage}">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding SuccessMessage.Length, FallbackValue=0}" Value="0">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding SuccessMessage}" Value="">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding SuccessMessage}" Value="{x:Null}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+        </StackPanel>
+
+        <TabControl Grid.Row="3" SelectedIndex="{Binding SelectedTabIndex}">
             <TabItem Header="Deposit/Withdraw">
                 <Grid Margin="15">
                     <Grid.ColumnDefinitions>
@@ -69,7 +100,7 @@
                                 FontSize="11"
                                 FontStyle="Italic"
                                 Foreground="Gray"
-                                Text="Minimum: 100,000 VND" />
+                                Text="Min: 100K | Max Single: 50M | Daily Withdrawal Limit: 100M VND" />
                             <Button
                                 x:Name="Deposit"
                                 Margin="0,0,0,10"
@@ -90,21 +121,52 @@
                         <DataGrid ItemsSource="{Binding RecentTransactions}" Style="{StaticResource StandardDataGridStyle}">
                             <DataGrid.Columns>
                                 <DataGridTextColumn
-                                    Width="100"
+                                    Width="90"
                                     Binding="{Binding MAGD}"
-                                    Header="Trans. ID" />
+                                    Header="ID" />
                                 <DataGridTextColumn
-                                    Width="80"
+                                    Width="60"
                                     Binding="{Binding LOAIGD}"
                                     Header="Type" />
                                 <DataGridTextColumn
-                                    Width="120"
+                                    Width="90"
                                     Binding="{Binding NGAYGD, StringFormat=dd/MM/yyyy}"
                                     Header="Date" />
                                 <DataGridTextColumn
-                                    Width="*"
+                                    Width="110"
                                     Binding="{Binding SOTIEN, StringFormat=N0}"
                                     Header="Amount" />
+                                <DataGridTextColumn
+                                    Width="90"
+                                    Binding="{Binding StatusDisplay}"
+                                    Header="Status">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Status}" Value="Completed">
+                                                    <Setter Property="Foreground" Value="#388E3C" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Status}" Value="Failed">
+                                                    <Setter Property="Foreground" Value="#D32F2F" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Status}" Value="Pending">
+                                                    <Setter Property="Foreground" Value="#FFA000" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn
+                                    Width="*"
+                                    Binding="{Binding ErrorMessage}"
+                                    Header="Note">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#D32F2F" />
+                                            <Setter Property="FontStyle" Value="Italic" />
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
                             </DataGrid.Columns>
                         </DataGrid>
                     </GroupBox>
@@ -147,7 +209,7 @@
                                 FontSize="11"
                                 FontStyle="Italic"
                                 Foreground="Gray"
-                                Text="Minimum: &gt; 0 VND" />
+                                Text="Min: 100K | Max: 50M | Daily Transfer Limit: 200M VND" />
                             <Button
                                 x:Name="Transfer"
                                 Margin="0"
@@ -163,30 +225,77 @@
                         <DataGrid ItemsSource="{Binding RecentTransactions}" Style="{StaticResource StandardDataGridStyle}">
                             <DataGrid.Columns>
                                 <DataGridTextColumn
-                                    Width="100"
+                                    Width="90"
                                     Binding="{Binding MAGD}"
-                                    Header="Trans. ID" />
+                                    Header="ID" />
                                 <DataGridTextColumn
-                                    Width="80"
+                                    Width="60"
                                     Binding="{Binding LOAIGD}"
                                     Header="Type" />
                                 <DataGridTextColumn
-                                    Width="100"
+                                    Width="80"
                                     Binding="{Binding NGAYGD, StringFormat=dd/MM/yyyy}"
                                     Header="Date" />
                                 <DataGridTextColumn
-                                    Width="120"
+                                    Width="100"
                                     Binding="{Binding SOTIEN, StringFormat=N0}"
                                     Header="Amount" />
                                 <DataGridTextColumn
-                                    Width="*"
+                                    Width="100"
                                     Binding="{Binding SOTK_NHAN}"
                                     Header="To Account" />
+                                <DataGridTextColumn
+                                    Width="90"
+                                    Binding="{Binding StatusDisplay}"
+                                    Header="Status">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Status}" Value="Completed">
+                                                    <Setter Property="Foreground" Value="#388E3C" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Status}" Value="Failed">
+                                                    <Setter Property="Foreground" Value="#D32F2F" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Status}" Value="Pending">
+                                                    <Setter Property="Foreground" Value="#FFA000" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn
+                                    Width="*"
+                                    Binding="{Binding ErrorMessage}"
+                                    Header="Note">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#D32F2F" />
+                                            <Setter Property="FontStyle" Value="Italic" />
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
                             </DataGrid.Columns>
                         </DataGrid>
                     </GroupBox>
                 </Grid>
             </TabItem>
         </TabControl>
+
+        <!--  Loading Overlay  -->
+        <Grid
+            Grid.Row="0"
+            Grid.RowSpan="4"
+            Style="{StaticResource LoadingOverlayStyle}">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <ProgressBar Style="{StaticResource LoadingSpinnerStyle}" />
+                <TextBlock
+                    Margin="0,10,0,0"
+                    HorizontalAlignment="Center"
+                    FontSize="14"
+                    Foreground="White"
+                    Text="Processing..." />
+            </StackPanel>
+        </Grid>
     </Grid>
 </UserControl>

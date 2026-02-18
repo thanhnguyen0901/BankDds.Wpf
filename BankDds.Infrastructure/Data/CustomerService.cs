@@ -62,7 +62,18 @@ public class CustomerService : ICustomerService
         if (customer == null)
             return Task.FromResult(false);
 
-        _customers.Remove(customer);
+        // Soft delete: set TrangThaiXoa = 1 instead of removing from list
+        customer.TrangThaiXoa = 1;
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> RestoreCustomerAsync(string cmnd)
+    {
+        var customer = _customers.FirstOrDefault(c => c.CMND == cmnd);
+        if (customer == null)
+            return Task.FromResult(false);
+
+        customer.TrangThaiXoa = 0;
         return Task.FromResult(true);
     }
 }

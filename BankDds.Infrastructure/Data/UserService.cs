@@ -7,10 +7,10 @@ public class UserService : IUserService
 {
     private readonly List<User> _users = new()
     {
-        new User { Username = "admin", Password = "123", UserGroup = UserGroup.NganHang, DefaultBranch = "ALL" },
-        new User { Username = "btuser", Password = "123", UserGroup = UserGroup.ChiNhanh, DefaultBranch = "BENTHANH" },
-        new User { Username = "tduser", Password = "123", UserGroup = UserGroup.ChiNhanh, DefaultBranch = "TANDINH" },
-        new User { Username = "c123456", Password = "123", UserGroup = UserGroup.KhachHang, DefaultBranch = "BENTHANH", CustomerCMND = "c123456" }
+        new User { Username = "admin", PasswordHash = BCrypt.Net.BCrypt.HashPassword("123"), UserGroup = UserGroup.NganHang, DefaultBranch = "ALL", EmployeeId = 1 },
+        new User { Username = "btuser", PasswordHash = BCrypt.Net.BCrypt.HashPassword("123"), UserGroup = UserGroup.ChiNhanh, DefaultBranch = "BENTHANH", EmployeeId = 2 },
+        new User { Username = "tduser", PasswordHash = BCrypt.Net.BCrypt.HashPassword("123"), UserGroup = UserGroup.ChiNhanh, DefaultBranch = "TANDINH", EmployeeId = 3 },
+        new User { Username = "c123456", PasswordHash = BCrypt.Net.BCrypt.HashPassword("123"), UserGroup = UserGroup.KhachHang, DefaultBranch = "BENTHANH", CustomerCMND = "c123456", EmployeeId = null }
     };
 
     public Task<User?> GetUserAsync(string username)
@@ -34,10 +34,11 @@ public class UserService : IUserService
         if (existing == null)
             return Task.FromResult(false);
 
-        existing.Password = user.Password;
+        existing.PasswordHash = user.PasswordHash;
         existing.UserGroup = user.UserGroup;
         existing.DefaultBranch = user.DefaultBranch;
         existing.CustomerCMND = user.CustomerCMND;
+        existing.EmployeeId = user.EmployeeId;
 
         return Task.FromResult(true);
     }
