@@ -45,3 +45,7 @@ bld/
 Thumbs.db
 Desktop.ini
 $RECYCLE.BIN/
+
+# Local development secrets
+appsettings.Development.json
+appsettings.*.local.json

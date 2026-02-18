@@ -1,0 +1,197 @@
+<UserControl
+    x:Class="BankDds.Wpf.Views.BranchesView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="clr-namespace:BankDds.Wpf.Converters"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    d:DesignHeight="600"
+    d:DesignWidth="1000"
+    Background="White"
+    mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisConverter" />
+        <converters:InvertedBoolToVisibilityConverter x:Key="InvertedBoolToVis" />
+    </UserControl.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!--  Title  -->
+        <TextBlock
+            Grid.Row="0"
+            Style="{StaticResource PageTitleStyle}"
+            Text="Quản lý Chi nhánh" />
+
+        <!--  Action Buttons  -->
+        <StackPanel
+            Grid.Row="1"
+            Margin="0,0,0,15"
+            Orientation="Horizontal">
+            <Button
+                x:Name="Add"
+                Content="Thêm chi nhánh"
+                Style="{StaticResource PrimaryButtonStyle}" />
+            <Button
+                x:Name="Edit"
+                Content="Sửa"
+                Style="{StaticResource WarningButtonStyle}" />
+            <Button
+                x:Name="Delete"
+                Content="Xóa"
+                Style="{StaticResource DangerButtonStyle}" />
+        </StackPanel>
+
+        <!--  Branch List  -->
+        <DataGrid
+            x:Name="Branches"
+            Grid.Row="2"
+            SelectedItem="{Binding SelectedBranch, Mode=TwoWay}"
+            Style="{StaticResource StandardDataGridStyle}"
+            Visibility="{Binding IsEditing, Converter={StaticResource InvertedBoolToVis}}">
+            <DataGrid.Columns>
+                <DataGridTextColumn
+                    Width="120"
+                    Binding="{Binding MACN}"
+                    Header="Mã CN" />
+                <DataGridTextColumn
+                    Width="200"
+                    Binding="{Binding TENCN}"
+                    Header="Tên chi nhánh" />
+                <DataGridTextColumn
+                    Width="*"
+                    Binding="{Binding DiaChi}"
+                    Header="Địa chỉ" />
+                <DataGridTextColumn
+                    Width="140"
+                    Binding="{Binding SoDT}"
+                    Header="SĐT" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!--  Edit Form  -->
+        <Border
+            Grid.Row="2"
+            Style="{StaticResource DetailPanelStyle}"
+            Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisConverter}}">
+            <ScrollViewer Padding="20" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Thông tin Chi nhánh" />
+
+                    <!--  MACN — read-only when editing an existing branch  -->
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Mã chi nhánh (MACN):" />
+                    <TextBox
+                        Margin="0,0,0,12"
+                        Text="{Binding EditingBranch.MACN, UpdateSourceTrigger=PropertyChanged}">
+                        <TextBox.Style>
+                            <Style BasedOn="{StaticResource StandardTextBoxStyle}" TargetType="TextBox">
+                                <Setter Property="IsReadOnly" Value="False" />
+                                <!--  MACN is immutable once saved — lock it when SelectedBranch != null  -->
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedBranch}" Value="{x:Null}">
+                                        <Setter Property="IsReadOnly" Value="False" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                        <!--  Resolved per-binding: if SelectedBranch is set, make read-only  -->
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBox.Style>
+                    </TextBox>
+
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Tên chi nhánh (TENCN):" />
+                    <TextBox
+                        Margin="0,0,0,12"
+                        Style="{StaticResource StandardTextBoxStyle}"
+                        Text="{Binding EditingBranch.TENCN, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Địa chỉ (DiaChi):" />
+                    <TextBox
+                        Margin="0,0,0,12"
+                        Style="{StaticResource StandardTextBoxStyle}"
+                        Text="{Binding EditingBranch.DiaChi, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="SĐT (SoDT):" />
+                    <TextBox
+                        Margin="0,0,0,20"
+                        Style="{StaticResource StandardTextBoxStyle}"
+                        Text="{Binding EditingBranch.SoDT, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <!--  Validation errors  -->
+                    <Border
+                        Style="{StaticResource ValidationErrorPanelStyle}"
+                        Visibility="{Binding HasError, Converter={StaticResource BoolToVisConverter}}">
+                        <StackPanel>
+                            <TextBlock
+                                Margin="0,0,0,4"
+                                FontWeight="SemiBold"
+                                Foreground="#8B0000"
+                                Text="Vui lòng sửa các lỗi sau:" />
+                            <TextBlock
+                                Foreground="#8B0000"
+                                Text="{Binding ErrorMessage}"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                        <Button
+                            x:Name="Save"
+                            Content="Ghi"
+                            Style="{StaticResource SuccessButtonStyle}" />
+                        <Button
+                            x:Name="Cancel"
+                            Margin="0"
+                            Content="Thoát"
+                            Style="{StaticResource SecondaryButtonStyle}" />
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!--  Messages  -->
+        <StackPanel Grid.Row="3" Margin="0,10,0,0">
+            <TextBlock
+                FontWeight="SemiBold"
+                Foreground="#388E3C"
+                Text="{Binding SuccessMessage}">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding SuccessMessage}" Value="{x:Null}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding SuccessMessage}" Value="">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding HasSuccess}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+            <TextBlock x:Name="ErrorMessage" Style="{StaticResource ErrorMessageStyle}" />
+        </StackPanel>
+
+        <!--  Loading Overlay  -->
+        <Grid Grid.Row="0" Grid.RowSpan="4" Style="{StaticResource LoadingOverlayStyle}">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <ProgressBar Style="{StaticResource LoadingSpinnerStyle}" />
+                <TextBlock
+                    Margin="0,10,0,0"
+                    HorizontalAlignment="Center"
+                    FontSize="14"
+                    Foreground="White"
+                    Text="Đang tải..." />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</UserControl>

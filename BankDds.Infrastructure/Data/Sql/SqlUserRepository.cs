@@ -1,6 +1,7 @@
 using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using System.Data;
 
 namespace BankDds.Infrastructure.Data.Sql;
@@ -13,16 +14,22 @@ namespace BankDds.Infrastructure.Data.Sql;
 public class SqlUserRepository : IUserRepository
 {
     private readonly IConnectionStringProvider _connectionStringProvider;
+    private readonly ILogger<SqlUserRepository> _logger;
 
-    public SqlUserRepository(IConnectionStringProvider connectionStringProvider)
+    public SqlUserRepository(
+        IConnectionStringProvider connectionStringProvider,
+        ILogger<SqlUserRepository> logger)
     {
         _connectionStringProvider = connectionStringProvider;
+        _logger = logger;
     }
 
     private string GetConnectionString() => _connectionStringProvider.GetBankConnection();
 
     public async Task<User?> GetUserAsync(string username)
     {
+        // Logging: record attempt with username only — password is NEVER logged.
+        _logger.LogInformation("Auth lookup: user={Username}", username);
         try
         {
             using var connection = new SqlConnection(GetConnectionString());
@@ -72,17 +79,40 @@ public class SqlUserRepository : IUserRepository
         catch (SqlException ex) { throw new InvalidOperationException($"Database error updating user: {ex.Message}", ex); }
     }
 
+    /// <summary>
+    /// Soft-deletes a user by setting TRANGTHAIXED = 1.
+    /// SP contract: SP_SoftDeleteUser @Username nvarchar(50)
+    ///   UPDATE NGUOIDUNG SET TRANGTHAIXED = 1 WHERE Username = @Username
+    /// </summary>
     public async Task<bool> DeleteUserAsync(string username)
     {
         try
         {
             using var connection = new SqlConnection(GetConnectionString());
             await connection.OpenAsync();
-            using var command = new SqlCommand("SP_DeleteUser", connection) { CommandType = CommandType.StoredProcedure };
+            using var command = new SqlCommand("SP_SoftDeleteUser", connection) { CommandType = CommandType.StoredProcedure };
             command.Parameters.AddWithValue("@Username", username);
             return await command.ExecuteNonQueryAsync() > 0;
         }
-        catch (SqlException ex) { throw new InvalidOperationException($"Database error deleting user: {ex.Message}", ex); }
+        catch (SqlException ex) { throw new InvalidOperationException($"Database error soft-deleting user '{username}': {ex.Message}", ex); }
+    }
+
+    /// <summary>
+    /// Restores a soft-deleted user by setting TRANGTHAIXED = 0.
+    /// SP contract: SP_RestoreUser @Username nvarchar(50)
+    ///   UPDATE NGUOIDUNG SET TRANGTHAIXED = 0 WHERE Username = @Username
+    /// </summary>
+    public async Task<bool> RestoreUserAsync(string username)
+    {
+        try
+        {
+            using var connection = new SqlConnection(GetConnectionString());
+            await connection.OpenAsync();
+            using var command = new SqlCommand("SP_RestoreUser", connection) { CommandType = CommandType.StoredProcedure };
+            command.Parameters.AddWithValue("@Username", username);
+            return await command.ExecuteNonQueryAsync() > 0;
+        }
+        catch (SqlException ex) { throw new InvalidOperationException($"Database error restoring user '{username}': {ex.Message}", ex); }
     }
 
     public async Task<List<User>> GetAllUsersAsync()
@@ -100,13 +130,19 @@ public class SqlUserRepository : IUserRepository
         return users;
     }
 
-    private static User MapFromReader(SqlDataReader reader) => new User
+    private static User MapFromReader(SqlDataReader reader)
     {
-        Username      = reader.GetString(reader.GetOrdinal("Username")),
-        PasswordHash  = reader.GetString(reader.GetOrdinal("PasswordHash")),
-        UserGroup     = (UserGroup)reader.GetInt32(reader.GetOrdinal("UserGroup")),
-        DefaultBranch = reader.GetString(reader.GetOrdinal("DefaultBranch")),
-        CustomerCMND  = reader.IsDBNull(reader.GetOrdinal("CustomerCMND")) ? null : reader.GetString(reader.GetOrdinal("CustomerCMND")),
-        EmployeeId    = reader.IsDBNull(reader.GetOrdinal("EmployeeId"))   ? null : reader.GetString(reader.GetOrdinal("EmployeeId"))
-    };
+        var trangThaiOrdinal = reader.GetOrdinal("TrangThaiXoa");
+        return new User
+        {
+            // nChar columns are space-padded — Trim() normalises for model comparisons.
+            Username      = reader.GetString(reader.GetOrdinal("Username")),         // nvarchar — no Trim needed
+            PasswordHash  = reader.GetString(reader.GetOrdinal("PasswordHash")),     // nvarchar
+            UserGroup     = (UserGroup)reader.GetInt32(reader.GetOrdinal("UserGroup")),
+            DefaultBranch = reader.GetString(reader.GetOrdinal("DefaultBranch")).Trim(),
+            CustomerCMND  = reader.IsDBNull(reader.GetOrdinal("CustomerCMND")) ? null : reader.GetString(reader.GetOrdinal("CustomerCMND")).Trim(),
+            EmployeeId    = reader.IsDBNull(reader.GetOrdinal("EmployeeId"))   ? null : reader.GetString(reader.GetOrdinal("EmployeeId")).Trim(),
+            TrangThaiXoa  = reader.IsDBNull(trangThaiOrdinal) ? 0 : reader.GetByte(trangThaiOrdinal)
+        };
+    }
 }

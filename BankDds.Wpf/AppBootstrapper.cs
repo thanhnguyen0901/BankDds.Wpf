@@ -4,6 +4,7 @@ using System.Windows;
 using Autofac;
 using Caliburn.Micro;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using BankDds.Core.Interfaces;
 using BankDds.Core.Validators;
 using BankDds.Infrastructure.Configuration;
@@ -33,12 +34,29 @@ public class AppBootstrapper : BootstrapperBase
         var builder = new ContainerBuilder();
 
         // Configuration
+        // Priority (highest → lowest):
+        //   1. Environment variables (BANKDDS_CONNSTR_* or standard ConnectionStrings__* style)
+        //   2. appsettings.Development.json  (git-ignored — local dev secrets)
+        //   3. appsettings.json              (committed — placeholders only, no real passwords)
         var configuration = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .AddJsonFile("appsettings.Development.json", optional: true, reloadOnChange: true)
+            .AddEnvironmentVariables()
             .Build();
 
         builder.RegisterInstance(configuration).As<IConfiguration>().SingleInstance();
+
+        // Logging — routes to Visual Studio Debug Output (no-op in Release unless AddConsole() is wired)
+        var loggerFactory = LoggerFactory.Create(lb =>
+        {
+            lb.SetMinimumLevel(LogLevel.Debug);
+            lb.AddDebug();
+        });
+        builder.RegisterInstance(loggerFactory).As<ILoggerFactory>().SingleInstance();
+        // Open-generic registration: any ILogger<T> resolved from the container
+        // is created via the factory so all categories share the same provider chain.
+        builder.RegisterGeneric(typeof(Logger<>)).As(typeof(ILogger<>)).SingleInstance();
 
         // Caliburn services
         builder.RegisterType<EventAggregator>()
@@ -80,9 +98,12 @@ public class AppBootstrapper : BootstrapperBase
         builder.RegisterType<EmployeeValidator>().AsSelf().SingleInstance();
         builder.RegisterType<TransactionValidator>().AsSelf().SingleInstance();
         builder.RegisterType<UserValidator>().AsSelf().SingleInstance();
+        builder.RegisterType<BranchValidator>().AsSelf().SingleInstance();
 
         // Read DataMode from configuration
         var dataMode = configuration["DataMode"] ?? "InMemory";
+        loggerFactory.CreateLogger<AppBootstrapper>()
+                     .LogInformation("AppBootstrapper: DataMode = {DataMode}", dataMode);
 
         // Register repositories based on DataMode
         if (dataMode.Equals("InMemory", StringComparison.OrdinalIgnoreCase))
@@ -110,6 +131,10 @@ public class AppBootstrapper : BootstrapperBase
 
             builder.RegisterType<InMemoryReportRepository>()
                    .As<IReportRepository>()
+                   .SingleInstance();
+
+            builder.RegisterType<InMemoryBranchRepository>()
+                   .As<IBranchRepository>()
                    .SingleInstance();
         }
         else if (dataMode.Equals("Sql", StringComparison.OrdinalIgnoreCase))
@@ -140,6 +165,12 @@ public class AppBootstrapper : BootstrapperBase
             builder.RegisterType<SqlReportRepository>()
                    .As<IReportRepository>()
                    .InstancePerDependency();
+
+            // SqlBranchRepository only holds IConnectionStringProvider (singleton),
+            // so SingleInstance is safe and avoids captive-dependency issues in validators.
+            builder.RegisterType<SqlBranchRepository>()
+                   .As<IBranchRepository>()
+                   .SingleInstance();
         }
         else
         {
@@ -149,6 +180,10 @@ public class AppBootstrapper : BootstrapperBase
         // Business services layer - these wrap repositories with additional logic
         builder.RegisterType<CustomerService>()
                .As<ICustomerService>()
+               .SingleInstance();
+
+        builder.RegisterType<BranchService>()
+               .As<IBranchService>()
                .SingleInstance();
 
         builder.RegisterType<AccountService>()

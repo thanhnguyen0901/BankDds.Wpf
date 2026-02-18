@@ -61,6 +61,13 @@ public class UserService : IUserService
         return _userRepository.DeleteUserAsync(username);
     }
 
+    public Task<bool> RestoreUserAsync(string username)
+    {
+        // Admin access required to restore soft-deleted users
+        _authorizationService.RequireAdminAccess();
+        return _userRepository.RestoreUserAsync(username);
+    }
+
     public Task<List<User>> GetAllUsersAsync()
     {
         // Admin access required to list all users

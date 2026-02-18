@@ -149,11 +149,11 @@ public class EmployeesViewModel : Screen
         }
     }
 
-    public void Add()
+    public async Task Add()
     {
         EditingEmployee = new Employee
         {
-            MANV = GenerateEmployeeId(),
+            MANV = await _employeeService.GenerateEmployeeIdAsync(),
             MACN = _userSession.SelectedBranch,
             TrangThaiXoa = 0
         };
@@ -200,6 +200,12 @@ public class EmployeesViewModel : Screen
 
             if (SelectedEmployee == null)
             {
+                // Guard: reject if MANV is already in use (covers manual edits after auto-generation)
+                if (await _employeeService.EmployeeExistsAsync(EditingEmployee.MANV))
+                {
+                    ErrorMessage = $"Mã nhân viên '{EditingEmployee.MANV}' đã tồn tại. Vui lòng nhập mã khác.";
+                    return;
+                }
                 result = await _employeeService.AddEmployeeAsync(EditingEmployee);
             }
             else
@@ -292,16 +298,6 @@ public class EmployeesViewModel : Screen
         IsEditing = false;
         EditingEmployee = new Employee();
         ErrorMessage = string.Empty;
-    }
-
-    /// <summary>
-    /// Generates a 10-character employee ID: "NV" + 8 zero-padded digits.
-    /// Format matches nChar(10) SQL column and seed data (e.g. "NV00000001").
-    /// Uses the last 8 significant digits of DateTime.Ticks to minimise collisions.
-    /// </summary>
-    private static string GenerateEmployeeId()
-    {
-        return $"NV{DateTime.Now.Ticks % 100_000_000:D8}";
     }
 
     public async Task ExecuteTransferBranch()

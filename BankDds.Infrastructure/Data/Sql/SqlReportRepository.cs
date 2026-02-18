@@ -1,6 +1,7 @@
 using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using System.Data;
 
 namespace BankDds.Infrastructure.Data.Sql;
@@ -12,11 +13,16 @@ public class SqlReportRepository : IReportRepository
 {
     private readonly IConnectionStringProvider _connectionStringProvider;
     private readonly IUserSession _userSession;
+    private readonly ILogger<SqlReportRepository> _logger;
 
-    public SqlReportRepository(IConnectionStringProvider connectionStringProvider, IUserSession userSession)
+    public SqlReportRepository(
+        IConnectionStringProvider connectionStringProvider,
+        IUserSession userSession,
+        ILogger<SqlReportRepository> logger)
     {
         _connectionStringProvider = connectionStringProvider;
         _userSession = userSession;
+        _logger = logger;
     }
 
     private string GetConnectionString()
@@ -64,6 +70,9 @@ public class SqlReportRepository : IReportRepository
     /// </summary>
     public async Task<AccountStatement?> GetAccountStatementAsync(string accountNumber, DateTime fromDate, DateTime toDate)
     {
+        accountNumber = accountNumber.Trim();
+        _logger.LogInformation("Report: AccountStatement SOTK={SOTK} period={From:yyyy-MM-dd}→{To:yyyy-MM-dd}",
+                               accountNumber, fromDate, toDate);
         if (fromDate.Date > toDate.Date)
             throw new ArgumentException("FromDate must be less than or equal to ToDate.");
 
@@ -132,11 +141,16 @@ public class SqlReportRepository : IReportRepository
 
     public async Task<List<Account>> GetAccountsOpenedInPeriodAsync(DateTime fromDate, DateTime toDate, string? branchCode = null)
     {
+        _logger.LogInformation("Report: AccountsOpenedInPeriod branch={Branch} period={From:yyyy-MM-dd}→{To:yyyy-MM-dd}",
+                               branchCode ?? "ALL", fromDate, toDate);
         var accounts = new List<Account>();
 
         try
         {
-            using var connection = new SqlConnection(GetConnectionString());
+            var connStr = (string.IsNullOrEmpty(branchCode) || branchCode == "ALL")
+                ? _connectionStringProvider.GetBankConnection()
+                : _connectionStringProvider.GetConnectionStringForBranch(branchCode);
+            using var connection = new SqlConnection(connStr);
             await connection.OpenAsync();
 
             using var command = new SqlCommand("SP_GetAccountsOpenedInPeriod", connection)
@@ -164,11 +178,26 @@ public class SqlReportRepository : IReportRepository
 
     public async Task<List<Customer>> GetCustomersByBranchAsync(string? branchCode = null)
     {
+        _logger.LogInformation("Report: CustomersByBranch branch={Branch}", branchCode ?? "ALL");
+        // GAP-06: SP_GetCustomersByBranch MUST include ORDER BY HO ASC, TEN ASC
+        // so that the result set matches the two-column sort semantics enforced by
+        // InMemoryReportRepository (OrderBy Ho, ThenBy Ten).
+        // Expected SP signature:
+        //   CREATE PROCEDURE SP_GetCustomersByBranch @BranchCode NVARCHAR(10) = NULL
+        //   AS
+        //     SELECT * FROM KHACHHANG
+        //     WHERE (@BranchCode IS NULL OR MACN = @BranchCode)
+        //     ORDER BY HO ASC, TEN ASC
         var customers = new List<Customer>();
 
         try
         {
-            using var connection = new SqlConnection(GetConnectionString());
+            // GAP-07: route by branchCode — Bank_Main (SERVER3) for ALL/null so the SP
+            // can query across branches via TraCuu views; branch server for a specific branch.
+            var connStr = (string.IsNullOrEmpty(branchCode) || branchCode == "ALL")
+                ? _connectionStringProvider.GetBankConnection()
+                : _connectionStringProvider.GetConnectionStringForBranch(branchCode);
+            using var connection = new SqlConnection(connStr);
             await connection.OpenAsync();
 
             using var command = new SqlCommand("SP_GetCustomersByBranch", connection)
@@ -194,9 +223,16 @@ public class SqlReportRepository : IReportRepository
 
     public async Task<TransactionSummary?> GetTransactionSummaryAsync(DateTime fromDate, DateTime toDate, string? branchCode = null)
     {
+        _logger.LogInformation("Report: TransactionSummary branch={Branch} period={From:yyyy-MM-dd}→{To:yyyy-MM-dd}",
+                               branchCode ?? "ALL", fromDate, toDate);
         try
         {
-            using var connection = new SqlConnection(GetConnectionString());
+            // GAP-07: route by branchCode — Bank_Main (SERVER3) for ALL/null;
+            // branch server for a specific branch so the SP hits the right data.
+            var connStr = (string.IsNullOrEmpty(branchCode) || branchCode == "ALL")
+                ? _connectionStringProvider.GetBankConnection()
+                : _connectionStringProvider.GetConnectionStringForBranch(branchCode);
+            using var connection = new SqlConnection(connStr);
             await connection.OpenAsync();
 
             using var command = new SqlCommand("SP_GetTransactionSummary", connection)
@@ -252,12 +288,13 @@ public class SqlReportRepository : IReportRepository
     {
         return new Account
         {
-            SOTK = reader.GetString(reader.GetOrdinal("SOTK")),
-            CMND = reader.GetString(reader.GetOrdinal("CMND")),
+            // nChar columns space-padded — Trim() normalises for model comparisons.
+            SOTK = reader.GetString(reader.GetOrdinal("SOTK")).Trim(),
+            CMND = reader.GetString(reader.GetOrdinal("CMND")).Trim(),
             SODU = reader.GetDecimal(reader.GetOrdinal("SODU")),
-            MACN = reader.GetString(reader.GetOrdinal("MACN")),
+            MACN = reader.GetString(reader.GetOrdinal("MACN")).Trim(),
             NGAYMOTK = reader.GetDateTime(reader.GetOrdinal("NGAYMOTK")),
-            Status = reader.IsDBNull(reader.GetOrdinal("Status")) ? "Active" : reader.GetString(reader.GetOrdinal("Status"))
+            Status = reader.IsDBNull(reader.GetOrdinal("Status")) ? "Active" : reader.GetString(reader.GetOrdinal("Status")).Trim()
         };
     }
 
@@ -265,15 +302,16 @@ public class SqlReportRepository : IReportRepository
     {
         return new Customer
         {
-            CMND = reader.GetString(reader.GetOrdinal("CMND")),
+            // nChar columns space-padded — Trim() normalises for model comparisons.
+            CMND = reader.GetString(reader.GetOrdinal("CMND")).Trim(),
             Ho = reader.GetString(reader.GetOrdinal("HO")),
             Ten = reader.GetString(reader.GetOrdinal("TEN")),
             NgaySinh = reader.IsDBNull(reader.GetOrdinal("NGAYSINH")) ? null : reader.GetDateTime(reader.GetOrdinal("NGAYSINH")),
             DiaChi = reader.IsDBNull(reader.GetOrdinal("DIACHI")) ? "" : reader.GetString(reader.GetOrdinal("DIACHI")),
             NgayCap = reader.IsDBNull(reader.GetOrdinal("NGAYCAP")) ? null : reader.GetDateTime(reader.GetOrdinal("NGAYCAP")),
             SDT = reader.IsDBNull(reader.GetOrdinal("SDT")) ? "" : reader.GetString(reader.GetOrdinal("SDT")),
-            Phai = reader.GetString(reader.GetOrdinal("PHAI")),
-            MaCN = reader.GetString(reader.GetOrdinal("MACN")),
+            Phai = reader.GetString(reader.GetOrdinal("PHAI")).Trim(),
+            MaCN = reader.GetString(reader.GetOrdinal("MACN")).Trim(),
             TrangThaiXoa = reader.GetInt32(reader.GetOrdinal("TrangThaiXoa"))
         };
     }
@@ -282,14 +320,15 @@ public class SqlReportRepository : IReportRepository
     {
         return new Transaction
         {
-            MAGD = reader.GetString(reader.GetOrdinal("MAGD")),
-            SOTK = reader.GetString(reader.GetOrdinal("SOTK")),
-            LOAIGD = reader.GetString(reader.GetOrdinal("LOAIGD")),
+            // nChar columns space-padded — Trim() normalises for model comparisons.
+            MAGD = reader.GetString(reader.GetOrdinal("MAGD")).Trim(),
+            SOTK = reader.GetString(reader.GetOrdinal("SOTK")).Trim(),
+            LOAIGD = reader.GetString(reader.GetOrdinal("LOAIGD")).Trim(),
             NGAYGD = reader.GetDateTime(reader.GetOrdinal("NGAYGD")),
             SOTIEN = reader.GetDecimal(reader.GetOrdinal("SOTIEN")),
-            MANV = reader.GetString(reader.GetOrdinal("MANV")),
-            SOTK_NHAN = reader.IsDBNull(reader.GetOrdinal("SOTK_NHAN")) ? null : reader.GetString(reader.GetOrdinal("SOTK_NHAN")),
-            Status = reader.IsDBNull(reader.GetOrdinal("Status")) ? "Completed" : reader.GetString(reader.GetOrdinal("Status")),
+            MANV = reader.GetString(reader.GetOrdinal("MANV")).Trim(),
+            SOTK_NHAN = reader.IsDBNull(reader.GetOrdinal("SOTK_NHAN")) ? null : reader.GetString(reader.GetOrdinal("SOTK_NHAN")).Trim(),
+            Status = reader.IsDBNull(reader.GetOrdinal("Status")) ? "Completed" : reader.GetString(reader.GetOrdinal("Status")).Trim(),
             ErrorMessage = reader.IsDBNull(reader.GetOrdinal("ErrorMessage")) ? null : reader.GetString(reader.GetOrdinal("ErrorMessage"))
         };
     }

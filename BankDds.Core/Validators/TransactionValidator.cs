@@ -16,10 +16,11 @@ public class TransactionValidator : AbstractValidator<Models.Transaction>
             .Length(9).WithMessage("Account number must be exactly 9 characters");
 
         // Transaction type validation
+        // GAP-03: only GT / RT / CT are valid per DE3 §I.5–§I.6; CK was a legacy alias now removed.
         RuleFor(x => x.LOAIGD)
             .NotEmpty().WithMessage("Transaction type (LOAIGD) is required")
-            .Must(x => x == "GT" || x == "RT" || x == "CT" || x == "CK")
-            .WithMessage("Transaction type must be 'GT' (deposit), 'RT' (withdrawal), or 'CT'/'CK' (transfer)");
+            .Must(x => x == "GT" || x == "RT" || x == "CT")
+            .WithMessage("Transaction type must be 'GT' (Gửi tiền), 'RT' (Rút tiền), or 'CT' (Chuyển tiền)");
 
         // Amount validation: Must be >= 100,000 VND (implies > 0)
         RuleFor(x => x.SOTIEN)
@@ -35,9 +36,10 @@ public class TransactionValidator : AbstractValidator<Models.Transaction>
             .Length(10).WithMessage("Employee ID must be exactly 10 characters");
 
         // Receiving account validation for transfers - must be exactly 9 characters
+        // GAP-03: When guard uses only CT; CK alias removed.
         RuleFor(x => x.SOTK_NHAN)
             .NotEmpty().WithMessage("Receiving account (SOTK_NHAN) is required for transfers")
             .Length(9).WithMessage("Receiving account must be exactly 9 characters")
-            .When(x => x.LOAIGD == "CT" || x.LOAIGD == "CK");
+            .When(x => x.LOAIGD == "CT");
     }
 }

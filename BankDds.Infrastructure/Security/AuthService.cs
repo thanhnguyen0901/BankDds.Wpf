@@ -15,7 +15,7 @@ public class AuthService : IAuthService
         _userRepository = userRepository;
     }
 
-    public async Task<AuthResult> LoginAsync(string serverName, string userName, string password)
+    public async Task<AuthResult> LoginAsync(string userName, string password)
     {
         try
         {
@@ -38,6 +38,16 @@ public class AuthService : IAuthService
                 {
                     Success = false,
                     ErrorMessage = "Invalid username or password"
+                };
+            }
+
+            // Block soft-deleted accounts from logging in
+            if (user.TrangThaiXoa == 1)
+            {
+                return new AuthResult
+                {
+                    Success = false,
+                    ErrorMessage = "Tài khoản này đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên."
                 };
             }
 

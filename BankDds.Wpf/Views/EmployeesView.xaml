@@ -23,26 +23,26 @@
         <TextBlock
             Grid.Row="0"
             Style="{StaticResource PageTitleStyle}"
-            Text="Employee Management" />
+            Text="Quản lý Nhân viên" />
         <StackPanel
             Grid.Row="1"
             Margin="0,0,0,15"
             Orientation="Horizontal">
             <Button
                 x:Name="Add"
-                Content="Add New"
+                Content="Thêm mới"
                 Style="{StaticResource PrimaryButtonStyle}" />
             <Button
                 x:Name="Edit"
-                Content="Edit"
+                Content="Sửa"
                 Style="{StaticResource WarningButtonStyle}" />
             <Button
                 x:Name="Delete"
-                Content="Delete"
+                Content="Xóa"
                 Style="{StaticResource DangerButtonStyle}" />
             <Button
                 x:Name="Restore"
-                Content="Restore"
+                Content="Phục hồi"
                 Style="{StaticResource SuccessButtonStyle}" />
         </StackPanel>
         <DataGrid
@@ -54,19 +54,19 @@
                 <DataGridTextColumn
                     Width="50"
                     Binding="{Binding MANV}"
-                    Header="ID" />
+                    Header="Mã NV" />
                 <DataGridTextColumn
                     Width="100"
                     Binding="{Binding HO}"
-                    Header="Last Name" />
+                    Header="Họ" />
                 <DataGridTextColumn
                     Width="80"
                     Binding="{Binding TEN}"
-                    Header="First Name" />
+                    Header="Tên" />
                 <DataGridTextColumn
                     Width="*"
                     Binding="{Binding DIACHI}"
-                    Header="Address" />
+                    Header="Địa chỉ" />
                 <DataGridTextColumn
                     Width="100"
                     Binding="{Binding CMND}"
@@ -74,19 +74,19 @@
                 <DataGridTextColumn
                     Width="60"
                     Binding="{Binding PHAI}"
-                    Header="Gender" />
+                    Header="Phái" />
                 <DataGridTextColumn
                     Width="100"
                     Binding="{Binding SDT}"
-                    Header="Phone" />
+                    Header="SĐT" />
                 <DataGridTextColumn
                     Width="80"
                     Binding="{Binding MACN}"
-                    Header="Branch" />
+                    Header="Chi nhánh" />
                 <DataGridTextColumn
                     Width="70"
                     Binding="{Binding StatusText}"
-                    Header="Status" />
+                    Header="Trạng thái" />
             </DataGrid.Columns>
         </DataGrid>
         <Border
@@ -95,25 +95,25 @@
             Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisConverter}}">
             <ScrollViewer Padding="20" VerticalScrollBarVisibility="Auto">
                 <StackPanel>
-                    <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Employee Details" />
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Employee ID (MANV):" />
+                    <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Thông tin Nhân viên" />
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Mã nhân viên (MANV):" />
                     <TextBox
                         Margin="0,0,0,12"
                         Background="#F0F0F0"
                         IsReadOnly="True"
                         Style="{StaticResource StandardTextBoxStyle}"
                         Text="{Binding EditingEmployee.MANV}" />
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Last Name:" />
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Họ:" />
                     <TextBox
                         Margin="0,0,0,12"
                         Style="{StaticResource StandardTextBoxStyle}"
                         Text="{Binding EditingEmployee.HO, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="First Name:" />
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Tên:" />
                     <TextBox
                         Margin="0,0,0,12"
                         Style="{StaticResource StandardTextBoxStyle}"
                         Text="{Binding EditingEmployee.TEN, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Address:" />
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Địa chỉ:" />
                     <TextBox
                         Margin="0,0,0,12"
                         Style="{StaticResource StandardTextBoxStyle}"
@@ -123,42 +123,40 @@
                         Margin="0,0,0,12"
                         Style="{StaticResource StandardTextBoxStyle}"
                         Text="{Binding EditingEmployee.CMND, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Gender:" />
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Phái:" />
                     <ComboBox
                         Margin="0,0,0,12"
                         SelectedValue="{Binding EditingEmployee.PHAI, Mode=TwoWay}"
                         Style="{StaticResource StandardComboBoxStyle}">
                         <ComboBoxItem Content="Nam" />
-                        <ComboBoxItem Content="Nu" />
+                        <ComboBoxItem Content="Nữ" />
                     </ComboBox>
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Phone:" />
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="SĐT:" />
                     <TextBox
                         Margin="0,0,0,12"
                         Style="{StaticResource StandardTextBoxStyle}"
                         Text="{Binding EditingEmployee.SDT, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Branch:" />
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Chi nhánh:" />
                     <ComboBox
                         Margin="0,0,0,20"
                         ItemsSource="{Binding AvailableBranches}"
                         SelectedValue="{Binding EditingEmployee.MACN, Mode=TwoWay}"
                         Style="{StaticResource StandardComboBoxStyle}" />
                     <!--  Inline validation errors  -->
-                    <Border
-                        Style="{StaticResource ValidationErrorPanelStyle}"
-                        Visibility="{Binding HasError, Converter={StaticResource BoolToVisConverter}}">
+                    <Border Style="{StaticResource ValidationErrorPanelStyle}" Visibility="{Binding HasError, Converter={StaticResource BoolToVisConverter}}">
                         <StackPanel>
                             <TextBlock
+                                Margin="0,0,0,4"
                                 FontWeight="SemiBold"
                                 Foreground="#8B0000"
-                                Text="Please fix the following errors:"
-                                Margin="0,0,0,4" />
+                                Text="Vui lòng sửa các lỗi sau:" />
                             <TextBlock
+                                Foreground="#8B0000"
                                 Text="{Binding ErrorMessage}"
-                                TextWrapping="Wrap"
-                                Foreground="#8B0000" />
+                                TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Transfer to Branch:" />
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Chuyển đến chi nhánh:" />
                     <ComboBox
                         Margin="0,0,0,12"
                         ItemsSource="{Binding AvailableBranches}"
@@ -168,17 +166,17 @@
                         x:Name="ExecuteTransferBranch"
                         Margin="0,0,0,20"
                         HorizontalAlignment="Stretch"
-                        Content="Transfer Branch"
+                        Content="Thực hiện chuyển chi nhánh"
                         Style="{StaticResource WarningButtonStyle}" />
                     <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
                         <Button
                             x:Name="Save"
-                            Content="Save"
+                            Content="Ghi"
                             Style="{StaticResource SuccessButtonStyle}" />
                         <Button
                             x:Name="Cancel"
                             Margin="0"
-                            Content="Cancel"
+                            Content="Thoát"
                             Style="{StaticResource SecondaryButtonStyle}" />
                     </StackPanel>
                 </StackPanel>

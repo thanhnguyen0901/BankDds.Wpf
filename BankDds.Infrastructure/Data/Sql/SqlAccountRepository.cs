@@ -1,6 +1,7 @@
 using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using System.Data;
 
 namespace BankDds.Infrastructure.Data.Sql;
@@ -12,11 +13,16 @@ public class SqlAccountRepository : IAccountRepository
 {
     private readonly IConnectionStringProvider _connectionStringProvider;
     private readonly IUserSession _userSession;
+    private readonly ILogger<SqlAccountRepository> _logger;
 
-    public SqlAccountRepository(IConnectionStringProvider connectionStringProvider, IUserSession userSession)
+    public SqlAccountRepository(
+        IConnectionStringProvider connectionStringProvider,
+        IUserSession userSession,
+        ILogger<SqlAccountRepository> logger)
     {
         _connectionStringProvider = connectionStringProvider;
         _userSession = userSession;
+        _logger = logger;
     }
 
     private string GetConnectionString()
@@ -30,7 +36,8 @@ public class SqlAccountRepository : IAccountRepository
 
         try
         {
-            using var connection = new SqlConnection(GetConnectionString());
+            // Route to the server that owns this branch's data, not the session branch.
+            using var connection = new SqlConnection(_connectionStringProvider.GetConnectionStringForBranch(branchCode));
             await connection.OpenAsync();
 
             using var command = new SqlCommand("SP_GetAccountsByBranch", connection)
@@ -59,7 +66,10 @@ public class SqlAccountRepository : IAccountRepository
 
         try
         {
-            using var connection = new SqlConnection(GetConnectionString());
+            // GAP-07: GetAllAccountsAsync spans all branches — must use Bank_Main (SERVER3),
+            // not the session-branch connection. NganHang users with SelectedBranch=ALL
+            // would otherwise hit only one branch server and miss accounts from all others.
+            using var connection = new SqlConnection(_connectionStringProvider.GetBankConnection());
             await connection.OpenAsync();
 
             using var command = new SqlCommand("SP_GetAllAccounts", connection)
@@ -334,12 +344,13 @@ public class SqlAccountRepository : IAccountRepository
     {
         return new Account
         {
-            SOTK = reader.GetString(reader.GetOrdinal("SOTK")),
-            CMND = reader.GetString(reader.GetOrdinal("CMND")),
+            // nChar columns padded to fixed width — Trim() normalises for model comparisons.
+            SOTK = reader.GetString(reader.GetOrdinal("SOTK")).Trim(),
+            CMND = reader.GetString(reader.GetOrdinal("CMND")).Trim(),
             SODU = reader.GetDecimal(reader.GetOrdinal("SODU")),
-            MACN = reader.GetString(reader.GetOrdinal("MACN")),
+            MACN = reader.GetString(reader.GetOrdinal("MACN")).Trim(),
             NGAYMOTK = reader.GetDateTime(reader.GetOrdinal("NGAYMOTK")),
-            Status = reader.IsDBNull(reader.GetOrdinal("Status")) ? "Active" : reader.GetString(reader.GetOrdinal("Status"))
+            Status = reader.IsDBNull(reader.GetOrdinal("Status")) ? "Active" : reader.GetString(reader.GetOrdinal("Status")).Trim()
         };
     }
 }

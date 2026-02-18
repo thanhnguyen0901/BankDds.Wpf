@@ -309,14 +309,9 @@ public class ReportsViewModel : Screen
         try
         {
             var accounts = await _reportService.GetAccountsOpenedInPeriodAsync(
-                AccountsOpenedFromDate, 
-                AccountsOpenedToDate);
-
-            // UI branch-picker filter (role-scoping is already enforced by the service layer)
-            if (SelectedBranchForAccounts != "ALL")
-            {
-                accounts = accounts.Where(a => a.MACN == SelectedBranchForAccounts).ToList();
-            }
+                AccountsOpenedFromDate,
+                AccountsOpenedToDate,
+                SelectedBranchForAccounts);
 
             AccountsOpened = new ObservableCollection<Account>(accounts);
             ErrorMessage = $"Found {accounts.Count} accounts opened in the period.";

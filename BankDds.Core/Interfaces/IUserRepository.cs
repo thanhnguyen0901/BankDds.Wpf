@@ -11,5 +11,7 @@ public interface IUserRepository
     Task<bool> AddUserAsync(User user);
     Task<bool> UpdateUserAsync(User user);
     Task<bool> DeleteUserAsync(string username);
+    /// <summary>Restores a soft-deleted user (sets TrangThaiXoa = 0).</summary>
+    Task<bool> RestoreUserAsync(string username);
     Task<List<User>> GetAllUsersAsync();
 }

@@ -23,7 +23,7 @@
         <TextBlock
             Grid.Row="0"
             Style="{StaticResource PageTitleStyle}"
-            Text="Transaction Management" />
+            Text="Quản lý Giao dịch" />
 
         <!--  Error Message  -->
         <Border
@@ -69,7 +69,7 @@
         </StackPanel>
 
         <TabControl Grid.Row="3" SelectedIndex="{Binding SelectedTabIndex}">
-            <TabItem Header="Deposit/Withdraw">
+            <TabItem Header="Gửi / Rút tiền">
                 <Grid Margin="15">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="400" />
@@ -84,13 +84,13 @@
                         BorderThickness="1"
                         CornerRadius="5">
                         <StackPanel>
-                            <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Transaction Details" />
-                            <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Account Number:" />
+                            <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Thông tin giao dịch" />
+                            <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Số tài khoản:" />
                             <TextBox
                                 Margin="0,0,0,15"
                                 Style="{StaticResource StandardTextBoxStyle}"
                                 Text="{Binding SelectedAccountNumber, UpdateSourceTrigger=PropertyChanged}" />
-                            <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Amount:" />
+                            <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Số tiền:" />
                             <TextBox
                                 Margin="0,0,0,5"
                                 Style="{StaticResource StandardTextBoxStyle}"
@@ -100,16 +100,16 @@
                                 FontSize="11"
                                 FontStyle="Italic"
                                 Foreground="Gray"
-                                Text="Min: 100K | Max Single: 50M | Daily Withdrawal Limit: 100M VND" />
+                                Text="Tối thiểu: 100K | Tối đa một lần: 50M | Hạn mức rút/ngày: 100M VND" />
                             <Button
                                 x:Name="Deposit"
                                 Margin="0,0,0,10"
-                                Content="Deposit"
+                                Content="Gửi tiền"
                                 Style="{StaticResource SuccessButtonStyle}" />
                             <Button
                                 x:Name="Withdraw"
                                 Margin="0"
-                                Content="Withdraw"
+                                Content="Rút tiền"
                                 Style="{StaticResource DangerButtonStyle}" />
                         </StackPanel>
                     </Border>
@@ -117,29 +117,29 @@
                         Grid.Column="2"
                         FontSize="14"
                         FontWeight="SemiBold"
-                        Header="Recent Transactions">
+                        Header="Giao dịch gần đây">
                         <DataGrid ItemsSource="{Binding RecentTransactions}" Style="{StaticResource StandardDataGridStyle}">
                             <DataGrid.Columns>
                                 <DataGridTextColumn
                                     Width="90"
                                     Binding="{Binding MAGD}"
-                                    Header="ID" />
+                                    Header="Mã GD" />
                                 <DataGridTextColumn
                                     Width="60"
                                     Binding="{Binding LOAIGD}"
-                                    Header="Type" />
+                                    Header="Loại" />
                                 <DataGridTextColumn
                                     Width="90"
                                     Binding="{Binding NGAYGD, StringFormat=dd/MM/yyyy}"
-                                    Header="Date" />
+                                    Header="Ngày" />
                                 <DataGridTextColumn
                                     Width="110"
                                     Binding="{Binding SOTIEN, StringFormat=N0}"
-                                    Header="Amount" />
+                                    Header="Số tiền" />
                                 <DataGridTextColumn
                                     Width="90"
                                     Binding="{Binding StatusDisplay}"
-                                    Header="Status">
+                                    Header="Trạng thái">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Style.Triggers>
@@ -159,7 +159,7 @@
                                 <DataGridTextColumn
                                     Width="*"
                                     Binding="{Binding ErrorMessage}"
-                                    Header="Note">
+                                    Header="Ghi chú">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Foreground" Value="#D32F2F" />
@@ -172,7 +172,7 @@
                     </GroupBox>
                 </Grid>
             </TabItem>
-            <TabItem Header="Transfer">
+            <TabItem Header="Chuyển tiền">
                 <Grid Margin="15">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="400" />
@@ -187,19 +187,19 @@
                         BorderThickness="1"
                         CornerRadius="5">
                         <StackPanel>
-                            <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Transfer Details" />
-                            <TextBlock Style="{StaticResource StandardLabelStyle}" Text="From Account:" />
+                            <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Thông tin chuyển tiền" />
+                            <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Tài khoản nguồn:" />
                             <TextBox
                                 Margin="0,0,0,15"
                                 Style="{StaticResource StandardTextBoxStyle}"
                                 Text="{Binding SelectedAccountNumber, UpdateSourceTrigger=PropertyChanged}" />
-                            <TextBlock Style="{StaticResource StandardLabelStyle}" Text="To Account:" />
+                            <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Tài khoản đích:" />
                             <TextBox
                                 x:Name="TransferToAccount"
                                 Margin="0,0,0,15"
                                 Style="{StaticResource StandardTextBoxStyle}"
                                 Text="{Binding TransferToAccount, UpdateSourceTrigger=PropertyChanged}" />
-                            <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Amount:" />
+                            <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Số tiền:" />
                             <TextBox
                                 Margin="0,0,0,5"
                                 Style="{StaticResource StandardTextBoxStyle}"
@@ -209,11 +209,11 @@
                                 FontSize="11"
                                 FontStyle="Italic"
                                 Foreground="Gray"
-                                Text="Min: 100K | Max: 50M | Daily Transfer Limit: 200M VND" />
+                                Text="Tối thiểu: 100K | Tối đa: 50M | Hạn mức chuyển/ngày: 200M VND" />
                             <Button
                                 x:Name="Transfer"
                                 Margin="0"
-                                Content="Transfer"
+                                Content="Chuyển tiền"
                                 Style="{StaticResource WarningButtonStyle}" />
                         </StackPanel>
                     </Border>
@@ -221,33 +221,33 @@
                         Grid.Column="2"
                         FontSize="14"
                         FontWeight="SemiBold"
-                        Header="Recent Transactions">
+                        Header="Giao dịch gần đây">
                         <DataGrid ItemsSource="{Binding RecentTransactions}" Style="{StaticResource StandardDataGridStyle}">
                             <DataGrid.Columns>
                                 <DataGridTextColumn
                                     Width="90"
                                     Binding="{Binding MAGD}"
-                                    Header="ID" />
+                                    Header="Mã GD" />
                                 <DataGridTextColumn
                                     Width="60"
                                     Binding="{Binding LOAIGD}"
-                                    Header="Type" />
+                                    Header="Loại" />
                                 <DataGridTextColumn
                                     Width="80"
                                     Binding="{Binding NGAYGD, StringFormat=dd/MM/yyyy}"
-                                    Header="Date" />
+                                    Header="Ngày" />
                                 <DataGridTextColumn
                                     Width="100"
                                     Binding="{Binding SOTIEN, StringFormat=N0}"
-                                    Header="Amount" />
+                                    Header="Số tiền" />
                                 <DataGridTextColumn
                                     Width="100"
                                     Binding="{Binding SOTK_NHAN}"
-                                    Header="To Account" />
+                                    Header="TK đến" />
                                 <DataGridTextColumn
                                     Width="90"
                                     Binding="{Binding StatusDisplay}"
-                                    Header="Status">
+                                    Header="Trạng thái">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Style.Triggers>
@@ -267,7 +267,7 @@
                                 <DataGridTextColumn
                                     Width="*"
                                     Binding="{Binding ErrorMessage}"
-                                    Header="Note">
+                                    Header="Ghi chú">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Foreground" Value="#D32F2F" />
@@ -294,7 +294,7 @@
                     HorizontalAlignment="Center"
                     FontSize="14"
                     Foreground="White"
-                    Text="Processing..." />
+                    Text="Đang xử lý..." />
             </StackPanel>
         </Grid>
     </Grid>

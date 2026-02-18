@@ -206,7 +206,7 @@ public class InMemoryTransactionRepository : ITransactionRepository
             {
                 MAGD      = magd,
                 SOTK      = sotkFrom,
-                LOAIGD    = "CK",
+                LOAIGD    = "CT",   // GAP-03: always use CT (Chuyển tiền) per DE3 §I.6
                 NGAYGD    = now,
                 SOTIEN    = amount,
                 MANV      = manv,
@@ -261,7 +261,7 @@ public class InMemoryTransactionRepository : ITransactionRepository
         {
             MAGD      = magd,
             SOTK      = sotkFrom,
-            LOAIGD    = "CK",
+            LOAIGD    = "CT",   // GAP-03: always use CT (Chuyển tiền) per DE3 §I.6
             NGAYGD    = now,
             SOTIEN    = amount,
             MANV      = manv,

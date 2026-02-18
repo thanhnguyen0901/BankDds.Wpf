@@ -34,6 +34,8 @@ public class InMemoryReportRepository : IReportRepository
         var allTransactions = await _transactionRepository.GetTransactionsByAccountAsync(accountNumber);
 
         // ── Normalise "CK" → "CT" without mutating the cached objects ─────────
+        // GAP-03: new transfers always write LOAIGD = "CT". The CK → CT map is kept as a
+        // backward-compat safety net for any data created before the fix (no-op for CT records).
         // Work on a projected copy so the in-memory cache stays clean.
         var normalised = allTransactions
             .Where(t => t.Status == "Completed")
@@ -163,7 +165,8 @@ public class InMemoryReportRepository : IReportRepository
             customers = customers.Where(c => c.MaCN == branchCode).ToList();
         }
         
-        return customers.OrderBy(c => c.FullName).ToList();
+        // GAP-06: sort by HO ASC then TEN ASC — matches DE3 §IV.3 and SP_GetCustomersByBranch ORDER BY
+        return customers.OrderBy(c => c.Ho).ThenBy(c => c.Ten).ToList();
     }
 
     public async Task<TransactionSummary?> GetTransactionSummaryAsync(DateTime fromDate, DateTime toDate, string? branchCode = null)

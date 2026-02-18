@@ -1,6 +1,7 @@
 using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using System.Data;
 
 namespace BankDds.Infrastructure.Data.Sql;
@@ -14,11 +15,16 @@ public class SqlCustomerRepository : ICustomerRepository
 {
     private readonly IConnectionStringProvider _connectionStringProvider;
     private readonly IUserSession _userSession;
+    private readonly ILogger<SqlCustomerRepository> _logger;
 
-    public SqlCustomerRepository(IConnectionStringProvider connectionStringProvider, IUserSession userSession)
+    public SqlCustomerRepository(
+        IConnectionStringProvider connectionStringProvider,
+        IUserSession userSession,
+        ILogger<SqlCustomerRepository> logger)
     {
         _connectionStringProvider = connectionStringProvider;
         _userSession = userSession;
+        _logger = logger;
     }
 
     private string GetConnectionString() =>
@@ -26,6 +32,8 @@ public class SqlCustomerRepository : ICustomerRepository
 
     public async Task<List<Customer>> GetCustomersByBranchAsync(string branchCode)
     {
+        branchCode = branchCode.Trim();
+        _logger.LogInformation("GetCustomersByBranch: branch={Branch}", branchCode);
         var customers = new List<Customer>();
         try
         {
@@ -42,6 +50,7 @@ public class SqlCustomerRepository : ICustomerRepository
 
     public async Task<List<Customer>> GetAllCustomersAsync()
     {
+        _logger.LogInformation("GetAllCustomers: cross-branch via Bank_Main");
         var customers = new List<Customer>();
         try
         {
@@ -140,15 +149,17 @@ public class SqlCustomerRepository : ICustomerRepository
 
     private static Customer MapFromReader(SqlDataReader reader) => new Customer
     {
-        CMND        = reader.GetString(reader.GetOrdinal("CMND")),
+        // nChar columns are space-padded to their fixed length in SQL Server;
+        // Trim() normalises them so model comparisons work correctly.
+        CMND        = reader.GetString(reader.GetOrdinal("CMND")).Trim(),
         Ho          = reader.GetString(reader.GetOrdinal("HO")),
         Ten         = reader.GetString(reader.GetOrdinal("TEN")),
         NgaySinh    = reader.IsDBNull(reader.GetOrdinal("NGAYSINH")) ? null : reader.GetDateTime(reader.GetOrdinal("NGAYSINH")),
         DiaChi      = reader.IsDBNull(reader.GetOrdinal("DIACHI"))   ? ""   : reader.GetString(reader.GetOrdinal("DIACHI")),
         NgayCap     = reader.IsDBNull(reader.GetOrdinal("NGAYCAP"))  ? null : reader.GetDateTime(reader.GetOrdinal("NGAYCAP")),
         SDT         = reader.IsDBNull(reader.GetOrdinal("SDT"))      ? ""   : reader.GetString(reader.GetOrdinal("SDT")),
-        Phai        = reader.GetString(reader.GetOrdinal("PHAI")),
-        MaCN        = reader.GetString(reader.GetOrdinal("MACN")),
+        Phai        = reader.GetString(reader.GetOrdinal("PHAI")).Trim(),
+        MaCN        = reader.GetString(reader.GetOrdinal("MACN")).Trim(),
         TrangThaiXoa = reader.IsDBNull(reader.GetOrdinal("TrangThaiXoa")) ? 0 : reader.GetInt32(reader.GetOrdinal("TrangThaiXoa"))
     };
 }

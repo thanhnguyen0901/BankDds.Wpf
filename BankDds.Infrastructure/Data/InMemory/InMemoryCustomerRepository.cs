@@ -9,7 +9,7 @@ public class InMemoryCustomerRepository : ICustomerRepository
     {
         new Customer 
         { 
-            CMND = "012345678", 
+            CMND = "0012345678", 
             Ho = "Nguyen Van", 
             Ten = "A", 
             NgaySinh = new DateTime(1990, 1, 15), 
@@ -21,19 +21,19 @@ public class InMemoryCustomerRepository : ICustomerRepository
         },
         new Customer 
         { 
-            CMND = "023456789", 
+            CMND = "0023456789", 
             Ho = "Tran Thi", 
             Ten = "B", 
             NgaySinh = new DateTime(1992, 5, 10), 
             DiaChi = "456 Nguyen Hue", 
             NgayCap = new DateTime(2010, 5, 15), 
             SDT = "0902345678", 
-            Phai = "Nu", 
+            Phai = "Nữ", 
             MaCN = "BENTHANH" 
         },
         new Customer 
         { 
-            CMND = "034567890", 
+            CMND = "0034567890", 
             Ho = "Le Van", 
             Ten = "C", 
             NgaySinh = new DateTime(1985, 8, 25), 
@@ -45,19 +45,19 @@ public class InMemoryCustomerRepository : ICustomerRepository
         },
         new Customer 
         { 
-            CMND = "045678901", 
+            CMND = "0045678901", 
             Ho = "Pham Thi", 
             Ten = "D", 
             NgaySinh = new DateTime(1995, 3, 12), 
             DiaChi = "321 Hai Ba Trung", 
             NgayCap = new DateTime(2013, 3, 20), 
             SDT = "0904567890", 
-            Phai = "Nu", 
+            Phai = "Nữ", 
             MaCN = "TANDINH" 
         },
         new Customer 
         { 
-            CMND = "056789012", 
+            CMND = "0056789012", 
             Ho = "Khach", 
             Ten = "Hang", 
             NgaySinh = new DateTime(1988, 7, 8), 

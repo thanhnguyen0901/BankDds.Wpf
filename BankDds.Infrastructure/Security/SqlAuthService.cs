@@ -22,7 +22,7 @@ public class SqlAuthService : IAuthService
         _userRepository = userRepository;
     }
 
-    public async Task<AuthResult> LoginAsync(string serverName, string userName, string password)
+    public async Task<AuthResult> LoginAsync(string userName, string password)
     {
         var user = await _userRepository.GetUserAsync(userName);
         if (user != null && BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))

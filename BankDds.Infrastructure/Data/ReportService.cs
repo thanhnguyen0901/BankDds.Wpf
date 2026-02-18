@@ -39,13 +39,15 @@ public class ReportService : IReportService
         return statement;
     }
 
-    public async Task<List<Account>> GetAccountsOpenedInPeriodAsync(DateTime fromDate, DateTime toDate)
+    public async Task<List<Account>> GetAccountsOpenedInPeriodAsync(DateTime fromDate, DateTime toDate, string? branchCode = null)
     {
         _authorizationService.RequireCanAccessReports();
-
-        // NganHang gets all branches; ChiNhanh is automatically scoped to their branch
-        var branchFilter = _authorizationService.GetEffectiveBranchFilter();
-        return await _reportRepository.GetAccountsOpenedInPeriodAsync(fromDate, toDate, branchFilter);
+        if (!string.IsNullOrEmpty(branchCode) && branchCode != "ALL")
+            _authorizationService.RequireCanAccessBranch(branchCode);
+        var effectiveBranch = (!string.IsNullOrEmpty(branchCode) && branchCode != "ALL")
+            ? branchCode
+            : _authorizationService.GetEffectiveBranchFilter();
+        return await _reportRepository.GetAccountsOpenedInPeriodAsync(fromDate, toDate, effectiveBranch);
     }
 
     public async Task<Dictionary<string, int>> GetCustomerCountByBranchAsync()

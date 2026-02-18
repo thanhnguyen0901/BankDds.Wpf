@@ -11,11 +11,11 @@ public class InMemoryUserRepository : IUserRepository
 {
     private readonly List<User> _users = new()
     {
-        // CustomerCMND must be numeric 9–12 digits (matches nChar CMND column).
+        // GAP-08: CustomerCMND must be exactly 10 numeric digits (nChar(10)).
         new User { Username = "admin",   PasswordHash = BCrypt.Net.BCrypt.HashPassword("123"), UserGroup = UserGroup.NganHang,  DefaultBranch = "ALL",      EmployeeId = "NV00000001" },
         new User { Username = "btuser",  PasswordHash = BCrypt.Net.BCrypt.HashPassword("123"), UserGroup = UserGroup.ChiNhanh,  DefaultBranch = "BENTHANH", EmployeeId = "NV00000002" },
         new User { Username = "tduser",  PasswordHash = BCrypt.Net.BCrypt.HashPassword("123"), UserGroup = UserGroup.ChiNhanh,  DefaultBranch = "TANDINH",  EmployeeId = "NV00000003" },
-        new User { Username = "c123456", PasswordHash = BCrypt.Net.BCrypt.HashPassword("123"), UserGroup = UserGroup.KhachHang, DefaultBranch = "BENTHANH", CustomerCMND = "056789012", EmployeeId = null }
+        new User { Username = "c123456", PasswordHash = BCrypt.Net.BCrypt.HashPassword("123"), UserGroup = UserGroup.KhachHang, DefaultBranch = "BENTHANH", CustomerCMND = "0056789012", EmployeeId = null }
     };
 
     public Task<User?> GetUserAsync(string username)
@@ -54,7 +54,18 @@ public class InMemoryUserRepository : IUserRepository
         if (user == null)
             return Task.FromResult(false);
 
-        _users.Remove(user);
+        // Soft-delete: mark TrangThaiXoa = 1 instead of removing from list
+        user.TrangThaiXoa = 1;
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> RestoreUserAsync(string username)
+    {
+        var user = _users.FirstOrDefault(u => u.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
+        if (user == null)
+            return Task.FromResult(false);
+
+        user.TrangThaiXoa = 0;
         return Task.FromResult(true);
     }
 

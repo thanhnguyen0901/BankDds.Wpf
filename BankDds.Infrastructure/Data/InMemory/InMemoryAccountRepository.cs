@@ -12,11 +12,11 @@ public class InMemoryAccountRepository : IAccountRepository
     private readonly List<Account> _accounts = new()
     {
         // CMND values match InMemoryCustomerRepository seed; SOTK = nChar(9).
-        new Account { SOTK = "TK0000001", CMND = "012345678", SODU = 10000000, MACN = "BENTHANH", NGAYMOTK = DateTime.Now.AddMonths(-6),  Status = "Active" },
-        new Account { SOTK = "TK0000002", CMND = "023456789", SODU =  5000000, MACN = "BENTHANH", NGAYMOTK = DateTime.Now.AddMonths(-3),  Status = "Active" },
-        new Account { SOTK = "TK0000003", CMND = "034567890", SODU =  8000000, MACN = "TANDINH",  NGAYMOTK = DateTime.Now.AddMonths(-12), Status = "Active" },
-        new Account { SOTK = "TK0000004", CMND = "045678901", SODU = 15000000, MACN = "TANDINH",  NGAYMOTK = DateTime.Now.AddMonths(-8),  Status = "Active" },
-        new Account { SOTK = "TK0000005", CMND = "056789012", SODU =  3000000, MACN = "BENTHANH", NGAYMOTK = DateTime.Now.AddMonths(-1),  Status = "Active" }
+        new Account { SOTK = "TK0000001", CMND = "0012345678", SODU = 10000000, MACN = "BENTHANH", NGAYMOTK = DateTime.Now.AddMonths(-6),  Status = "Active" },
+        new Account { SOTK = "TK0000002", CMND = "0023456789", SODU =  5000000, MACN = "BENTHANH", NGAYMOTK = DateTime.Now.AddMonths(-3),  Status = "Active" },
+        new Account { SOTK = "TK0000003", CMND = "0034567890", SODU =  8000000, MACN = "TANDINH",  NGAYMOTK = DateTime.Now.AddMonths(-12), Status = "Active" },
+        new Account { SOTK = "TK0000004", CMND = "0045678901", SODU = 15000000, MACN = "TANDINH",  NGAYMOTK = DateTime.Now.AddMonths(-8),  Status = "Active" },
+        new Account { SOTK = "TK0000005", CMND = "0056789012", SODU =  3000000, MACN = "BENTHANH", NGAYMOTK = DateTime.Now.AddMonths(-1),  Status = "Active" }
     };
 
     private readonly object _lock = new object();

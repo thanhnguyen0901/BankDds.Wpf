@@ -26,7 +26,7 @@
         <TextBlock
             Grid.Row="0"
             Style="{StaticResource PageTitleStyle}"
-            Text="User Administration" />
+            Text="Quản trị Người dùng" />
 
         <!--  Action Buttons  -->
         <StackPanel
@@ -35,16 +35,20 @@
             Orientation="Horizontal">
             <Button
                 x:Name="Add"
-                Content="Add User"
+                Content="Thêm người dùng"
                 Style="{StaticResource PrimaryButtonStyle}" />
             <Button
                 x:Name="Edit"
-                Content="Edit"
+                Content="Sửa"
                 Style="{StaticResource WarningButtonStyle}" />
             <Button
                 x:Name="Delete"
-                Content="Delete"
+                Content="Vô hiệu hóa"
                 Style="{StaticResource DangerButtonStyle}" />
+            <Button
+                x:Name="Restore"
+                Content="Phục hồi"
+                Style="{StaticResource SuccessButtonStyle}" />
         </StackPanel>
 
         <!--  User List  -->
@@ -53,27 +57,42 @@
             Grid.Row="2"
             SelectedItem="{Binding SelectedUser, Mode=TwoWay}"
             Style="{StaticResource StandardDataGridStyle}">
+            <!--  Grey-italic rows for soft-deleted users  -->
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding TrangThaiXoa}" Value="1">
+                            <Setter Property="Foreground" Value="#999999" />
+                            <Setter Property="FontStyle" Value="Italic" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
             <DataGrid.Columns>
                 <DataGridTextColumn
                     Width="150"
                     Binding="{Binding Username}"
-                    Header="Username" />
+                    Header="Tên đăng nhập" />
                 <DataGridTextColumn
                     Width="120"
                     Binding="{Binding UserGroup}"
-                    Header="Role" />
+                    Header="Vai trò" />
                 <DataGridTextColumn
                     Width="150"
                     Binding="{Binding DefaultBranch}"
-                    Header="Default Branch" />
+                    Header="Chi nhánh mặc định" />
                 <DataGridTextColumn
                     Width="130"
                     Binding="{Binding EmployeeId}"
-                    Header="Employee ID" />
+                    Header="Mã NV" />
+                <DataGridTextColumn
+                    Width="150"
+                    Binding="{Binding CustomerCMND}"
+                    Header="CMND KH" />
                 <DataGridTextColumn
                     Width="*"
-                    Binding="{Binding CustomerCMND}"
-                    Header="Customer CMND" />
+                    Binding="{Binding StatusText}"
+                    Header="Trạng thái" />
             </DataGrid.Columns>
         </DataGrid>
 
@@ -84,22 +103,22 @@
             Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisConverter}}">
             <ScrollViewer Padding="20" VerticalScrollBarVisibility="Auto">
                 <StackPanel>
-                    <TextBlock Style="{StaticResource SectionTitleStyle}" Text="User Details" />
+                    <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Thông tin Người dùng" />
 
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Username:" />
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Tên đăng nhập:" />
                     <TextBox
                         Margin="0,0,0,12"
                         Style="{StaticResource StandardTextBoxStyle}"
                         Text="{Binding EditingUser.Username, UpdateSourceTrigger=PropertyChanged}" />
 
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="New Password:" />
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Mật khẩu mới:" />
                     <PasswordBox
                         x:Name="NewPasswordBox"
                         Margin="0,0,0,12"
                         PasswordChanged="OnNewPasswordChanged"
                         Style="{StaticResource StandardPasswordBoxStyle}" />
 
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Confirm Password:" />
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Xác nhận mật khẩu:" />
                     <PasswordBox
                         x:Name="ConfirmPasswordBox"
                         Margin="0,0,0,12"
@@ -122,7 +141,7 @@
                         </TextBlock.Style>
                     </TextBlock>
 
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="User Group:" />
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Nhóm người dùng:" />
                     <ComboBox
                         Margin="0,0,0,12"
                         ItemsSource="{Binding AvailableUserGroups}"
@@ -135,20 +154,20 @@
                         </ComboBox.ItemTemplate>
                     </ComboBox>
 
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Employee ID (NVxxxxxxxx, for bank/branch users):" />
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Mã nhân viên (NVxxxxxxxx, dành cho nhân viên ngân hàng/chi nhánh):" />
                     <TextBox
                         Margin="0,0,0,12"
                         Style="{StaticResource StandardTextBoxStyle}"
                         Text="{Binding EditingUser.EmployeeId, UpdateSourceTrigger=PropertyChanged}" />
 
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Default Branch:" />
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Chi nhánh mặc định:" />
                     <ComboBox
                         Margin="0,0,0,12"
                         ItemsSource="{Binding AvailableBranches}"
                         SelectedItem="{Binding EditingUser.DefaultBranch, Mode=TwoWay}"
                         Style="{StaticResource StandardComboBoxStyle}" />
 
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Customer CMND (for customers only):" />
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="CMND khách hàng (chỉ dành cho khách hàng):" />
                     <TextBox
                         Margin="0,0,0,20"
                         Style="{StaticResource StandardTextBoxStyle}"
@@ -162,7 +181,7 @@
                             <TextBlock
                                 FontWeight="SemiBold"
                                 Foreground="#8B0000"
-                                Text="Please fix the following errors:"
+                                Text="Vui lòng sửa các lỗi sau:"
                                 Margin="0,0,0,4" />
                             <TextBlock
                                 Text="{Binding ErrorMessage}"
@@ -174,12 +193,12 @@
                     <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
                         <Button
                             x:Name="Save"
-                            Content="Save"
+                            Content="Ghi"
                             Style="{StaticResource SuccessButtonStyle}" />
                         <Button
                             x:Name="Cancel"
                             Margin="0"
-                            Content="Cancel"
+                            Content="Thoát"
                             Style="{StaticResource SecondaryButtonStyle}" />
                     </StackPanel>
                 </StackPanel>
@@ -219,7 +238,7 @@
         <Grid Grid.Row="0" Grid.RowSpan="4" Style="{StaticResource LoadingOverlayStyle}">
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                 <ProgressBar Style="{StaticResource LoadingSpinnerStyle}"/>
-                <TextBlock Text="Loading..." Foreground="White" Margin="0,10,0,0" 
+                <TextBlock Text="Đang tải..." Foreground="White" Margin="0,10,0,0" 
                            HorizontalAlignment="Center" FontSize="14"/>
             </StackPanel>
         </Grid>

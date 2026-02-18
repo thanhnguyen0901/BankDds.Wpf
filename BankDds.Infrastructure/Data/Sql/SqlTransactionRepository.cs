@@ -1,6 +1,7 @@
 using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using System.Data;
 
 namespace BankDds.Infrastructure.Data.Sql;
@@ -13,15 +14,18 @@ public class SqlTransactionRepository : ITransactionRepository
     private readonly IConnectionStringProvider _connectionStringProvider;
     private readonly IUserSession _userSession;
     private readonly IAccountRepository _accountRepository;
+    private readonly ILogger<SqlTransactionRepository> _logger;
 
     public SqlTransactionRepository(
         IConnectionStringProvider connectionStringProvider,
         IUserSession userSession,
-        IAccountRepository accountRepository)
+        IAccountRepository accountRepository,
+        ILogger<SqlTransactionRepository> logger)
     {
         _connectionStringProvider = connectionStringProvider;
         _userSession = userSession;
         _accountRepository = accountRepository;
+        _logger = logger;
     }
 
     private string GetConnectionString()
@@ -64,7 +68,9 @@ public class SqlTransactionRepository : ITransactionRepository
 
         try
         {
-            using var connection = new SqlConnection(GetConnectionString());
+            // GAP-07: route to the server that owns this branch's data, not the session branch.
+            // The caller always supplies a specific branchCode here, so no ALL guard needed.
+            using var connection = new SqlConnection(_connectionStringProvider.GetConnectionStringForBranch(branchCode));
             await connection.OpenAsync();
 
             using var command = new SqlCommand("SP_GetTransactionsByBranch", connection)
@@ -137,6 +143,8 @@ public class SqlTransactionRepository : ITransactionRepository
 
     public async Task<bool> DepositAsync(string sotk, decimal amount, string manv)
     {
+        sotk = sotk.Trim(); manv = manv.Trim();
+        _logger.LogInformation("Deposit: SOTK={SOTK} Amount={Amount} MANV={MANV}", sotk, amount, manv);
         try
         {
             using var connection = new SqlConnection(GetConnectionString());
@@ -161,6 +169,8 @@ public class SqlTransactionRepository : ITransactionRepository
 
     public async Task<bool> WithdrawAsync(string sotk, decimal amount, string manv)
     {
+        sotk = sotk.Trim(); manv = manv.Trim();
+        _logger.LogInformation("Withdraw: SOTK={SOTK} Amount={Amount} MANV={MANV}", sotk, amount, manv);
         try
         {
             using var connection = new SqlConnection(GetConnectionString());
@@ -184,25 +194,21 @@ public class SqlTransactionRepository : ITransactionRepository
     }
 
     /// <summary>
-    /// Atomically transfers money between two accounts using a single ADO.NET transaction.
-    /// <para>
-    /// Algorithm:
-    /// <list type="number">
-    ///   <item>Pre-validate amount &gt; 0 and accounts not identical (no DB round-trip).</item>
-    ///   <item>Read source and destination accounts for rich error messages (outside tx).</item>
-    ///   <item>BEGIN TRANSACTION (ReadCommitted).</item>
-    ///   <item>SP_DeductFromAccount — deducts amount from source; the SP enforces its own
-    ///       locked balance check (returns 0 rows if balance insufficient or account closed).</item>
-    ///   <item>SP_AddToAccount — credits destination; the SP enforces account-active check.</item>
-    ///   <item>SP_CreateTransferTransaction — records the audit log entry.</item>
-    ///   <item>COMMIT — all three changes become visible atomically.</item>
+    /// Transfers money between two accounts, routing on branch topology (GAP-02 fix).
+    /// <list type="bullet">
+    ///   <item><b>Same-branch</b> (sourceAccount.MACN == destAccount.MACN): single
+    ///       ADO.NET connection + <see cref="SqlTransaction"/> on that server — no MSDTC needed.</item>
+    ///   <item><b>Cross-branch</b> (different MACN): delegates to
+    ///       <c>SP_CrossBranchTransfer</c> on the source-branch server, which uses a Linked Server
+    ///       reference and <c>BEGIN DISTRIBUTED TRANSACTION</c> (MSDTC) to debit source,
+    ///       credit destination, and record <c>GD_CHUYENTIEN</c> atomically.</item>
     /// </list>
-    /// Any failure (including concurrent modification detected by SP row counts) triggers
-    /// ROLLBACK, leaving both account balances and the transaction log unchanged.
-    /// </para>
+    /// In both cases all business validation is performed before touching the database.
     /// </summary>
     public async Task<bool> TransferAsync(string sotkFrom, string sotkTo, decimal amount, string manv)
-    {
+    {        sotkFrom = sotkFrom.Trim(); sotkTo = sotkTo.Trim(); manv = manv.Trim();
+        _logger.LogInformation("Transfer: From={SotkFrom} To={SotkTo} Amount={Amount} MANV={MANV}",
+                               sotkFrom, sotkTo, amount, manv);
         // ── Pre-validation (no DB round-trip) ────────────────────────────────
         if (amount <= 0)
             throw new InvalidOperationException("Transfer amount must be greater than 0.");
@@ -210,7 +216,7 @@ public class SqlTransactionRepository : ITransactionRepository
         if (sotkFrom == sotkTo)
             throw new InvalidOperationException("Cannot transfer to the same account.");
 
-        // ── Pre-validate accounts (outside the transaction — for rich error messages) ──
+        // ── Pre-validate accounts (outside transaction — for rich error messages) ──
         var sourceAccount = await _accountRepository.GetAccountAsync(sotkFrom);
         if (sourceAccount == null)
             throw new InvalidOperationException($"Source account '{sotkFrom}' not found.");
@@ -226,22 +232,39 @@ public class SqlTransactionRepository : ITransactionRepository
         if (destAccount.Status == "Closed")
             throw new InvalidOperationException("Cannot transfer to a closed account.");
 
-        // ── All writes in ONE connection + ONE transaction ────────────────────
+        // ── Route on branch topology ──────────────────────────────────────────
+        // Branch codes come from the pre-validated account objects, not from _userSession,
+        // so the correct physical server is always targeted regardless of session context.
+        string sourceBranch = sourceAccount.MACN;
+        string destBranch   = destAccount.MACN;
+
+        return string.Equals(sourceBranch, destBranch, StringComparison.OrdinalIgnoreCase)
+            ? await ExecuteSameBranchTransferAsync(sotkFrom, sotkTo, amount, manv, sourceBranch)
+            : await ExecuteCrossBranchTransferAsync(sotkFrom, sotkTo, amount, manv, sourceBranch, destBranch);
+    }
+
+    /// <summary>
+    /// Same-branch transfer: single ADO.NET connection and transaction on the branch server.
+    /// All three SPs (debit, credit, GD_CHUYENTIEN INSERT) run atomically under one
+    /// <see cref="SqlTransaction"/>. No MSDTC required.
+    /// </summary>
+    private async Task<bool> ExecuteSameBranchTransferAsync(
+        string sotkFrom, string sotkTo, decimal amount, string manv, string branch)
+    {
+        _logger.LogInformation("Same-branch transfer: branch={Branch} From={SotkFrom} To={SotkTo}",
+                               branch, sotkFrom, sotkTo);
         SqlConnection?  connection    = null;
         SqlTransaction? dbTransaction = null;
 
         try
         {
-            connection = new SqlConnection(GetConnectionString());
+            connection = new SqlConnection(_connectionStringProvider.GetConnectionStringForBranch(branch));
             await connection.OpenAsync();
 
-            // BEGIN TRANSACTION
             dbTransaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
 
             // Step 1: Deduct from source account.
-            // SP enforces a locked balance check (WHERE SODU >= @Amount AND Status = 'Active'),
-            // so 0 rows affected means a concurrent withdrawal changed the balance after our
-            // pre-validation read above.
+            // SP enforces a locked balance check — 0 rows means concurrent modification.
             using (var cmd = new SqlCommand("SP_DeductFromAccount", connection, dbTransaction)
                    { CommandType = CommandType.StoredProcedure })
             {
@@ -265,8 +288,7 @@ public class SqlTransactionRepository : ITransactionRepository
                         "Credit to destination account failed — account may have been modified concurrently.");
             }
 
-            // Step 3: Record transaction log entry (same connection + transaction).
-            // This entry is only committed if both balance updates succeed.
+            // Step 3: Record GD_CHUYENTIEN row (committed atomically with both balance updates).
             using (var cmd = new SqlCommand("SP_CreateTransferTransaction", connection, dbTransaction)
                    { CommandType = CommandType.StoredProcedure })
             {
@@ -277,22 +299,17 @@ public class SqlTransactionRepository : ITransactionRepository
                 await cmd.ExecuteScalarAsync(); // returns MAGD; ignored here
             }
 
-            // COMMIT — all three changes become visible atomically
             await dbTransaction.CommitAsync();
             return true;
         }
         catch (Exception ex)
         {
-            // ROLLBACK on any error — leaves both accounts and the log unchanged
             if (dbTransaction != null)
             {
                 try { await dbTransaction.RollbackAsync(); }
                 catch { /* ignore secondary rollback failures */ }
             }
-
-            // Re-throw business-validation exceptions as-is so the caller gets the message
             if (ex is InvalidOperationException) throw;
-
             throw new InvalidOperationException($"Transfer failed: {ex.Message}", ex);
         }
         finally
@@ -302,18 +319,98 @@ public class SqlTransactionRepository : ITransactionRepository
         }
     }
 
+    /// <summary>
+    /// Cross-branch transfer: calls <c>SP_CrossBranchTransfer</c> on the source-branch server.
+    /// <para>
+    /// That SP uses a SQL Server Linked Server reference to reach the destination server and wraps
+    /// the debit, credit, and GD_CHUYENTIEN INSERT in <c>BEGIN DISTRIBUTED TRANSACTION</c>
+    /// (requires MSDTC to be enabled on both servers).
+    /// </para>
+    /// <para>
+    /// GD_CHUYENTIEN is recorded on the <paramref name="sourceBranch"/> server by the SP.
+    /// </para>
+    /// <para>
+    /// If the SP or Linked Server is not configured, a clear setup-guidance error is thrown
+    /// rather than silently failing with a generic SQL error.
+    /// </para>
+    /// </summary>
+    private async Task<bool> ExecuteCrossBranchTransferAsync(
+        string sotkFrom, string sotkTo, decimal amount, string manv,
+        string sourceBranch, string destBranch)
+    {
+        _logger.LogInformation(
+            "Cross-branch transfer: {SourceBranch}→{DestBranch} From={SotkFrom} To={SotkTo}",
+            sourceBranch, destBranch, sotkFrom, sotkTo);
+        try
+        {
+            using var connection = new SqlConnection(
+                _connectionStringProvider.GetConnectionStringForBranch(sourceBranch));
+            await connection.OpenAsync();
+
+            using var cmd = new SqlCommand("SP_CrossBranchTransfer", connection)
+            {
+                CommandType    = CommandType.StoredProcedure,
+                // Distributed transactions via MSDTC can take longer than local ones
+                CommandTimeout = 60
+            };
+            cmd.Parameters.AddWithValue("@SOTK_CHUYEN", sotkFrom);
+            cmd.Parameters.AddWithValue("@SOTK_NHAN",   sotkTo);
+            cmd.Parameters.AddWithValue("@SOTIEN",      amount);
+            cmd.Parameters.AddWithValue("@MANV",        manv);
+            cmd.Parameters.AddWithValue("@DEST_BRANCH", destBranch);
+
+            await cmd.ExecuteNonQueryAsync();
+            return true;
+        }
+        catch (SqlException ex) when (ex.Number == 2812)
+        {
+            // 2812: stored procedure not found
+            _logger.LogError(ex, "Cross-branch SP missing: {SourceBranch}→{DestBranch}", sourceBranch, destBranch);
+            throw new InvalidOperationException(
+                $"MSDTC/Linked Server not configured: SP_CrossBranchTransfer not found on '{sourceBranch}'. " +
+                "Please follow sql/01-schema.sql §C and docs/audit/99-final-db-readiness.md to create the SP and configure Linked Servers.",
+                ex);
+        }
+        catch (SqlException ex) when (ex.Number is 8501 or 8517 or 7391)
+        {
+            // 8501/8517: MSDTC unavailable; 7391: distributed tx not supported
+            _logger.LogError(ex, "MSDTC unavailable for cross-branch transfer: {SourceBranch}→{DestBranch}", sourceBranch, destBranch);
+            throw new InvalidOperationException(
+                $"MSDTC/Linked Server not configured. Cross-branch transfer from '{sourceBranch}' to '{destBranch}' " +
+                "requires MSDTC to be running on both servers. " +
+                "Please follow sql/01-schema.sql §C and docs/audit/99-final-db-readiness.md.",
+                ex);
+        }
+        catch (SqlException ex) when (ex.Number is 7202 or 7399 or 7312)
+        {
+            // 7202: Linked Server not found; 7399: provider error; 7312: access denied on Linked Server
+            _logger.LogError(ex, "Linked Server error for cross-branch transfer: {SourceBranch}→{DestBranch}", sourceBranch, destBranch);
+            throw new InvalidOperationException(
+                $"MSDTC/Linked Server not configured. Linked Server from '{sourceBranch}' to '{destBranch}' is not set up. " +
+                "Please follow sql/01-schema.sql §C and docs/audit/99-final-db-readiness.md.",
+                ex);
+        }
+        catch (SqlException ex)
+        {
+            _logger.LogError(ex, "Cross-branch transfer SQL error {Number}: {SourceBranch}→{DestBranch}", ex.Number, sourceBranch, destBranch);
+            throw new InvalidOperationException(
+                $"Cross-branch transfer failed (SQL error {ex.Number}): {ex.Message}", ex);
+        }
+    }
+
     private Transaction MapFromReader(SqlDataReader reader)
     {
         return new Transaction
         {
-            MAGD = reader.GetString(reader.GetOrdinal("MAGD")),
-            SOTK = reader.GetString(reader.GetOrdinal("SOTK")),
-            LOAIGD = reader.GetString(reader.GetOrdinal("LOAIGD")),
+            // nChar columns space-padded — Trim() normalises for model comparisons.
+            MAGD = reader.GetString(reader.GetOrdinal("MAGD")).Trim(),
+            SOTK = reader.GetString(reader.GetOrdinal("SOTK")).Trim(),
+            LOAIGD = reader.GetString(reader.GetOrdinal("LOAIGD")).Trim(),
             NGAYGD = reader.GetDateTime(reader.GetOrdinal("NGAYGD")),
             SOTIEN = reader.GetDecimal(reader.GetOrdinal("SOTIEN")),
-            MANV = reader.GetString(reader.GetOrdinal("MANV")),
-            SOTK_NHAN = reader.IsDBNull(reader.GetOrdinal("SOTK_NHAN")) ? null : reader.GetString(reader.GetOrdinal("SOTK_NHAN")),
-            Status = reader.IsDBNull(reader.GetOrdinal("Status")) ? "Completed" : reader.GetString(reader.GetOrdinal("Status")),
+            MANV = reader.GetString(reader.GetOrdinal("MANV")).Trim(),
+            SOTK_NHAN = reader.IsDBNull(reader.GetOrdinal("SOTK_NHAN")) ? null : reader.GetString(reader.GetOrdinal("SOTK_NHAN")).Trim(),
+            Status = reader.IsDBNull(reader.GetOrdinal("Status")) ? "Completed" : reader.GetString(reader.GetOrdinal("Status")).Trim(),
             ErrorMessage = reader.IsDBNull(reader.GetOrdinal("ErrorMessage")) ? null : reader.GetString(reader.GetOrdinal("ErrorMessage"))
         };
     }

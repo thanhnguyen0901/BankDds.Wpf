@@ -38,7 +38,10 @@ public class HomeViewModel : Conductor<Screen>.Collection.OneActive
     public bool CanViewEmployees => _userSession.UserGroup is UserGroup.NganHang or UserGroup.ChiNhanh;
     public bool CanViewTransactions => _userSession.UserGroup is UserGroup.NganHang or UserGroup.ChiNhanh;
     public bool CanViewReports => true; // All users can view reports (filtered by role)
-    public bool CanViewAdmin => _userSession.UserGroup == UserGroup.NganHang;
+    // GAP-01: ChiNhanh must also reach Admin to create logins in the same group (DE3 §IV.2)
+    public bool CanViewAdmin => _userSession.UserGroup is UserGroup.NganHang or UserGroup.ChiNhanh;
+    // GAP-04: Branch management — NganHang only
+    public bool CanViewBranches => _userSession.UserGroup == UserGroup.NganHang;
     public bool IsCustomerMode => _userSession.UserGroup == UserGroup.KhachHang;
 
     protected override Task OnActivateAsync(CancellationToken cancellationToken)
@@ -59,6 +62,7 @@ public class HomeViewModel : Conductor<Screen>.Collection.OneActive
         NotifyOfPropertyChange(() => CanViewTransactions);
         NotifyOfPropertyChange(() => CanViewReports);
         NotifyOfPropertyChange(() => CanViewAdmin);
+        NotifyOfPropertyChange(() => CanViewBranches);
         NotifyOfPropertyChange(() => IsCustomerMode);
     }
 
@@ -105,6 +109,14 @@ public class HomeViewModel : Conductor<Screen>.Collection.OneActive
         if (!CanViewAdmin) return;
         
         var vm = IoC.Get<AdminViewModel>();
+        await ActivateItemAsync(vm, cancellationToken: default);
+    }
+
+    public async Task ShowBranches()
+    {
+        if (!CanViewBranches) return;
+
+        var vm = IoC.Get<BranchesViewModel>();
         await ActivateItemAsync(vm, cancellationToken: default);
     }
 

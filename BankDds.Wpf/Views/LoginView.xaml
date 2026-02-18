@@ -181,14 +181,14 @@
                     FontSize="24"
                     FontWeight="Bold"
                     Foreground="#0078D7"
-                    Text="Distributed Banking System" />
+                    Text="Hệ thống Ngân hàng" />
                 <TextBlock
                     Grid.Row="0"
                     Margin="0,120,0,0"
                     HorizontalAlignment="Center"
                     FontSize="14"
                     Foreground="#666666"
-                    Text="Login to system" />
+                    Text="Đăng nhập vào hệ thống" />
 
                 <!--  Branch Selection  -->
                 <StackPanel Grid.Row="2">
@@ -197,7 +197,7 @@
                         FontSize="13"
                         FontWeight="SemiBold"
                         Foreground="#333333"
-                        Text="Branch" />
+                        Text="Chi nhánh" />
                     <ComboBox
                         x:Name="SelectedBranch"
                         ItemsSource="{Binding Branches}"
@@ -212,7 +212,7 @@
                         FontSize="13"
                         FontWeight="SemiBold"
                         Foreground="#333333"
-                        Text="User Name" />
+                        Text="Tên đăng nhập" />
                     <Border
                         Background="White"
                         BorderBrush="#CCCCCC"
@@ -235,7 +235,7 @@
                         FontSize="13"
                         FontWeight="SemiBold"
                         Foreground="#333333"
-                        Text="Password" />
+                        Text="Mật khẩu" />
                     <Border
                         Background="White"
                         BorderBrush="#CCCCCC"
@@ -270,7 +270,7 @@
                     Height="45"
                     Background="#0078D7"
                     BorderThickness="0"
-                    Content="Login"
+                    Content="Đăng nhập"
                     Cursor="Hand"
                     FontSize="15"
                     FontWeight="SemiBold"

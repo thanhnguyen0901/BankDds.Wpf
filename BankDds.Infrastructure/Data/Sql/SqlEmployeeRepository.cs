@@ -1,6 +1,7 @@
 using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using System.Data;
 
 namespace BankDds.Infrastructure.Data.Sql;
@@ -14,11 +15,16 @@ public class SqlEmployeeRepository : IEmployeeRepository
 {
     private readonly IConnectionStringProvider _connectionStringProvider;
     private readonly IUserSession _userSession;
+    private readonly ILogger<SqlEmployeeRepository> _logger;
 
-    public SqlEmployeeRepository(IConnectionStringProvider connectionStringProvider, IUserSession userSession)
+    public SqlEmployeeRepository(
+        IConnectionStringProvider connectionStringProvider,
+        IUserSession userSession,
+        ILogger<SqlEmployeeRepository> logger)
     {
         _connectionStringProvider = connectionStringProvider;
         _userSession = userSession;
+        _logger = logger;
     }
 
     private string GetConnectionString() =>
@@ -153,14 +159,55 @@ public class SqlEmployeeRepository : IEmployeeRepository
 
     private static Employee MapFromReader(SqlDataReader reader) => new Employee
     {
-        MANV         = reader.GetString(reader.GetOrdinal("MANV")),
+        // nChar columns are space-padded — Trim() normalises for model comparisons.
+        MANV         = reader.GetString(reader.GetOrdinal("MANV")).Trim(),
         HO           = reader.GetString(reader.GetOrdinal("HO")),
         TEN          = reader.GetString(reader.GetOrdinal("TEN")),
         DIACHI       = reader.IsDBNull(reader.GetOrdinal("DIACHI")) ? "" : reader.GetString(reader.GetOrdinal("DIACHI")),
-        CMND         = reader.IsDBNull(reader.GetOrdinal("CMND"))   ? "" : reader.GetString(reader.GetOrdinal("CMND")),
-        PHAI         = reader.GetString(reader.GetOrdinal("PHAI")),
+        CMND         = reader.IsDBNull(reader.GetOrdinal("CMND"))   ? "" : reader.GetString(reader.GetOrdinal("CMND")).Trim(),
+        PHAI         = reader.GetString(reader.GetOrdinal("PHAI")).Trim(),
         SDT          = reader.IsDBNull(reader.GetOrdinal("SDT"))    ? "" : reader.GetString(reader.GetOrdinal("SDT")),
-        MACN         = reader.GetString(reader.GetOrdinal("MACN")),
+        MACN         = reader.GetString(reader.GetOrdinal("MACN")).Trim(),
         TrangThaiXoa = reader.IsDBNull(reader.GetOrdinal("TrangThaiXoa")) ? 0 : reader.GetInt32(reader.GetOrdinal("TrangThaiXoa"))
     };
+
+    /// <summary>
+    /// Returns a collision-free MANV via SP_GetNextManv executed on the main bank server.
+    /// SP contract (execute on Bank_Main, reads from linked servers or a central sequence):
+    ///   SELECT 'NV' + RIGHT('00000000' + CAST(
+    ///       ISNULL(MAX(CAST(SUBSTRING(MANV,3,8) AS INT)), 0) + 1
+    ///   AS VARCHAR(8)), 8)
+    ///   FROM NHANVIEN_ALL   -- a view unioning all branch NHANVIEN tables
+    /// Alternatively use: SELECT NEXT VALUE FOR dbo.SEQ_MANV
+    /// </summary>
+    public async Task<string> GenerateEmployeeIdAsync()
+    {
+        try
+        {
+            using var connection = new SqlConnection(_connectionStringProvider.GetBankConnection());
+            await connection.OpenAsync();
+            using var command = new SqlCommand("SP_GetNextManv", connection) { CommandType = CommandType.StoredProcedure };
+            var result = await command.ExecuteScalarAsync();
+            return result?.ToString() ?? $"NV{DateTime.UtcNow.Ticks % 100_000_000:D8}";
+        }
+        catch (SqlException ex) { throw new InvalidOperationException($"Database error generating employee ID: {ex.Message}", ex); }
+    }
+
+    /// <summary>
+    /// SP contract: SP_EmployeeExists @MANV nchar(10) → SELECT COUNT(1) FROM NHANVIEN WHERE MANV = @MANV
+    /// (executed on the current session branch connection)
+    /// </summary>
+    public async Task<bool> EmployeeExistsAsync(string manv)
+    {
+        try
+        {
+            using var connection = new SqlConnection(GetConnectionString());
+            await connection.OpenAsync();
+            using var command = new SqlCommand("SP_EmployeeExists", connection) { CommandType = CommandType.StoredProcedure };
+            command.Parameters.AddWithValue("@MANV", manv);
+            var count = (int)(await command.ExecuteScalarAsync() ?? 0);
+            return count > 0;
+        }
+        catch (SqlException ex) { throw new InvalidOperationException($"Database error checking employee existence: {ex.Message}", ex); }
+    }
 }

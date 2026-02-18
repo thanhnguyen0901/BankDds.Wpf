@@ -86,4 +86,18 @@ public class EmployeeService : IEmployeeService
         _authorizationService.RequireCanModifyBranch(newBranch);
         return await _employeeRepository.TransferEmployeeAsync(manv, newBranch);
     }
+
+    /// <summary>
+    /// Delegates to the repository for collision-free MANV generation.
+    /// No auth check — this is a metadata operation, not a data read.
+    /// </summary>
+    public Task<string> GenerateEmployeeIdAsync() =>
+        _employeeRepository.GenerateEmployeeIdAsync();
+
+    /// <summary>
+    /// Returns true when a MANV is already taken (active or soft-deleted).
+    /// Used by the ViewModel to provide an early uniqueness error before hitting the DB.
+    /// </summary>
+    public Task<bool> EmployeeExistsAsync(string manv) =>
+        _employeeRepository.EmployeeExistsAsync(manv);
 }

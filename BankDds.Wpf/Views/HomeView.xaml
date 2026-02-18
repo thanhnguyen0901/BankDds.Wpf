@@ -110,7 +110,7 @@
                         VerticalAlignment="Center"
                         FontSize="14"
                         Foreground="White"
-                        Text="Welcome, " />
+                        Text="Chào mừng, " />
                     <TextBlock
                         x:Name="Username"
                         VerticalAlignment="Center"
@@ -122,7 +122,7 @@
                         VerticalAlignment="Center"
                         FontSize="14"
                         Foreground="White"
-                        Text=" | Role: " />
+                        Text=" | Vai trò: " />
                     <TextBlock
                         x:Name="RoleText"
                         VerticalAlignment="Center"
@@ -135,7 +135,7 @@
                 <Button
                     x:Name="Logout"
                     Grid.Column="1"
-                    Content="Logout"
+                    Content="Đăng xuất"
                     Style="{StaticResource LogoutButtonStyle}" />
             </Grid>
         </Border>
@@ -158,7 +158,7 @@
             <WrapPanel HorizontalAlignment="Left" Orientation="Horizontal">
                 <Button
                     x:Name="ShowCustomers"
-                    Content="Customers"
+                    Content="Khách hàng"
                     Style="{StaticResource MenuButtonStyle}"
                     Visibility="{Binding CanViewCustomers, Converter={StaticResource BoolToVisConverter}}">
                     <Button.Tag>
@@ -170,7 +170,7 @@
                 </Button>
                 <Button
                     x:Name="ShowAccounts"
-                    Content="Accounts"
+                    Content="Tài khoản"
                     Style="{StaticResource MenuButtonStyle}"
                     Visibility="{Binding CanViewAccounts, Converter={StaticResource BoolToVisConverter}}">
                     <Button.Tag>
@@ -182,7 +182,7 @@
                 </Button>
                 <Button
                     x:Name="ShowEmployees"
-                    Content="Employees"
+                    Content="Nhân viên"
                     Style="{StaticResource MenuButtonStyle}"
                     Visibility="{Binding CanViewEmployees, Converter={StaticResource BoolToVisConverter}}">
                     <Button.Tag>
@@ -194,7 +194,7 @@
                 </Button>
                 <Button
                     x:Name="ShowTransactions"
-                    Content="Transactions"
+                    Content="Giao dịch"
                     Style="{StaticResource MenuButtonStyle}"
                     Visibility="{Binding CanViewTransactions, Converter={StaticResource BoolToVisConverter}}">
                     <Button.Tag>
@@ -206,7 +206,7 @@
                 </Button>
                 <Button
                     x:Name="ShowReports"
-                    Content="Reports"
+                    Content="Báo cáo"
                     Style="{StaticResource MenuButtonStyle}">
                     <Button.Tag>
                         <MultiBinding Converter="{StaticResource ActiveItemConverter}">
@@ -217,13 +217,25 @@
                 </Button>
                 <Button
                     x:Name="ShowAdmin"
-                    Content="Admin"
+                    Content="Quản trị"
                     Style="{StaticResource MenuButtonStyle}"
                     Visibility="{Binding CanViewAdmin, Converter={StaticResource BoolToVisConverter}}">
                     <Button.Tag>
                         <MultiBinding Converter="{StaticResource ActiveItemConverter}">
                             <Binding Path="ActiveItem" />
                             <Binding Source="Admin" />
+                        </MultiBinding>
+                    </Button.Tag>
+                </Button>
+                <Button
+                    x:Name="ShowBranches"
+                    Content="Chi nhánh"
+                    Style="{StaticResource MenuButtonStyle}"
+                    Visibility="{Binding CanViewBranches, Converter={StaticResource BoolToVisConverter}}">
+                    <Button.Tag>
+                        <MultiBinding Converter="{StaticResource ActiveItemConverter}">
+                            <Binding Path="ActiveItem" />
+                            <Binding Source="Branches" />
                         </MultiBinding>
                     </Button.Tag>
                 </Button>
@@ -268,19 +280,19 @@
                         FontSize="28"
                         FontWeight="Bold"
                         Foreground="#0078D7"
-                        Text="Distributed Banking System" />
+                        Text="Hệ thống Ngân hàng Phân tán" />
                     <TextBlock
                         Margin="0,0,0,10"
                         HorizontalAlignment="Center"
                         FontSize="18"
                         Foreground="#666666"
-                        Text="Welcome to the system" />
+                        Text="Chào mừng đến hệ thống" />
                     <TextBlock
                         MaxWidth="600"
                         HorizontalAlignment="Center"
                         FontSize="14"
                         Foreground="#999999"
-                        Text="Use the navigation menu above to access different modules"
+                        Text="Sử dụng menu điều hướng ở trên để truy cập các chức năng"
                         TextAlignment="Center"
                         TextWrapping="Wrap" />
                 </StackPanel>

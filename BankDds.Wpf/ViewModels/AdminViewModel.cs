@@ -13,6 +13,7 @@ public class AdminViewModel : BaseViewModel
     private readonly IUserSession _userSession;
     private readonly IDialogService _dialogService;
     private readonly UserValidator _validator;
+    private readonly IBranchService _branchService;
     
     private ObservableCollection<User> _users = new();
     private User? _selectedUser;
@@ -26,13 +27,15 @@ public class AdminViewModel : BaseViewModel
         IUserService userService, 
         IUserSession userSession, 
         IDialogService dialogService,
-        UserValidator validator)
+        UserValidator validator,
+        IBranchService branchService)
     {
-        _userService = userService;
-        _userSession = userSession;
+        _userService   = userService;
+        _userSession   = userSession;
         _dialogService = dialogService;
-        _validator = validator;
-        DisplayName = "User Administration";
+        _validator     = validator;
+        _branchService = branchService;
+        DisplayName    = "User Administration";
     }
 
     public ObservableCollection<User> Users
@@ -54,6 +57,7 @@ public class AdminViewModel : BaseViewModel
             NotifyOfPropertyChange(() => SelectedUser);
             NotifyOfPropertyChange(() => CanEdit);
             NotifyOfPropertyChange(() => CanDelete);
+            NotifyOfPropertyChange(() => CanRestore);
         }
     }
 
@@ -78,6 +82,7 @@ public class AdminViewModel : BaseViewModel
             NotifyOfPropertyChange(() => CanAdd);
             NotifyOfPropertyChange(() => CanEdit);
             NotifyOfPropertyChange(() => CanDelete);
+            NotifyOfPropertyChange(() => CanRestore);
             NotifyOfPropertyChange(() => CanSave);
             NotifyOfPropertyChange(() => CanCancel);
         }
@@ -122,12 +127,19 @@ public class AdminViewModel : BaseViewModel
                                    PasswordValidationMessage.StartsWith("?");
 
     public ObservableCollection<UserGroup> AvailableUserGroups { get; } = new();
-    public ObservableCollection<string> AvailableBranches { get; } = new() { "BENTHANH", "TANDINH", "ALL" };
+    /// <summary>
+    /// Real branch codes loaded from IBranchService on activate.
+    /// Does NOT include "ALL" — DefaultBranch must be a real branch code.
+    /// </summary>
+    public ObservableCollection<string> AvailableBranches { get; } = new();
 
     // CanExecute properties - Standard CRUD pattern
     public bool CanAdd => !IsEditing;
     public bool CanEdit => SelectedUser != null && !IsEditing;
-    public bool CanDelete => SelectedUser != null && !IsEditing;
+    /// <summary>Only allow deleting active (non-deleted) users.</summary>
+    public bool CanDelete  => SelectedUser != null && !IsEditing && SelectedUser.TrangThaiXoa == 0;
+    /// <summary>Only allow restoring soft-deleted users.</summary>
+    public bool CanRestore => SelectedUser != null && !IsEditing && SelectedUser.TrangThaiXoa == 1;
     public bool CanSave => IsEditing && 
                            !string.IsNullOrWhiteSpace(EditingUser.Username) &&
                            (SelectedUser != null || !string.IsNullOrWhiteSpace(NewPassword)) && // Password required for new users
@@ -201,6 +213,24 @@ public class AdminViewModel : BaseViewModel
         }
         NotifyOfPropertyChange(() => AvailableUserGroups);
 
+        // Load real branch codes from repository — no "ALL" here; DefaultBranch must be a real branch
+        try
+        {
+            var branches = await _branchService.GetAllBranchesAsync();
+            AvailableBranches.Clear();
+            foreach (var b in branches)
+                AvailableBranches.Add(b.MACN);
+        }
+        catch
+        {
+            // Fallback: keep existing entries if service is unavailable
+            if (AvailableBranches.Count == 0)
+            {
+                AvailableBranches.Add("BENTHANH");
+                AvailableBranches.Add("TANDINH");
+            }
+        }
+
         await LoadUsersAsync();
     }
 
@@ -213,9 +243,6 @@ public class AdminViewModel : BaseViewModel
         });
     }
 
-    private static string GenerateEmployeeId() =>
-        $"NV{DateTime.Now.Ticks % 100_000_000:D8}";
-
     public void Add()
     {
         EditingUser = new User
@@ -227,9 +254,12 @@ public class AdminViewModel : BaseViewModel
             // Always default the branch to the current user's branch so the service-layer
             // RequireCanManageUserInBranch check passes without the admin needing to change it
             DefaultBranch = _userSession.SelectedBranch == "ALL"
-                ? "BENTHANH"
+                ? (AvailableBranches.FirstOrDefault() ?? "BENTHANH")
                 : _userSession.SelectedBranch,
-            EmployeeId = GenerateEmployeeId()
+            // EmployeeId links this user account to an existing employee record.
+            // It must be entered manually by the administrator — auto-generation here
+            // would produce a dangling reference to a non-existent employee.
+            EmployeeId = string.Empty
         };
         IsEditing = true;
         SelectedUser = null;
@@ -246,12 +276,13 @@ public class AdminViewModel : BaseViewModel
 
         EditingUser = new User
         {
-            Username = SelectedUser.Username,
-            PasswordHash = SelectedUser.PasswordHash,
-            UserGroup = SelectedUser.UserGroup,
+            Username      = SelectedUser.Username,
+            PasswordHash  = SelectedUser.PasswordHash,
+            UserGroup     = SelectedUser.UserGroup,
             DefaultBranch = SelectedUser.DefaultBranch,
-            CustomerCMND = SelectedUser.CustomerCMND,
-            EmployeeId = SelectedUser.EmployeeId
+            CustomerCMND  = SelectedUser.CustomerCMND,
+            EmployeeId    = SelectedUser.EmployeeId,
+            TrangThaiXoa  = SelectedUser.TrangThaiXoa  // preserve soft-delete state
         };
         IsEditing = true;
         ErrorMessage = string.Empty;
@@ -351,10 +382,10 @@ public class AdminViewModel : BaseViewModel
             return;
         }
 
-        // Show confirmation dialog
+        // Show confirmation dialog — operation is a soft-delete (account deactivation)
         var confirmed = await _dialogService.ShowConfirmationAsync(
-            $"Are you sure you want to delete user '{SelectedUser.Username}'?",
-            "Delete Confirmation"
+            $"Bạn có chắc chắn muốn vô hiệu hóa tài khoản '{SelectedUser.Username}'?\nTài khoản sẽ bị khóa nhưng dữ liệu vẫn được giữ lại.",
+            "Xác nhận vô hiệu hóa"
         );
 
         if (!confirmed) return;
@@ -366,11 +397,38 @@ public class AdminViewModel : BaseViewModel
             {
                 await LoadUsersAsync();
                 SelectedUser = null;
-                SuccessMessage = "User deleted successfully.";
+                SuccessMessage = "Tài khoản đã được vô hiệu hóa.";
             }
             else
             {
-                ErrorMessage = "Failed to delete user.";
+                ErrorMessage = "Không thể vô hiệu hóa tài khoản.";
+            }
+        });
+    }
+
+    public async Task Restore()
+    {
+        if (SelectedUser == null) return;
+
+        var confirmed = await _dialogService.ShowConfirmationAsync(
+            $"Bạn có chắc chắn muốn khôi phục tài khoản '{SelectedUser.Username}'?",
+            "Xác nhận khôi phục"
+        );
+
+        if (!confirmed) return;
+
+        await ExecuteWithLoadingAsync(async () =>
+        {
+            var result = await _userService.RestoreUserAsync(SelectedUser.Username);
+            if (result)
+            {
+                await LoadUsersAsync();
+                SelectedUser = null;
+                SuccessMessage = "Tài khoản đã được khôi phục.";
+            }
+            else
+            {
+                ErrorMessage = "Không thể khôi phục tài khoản.";
             }
         });
     }

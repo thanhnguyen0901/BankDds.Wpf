@@ -2,6 +2,7 @@ using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
 using BankDds.Infrastructure.Security;
 using Caliburn.Micro;
+using System.Collections.ObjectModel;
 
 namespace BankDds.Wpf.ViewModels;
 
@@ -9,25 +10,33 @@ public class LoginViewModel : Screen
 {
     private readonly IAuthService _authService;
     private readonly IUserSession _userSession;
+    private readonly IBranchService _branchService;
 
-    private string _selectedBranch = "BENTHANH";
+    // Real branch codes loaded from repository (no "ALL")
+    private List<string> _realBranchCodes = new();
+
+    private string _selectedBranch = string.Empty;
     private string _userName = string.Empty;
     private string _password = string.Empty;
     private string _errorMessage = string.Empty;
 
     public LoginViewModel(
         IAuthService authService,
-        IUserSession userSession)
+        IUserSession userSession,
+        IBranchService branchService)
     {
-        _authService = authService;
-        _userSession = userSession;
+        _authService   = authService;
+        _userSession   = userSession;
+        _branchService = branchService;
 
         DisplayName = "Bank DDS - Login";
-        
-        Branches = new List<string> { "BENTHANH", "TANDINH", "ALL" };
     }
 
-    public List<string> Branches { get; }
+    /// <summary>
+    /// Branch codes shown in the login dropdown.
+    /// Real branches are loaded from IBranchService; "ALL" is appended for NganHang selection.
+    /// </summary>
+    public ObservableCollection<string> Branches { get; } = new();
 
     public string SelectedBranch
     {
@@ -76,13 +85,44 @@ public class LoginViewModel : Screen
 
     public bool CanLogin => !string.IsNullOrWhiteSpace(UserName);
 
+    protected override async Task OnActivateAsync(CancellationToken cancellationToken)
+    {
+        await base.OnActivateAsync(cancellationToken);
+        try
+        {
+            var branches = await _branchService.GetAllBranchesAsync();
+            _realBranchCodes = branches.Select(b => b.MACN).ToList();
+
+            Branches.Clear();
+            foreach (var code in _realBranchCodes)
+                Branches.Add(code);
+            Branches.Add("ALL");   // UI-only option — never stored as MACN in DB
+
+            // Default to first real branch if no selection has been made yet
+            if (string.IsNullOrEmpty(SelectedBranch) || !Branches.Contains(SelectedBranch))
+                SelectedBranch = _realBranchCodes.FirstOrDefault() ?? string.Empty;
+        }
+        catch
+        {
+            // Fallback: app still works even when branch service is unavailable at login
+            if (Branches.Count == 0)
+            {
+                Branches.Add("BENTHANH");
+                Branches.Add("TANDINH");
+                Branches.Add("ALL");
+                _realBranchCodes = new List<string> { "BENTHANH", "TANDINH" };
+            }
+            SelectedBranch = Branches.FirstOrDefault() ?? string.Empty;
+        }
+    }
+
     public async Task Login()
     {
         ErrorMessage = string.Empty;
 
         try
         {
-            var result = await _authService.LoginAsync("SERVER", UserName, Password);
+            var result = await _authService.LoginAsync(UserName, Password);
 
             if (!result.Success)
             {
@@ -98,7 +138,8 @@ public class LoginViewModel : Screen
             {
                 case "NganHang":
                     userGroup = UserGroup.NganHang;
-                    permittedBranches = new List<string> { "BENTHANH", "TANDINH", "ALL" };
+                    // permittedBranches = all real branches + "ALL" (loaded from repository)
+                    permittedBranches = _realBranchCodes.Concat(new[] { "ALL" }).ToList();
                     break;
                 case "ChiNhanh":
                     userGroup = UserGroup.ChiNhanh;
