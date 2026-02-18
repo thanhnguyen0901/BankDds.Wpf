@@ -67,6 +67,10 @@
                     Binding="{Binding DefaultBranch}"
                     Header="Default Branch" />
                 <DataGridTextColumn
+                    Width="130"
+                    Binding="{Binding EmployeeId}"
+                    Header="Employee ID" />
+                <DataGridTextColumn
                     Width="*"
                     Binding="{Binding CustomerCMND}"
                     Header="Customer CMND" />
@@ -131,6 +135,12 @@
                         </ComboBox.ItemTemplate>
                     </ComboBox>
 
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Employee ID (NVxxxxxxxx, for bank/branch users):" />
+                    <TextBox
+                        Margin="0,0,0,12"
+                        Style="{StaticResource StandardTextBoxStyle}"
+                        Text="{Binding EditingUser.EmployeeId, UpdateSourceTrigger=PropertyChanged}" />
+
                     <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Default Branch:" />
                     <ComboBox
                         Margin="0,0,0,12"
@@ -143,6 +153,23 @@
                         Margin="0,0,0,20"
                         Style="{StaticResource StandardTextBoxStyle}"
                         Text="{Binding EditingUser.CustomerCMND, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <!--  Inline validation errors  -->
+                    <Border
+                        Style="{StaticResource ValidationErrorPanelStyle}"
+                        Visibility="{Binding HasError, Converter={StaticResource BoolToVisConverter}}">
+                        <StackPanel>
+                            <TextBlock
+                                FontWeight="SemiBold"
+                                Foreground="#8B0000"
+                                Text="Please fix the following errors:"
+                                Margin="0,0,0,4" />
+                            <TextBlock
+                                Text="{Binding ErrorMessage}"
+                                TextWrapping="Wrap"
+                                Foreground="#8B0000" />
+                        </StackPanel>
+                    </Border>
 
                     <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
                         <Button

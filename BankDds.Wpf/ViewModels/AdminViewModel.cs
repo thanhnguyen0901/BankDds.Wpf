@@ -121,7 +121,7 @@ public class AdminViewModel : BaseViewModel
     public bool IsPasswordValid => string.IsNullOrEmpty(NewPassword) || 
                                    PasswordValidationMessage.StartsWith("?");
 
-    public ObservableCollection<string> AvailableUserGroups { get; } = new() { "NganHang", "ChiNhanh", "KhachHang" };
+    public ObservableCollection<UserGroup> AvailableUserGroups { get; } = new();
     public ObservableCollection<string> AvailableBranches { get; } = new() { "BENTHANH", "TANDINH", "ALL" };
 
     // CanExecute properties - Standard CRUD pattern
@@ -179,12 +179,28 @@ public class AdminViewModel : BaseViewModel
     {
         await base.OnActivateAsync(cancellationToken);
         
-        if (_userSession.UserGroup != UserGroup.NganHang)
+        // Allow both NganHang and ChiNhanh to access admin (with different privileges)
+        if (_userSession.UserGroup != UserGroup.NganHang && _userSession.UserGroup != UserGroup.ChiNhanh)
         {
-            ErrorMessage = "Access Denied: Only Bank-level administrators can access this module.";
+            ErrorMessage = "Access Denied: Only Bank-level and Branch-level administrators can access this module.";
             return;
         }
-        
+
+        // Populate creatable user groups based on the logged-in user's role:
+        // NganHang admins can create any role; ChiNhanh admins can only create ChiNhanh (same-group).
+        AvailableUserGroups.Clear();
+        if (_userSession.UserGroup == UserGroup.NganHang)
+        {
+            AvailableUserGroups.Add(UserGroup.NganHang);
+            AvailableUserGroups.Add(UserGroup.ChiNhanh);
+            AvailableUserGroups.Add(UserGroup.KhachHang);
+        }
+        else // ChiNhanh
+        {
+            AvailableUserGroups.Add(UserGroup.ChiNhanh);
+        }
+        NotifyOfPropertyChange(() => AvailableUserGroups);
+
         await LoadUsersAsync();
     }
 
@@ -197,12 +213,23 @@ public class AdminViewModel : BaseViewModel
         });
     }
 
+    private static string GenerateEmployeeId() =>
+        $"NV{DateTime.Now.Ticks % 100_000_000:D8}";
+
     public void Add()
     {
         EditingUser = new User
         {
-            UserGroup = UserGroup.ChiNhanh,
-            DefaultBranch = "BENTHANH"
+            // Default group for ChiNhanh is their own group; for NganHang default to ChiNhanh
+            UserGroup = _userSession.UserGroup == UserGroup.NganHang
+                ? UserGroup.ChiNhanh
+                : UserGroup.ChiNhanh,
+            // Always default the branch to the current user's branch so the service-layer
+            // RequireCanManageUserInBranch check passes without the admin needing to change it
+            DefaultBranch = _userSession.SelectedBranch == "ALL"
+                ? "BENTHANH"
+                : _userSession.SelectedBranch,
+            EmployeeId = GenerateEmployeeId()
         };
         IsEditing = true;
         SelectedUser = null;
@@ -223,7 +250,8 @@ public class AdminViewModel : BaseViewModel
             PasswordHash = SelectedUser.PasswordHash,
             UserGroup = SelectedUser.UserGroup,
             DefaultBranch = SelectedUser.DefaultBranch,
-            CustomerCMND = SelectedUser.CustomerCMND
+            CustomerCMND = SelectedUser.CustomerCMND,
+            EmployeeId = SelectedUser.EmployeeId
         };
         IsEditing = true;
         ErrorMessage = string.Empty;
@@ -240,6 +268,13 @@ public class AdminViewModel : BaseViewModel
             EditingUser.UserGroup == UserGroup.NganHang)
         {
             ErrorMessage = "Only Bank administrators can create Bank-level users.";
+            return;
+        }
+
+        if (_userSession.UserGroup == UserGroup.ChiNhanh && 
+            EditingUser.UserGroup != UserGroup.ChiNhanh)
+        {
+            ErrorMessage = "Branch administrators can only create Branch-level (ChiNhanh) users.";
             return;
         }
 

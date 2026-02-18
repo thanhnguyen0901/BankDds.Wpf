@@ -7,5 +7,5 @@ public class AuthResult
     public string UserGroup { get; set; } = string.Empty; // "NganHang", "ChiNhanh", "KhachHang"
     public string DefaultBranch { get; set; } = string.Empty;
     public string? CustomerCMND { get; set; }
-    public int? EmployeeId { get; set; }
+    public string? EmployeeId { get; set; }
 }

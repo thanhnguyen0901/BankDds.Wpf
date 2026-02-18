@@ -96,6 +96,13 @@
             <ScrollViewer Padding="20" VerticalScrollBarVisibility="Auto">
                 <StackPanel>
                     <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Employee Details" />
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Employee ID (MANV):" />
+                    <TextBox
+                        Margin="0,0,0,12"
+                        Background="#F0F0F0"
+                        IsReadOnly="True"
+                        Style="{StaticResource StandardTextBoxStyle}"
+                        Text="{Binding EditingEmployee.MANV}" />
                     <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Last Name:" />
                     <TextBox
                         Margin="0,0,0,12"
@@ -135,6 +142,22 @@
                         ItemsSource="{Binding AvailableBranches}"
                         SelectedValue="{Binding EditingEmployee.MACN, Mode=TwoWay}"
                         Style="{StaticResource StandardComboBoxStyle}" />
+                    <!--  Inline validation errors  -->
+                    <Border
+                        Style="{StaticResource ValidationErrorPanelStyle}"
+                        Visibility="{Binding HasError, Converter={StaticResource BoolToVisConverter}}">
+                        <StackPanel>
+                            <TextBlock
+                                FontWeight="SemiBold"
+                                Foreground="#8B0000"
+                                Text="Please fix the following errors:"
+                                Margin="0,0,0,4" />
+                            <TextBlock
+                                Text="{Binding ErrorMessage}"
+                                TextWrapping="Wrap"
+                                Foreground="#8B0000" />
+                        </StackPanel>
+                    </Border>
                     <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Transfer to Branch:" />
                     <ComboBox
                         Margin="0,0,0,12"

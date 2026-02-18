@@ -177,6 +177,23 @@
                         Style="{StaticResource StandardTextBoxStyle}"
                         Text="{Binding EditingAccount.MACN}" />
 
+                    <!--  Inline validation errors  -->
+                    <Border
+                        Style="{StaticResource ValidationErrorPanelStyle}"
+                        Visibility="{Binding HasError, Converter={StaticResource BoolToVisConverter}}">
+                        <StackPanel>
+                            <TextBlock
+                                FontWeight="SemiBold"
+                                Foreground="#8B0000"
+                                Text="Please fix the following errors:"
+                                Margin="0,0,0,4" />
+                            <TextBlock
+                                Text="{Binding ErrorMessage}"
+                                TextWrapping="Wrap"
+                                Foreground="#8B0000" />
+                        </StackPanel>
+                    </Border>
+
                     <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
                         <Button
                             x:Name="Save"

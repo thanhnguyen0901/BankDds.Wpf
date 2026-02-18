@@ -264,6 +264,14 @@ public class ReportsViewModel : Screen
     {
         if (!CanGenerateStatement) return;
 
+        // Validate date range before calling the service.
+        if (StatementFromDate.Date > StatementToDate.Date)
+        {
+            ErrorMessage = "From Date must be on or before To Date.";
+            AccountStatement = null;
+            return;
+        }
+
         try
         {
             // Check if customer is allowed to view this account
@@ -278,12 +286,16 @@ public class ReportsViewModel : Screen
             }
 
             var statement = await _reportService.GetAccountStatementAsync(
-                StatementAccountNumber, 
-                StatementFromDate, 
+                StatementAccountNumber,
+                StatementFromDate,
                 StatementToDate);
-            
+
             AccountStatement = statement;
-            ErrorMessage = "Account statement generated successfully.";
+
+            // DE3-style summary: show opening, line count, closing.
+            ErrorMessage = $"Statement generated — {statement.Lines.Count} transaction(s). " +
+                           $"Opening: {statement.OpeningBalance:N0} VND  →  " +
+                           $"Closing: {statement.ClosingBalance:N0} VND";
         }
         catch (Exception ex)
         {
@@ -300,16 +312,10 @@ public class ReportsViewModel : Screen
                 AccountsOpenedFromDate, 
                 AccountsOpenedToDate);
 
-            // Filter by branch if selected
+            // UI branch-picker filter (role-scoping is already enforced by the service layer)
             if (SelectedBranchForAccounts != "ALL")
             {
                 accounts = accounts.Where(a => a.MACN == SelectedBranchForAccounts).ToList();
-            }
-
-            // Apply role-based filtering
-            if (_userSession.UserGroup == UserGroup.ChiNhanh)
-            {
-                accounts = accounts.Where(a => a.MACN == _userSession.SelectedBranch).ToList();
             }
 
             AccountsOpened = new ObservableCollection<Account>(accounts);

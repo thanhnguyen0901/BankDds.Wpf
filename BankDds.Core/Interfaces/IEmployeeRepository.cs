@@ -2,7 +2,10 @@ using BankDds.Core.Models;
 
 namespace BankDds.Core.Interfaces;
 
-public interface IEmployeeService
+/// <summary>
+/// Repository interface for Employee data access operations
+/// </summary>
+public interface IEmployeeRepository
 {
     Task<List<Employee>> GetEmployeesByBranchAsync(string branchCode);
     Task<List<Employee>> GetAllEmployeesAsync();

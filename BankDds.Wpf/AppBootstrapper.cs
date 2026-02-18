@@ -8,6 +8,8 @@ using BankDds.Core.Interfaces;
 using BankDds.Core.Validators;
 using BankDds.Infrastructure.Configuration;
 using BankDds.Infrastructure.Data;
+using BankDds.Infrastructure.Data.InMemory;
+using BankDds.Infrastructure.Data.Sql;
 using BankDds.Infrastructure.Security;
 using BankDds.Wpf.ViewModels;
 using BankDds.Wpf.Services;
@@ -67,9 +69,9 @@ public class AppBootstrapper : BootstrapperBase
                .As<IUserSession>()
                .SingleInstance();
 
-        // Infrastructure services
-        builder.RegisterType<SqlAuthService>()
-               .As<IAuthService>()
+        // Authorization service
+        builder.RegisterType<AuthorizationService>()
+               .As<IAuthorizationService>()
                .SingleInstance();
 
         // Validators - Register as singletons (they're stateless)
@@ -79,7 +81,72 @@ public class AppBootstrapper : BootstrapperBase
         builder.RegisterType<TransactionValidator>().AsSelf().SingleInstance();
         builder.RegisterType<UserValidator>().AsSelf().SingleInstance();
 
-        // Business services - SingleInstance for in-memory data
+        // Read DataMode from configuration
+        var dataMode = configuration["DataMode"] ?? "InMemory";
+
+        // Register repositories based on DataMode
+        if (dataMode.Equals("InMemory", StringComparison.OrdinalIgnoreCase))
+        {
+            // InMemory repositories for development and testing
+            builder.RegisterType<InMemoryCustomerRepository>()
+                   .As<ICustomerRepository>()
+                   .SingleInstance();
+
+            builder.RegisterType<InMemoryAccountRepository>()
+                   .As<IAccountRepository>()
+                   .SingleInstance();
+
+            builder.RegisterType<InMemoryEmployeeRepository>()
+                   .As<IEmployeeRepository>()
+                   .SingleInstance();
+
+            builder.RegisterType<InMemoryTransactionRepository>()
+                   .As<ITransactionRepository>()
+                   .SingleInstance();
+
+            builder.RegisterType<InMemoryUserRepository>()
+                   .As<IUserRepository>()
+                   .SingleInstance();
+
+            builder.RegisterType<InMemoryReportRepository>()
+                   .As<IReportRepository>()
+                   .SingleInstance();
+        }
+        else if (dataMode.Equals("Sql", StringComparison.OrdinalIgnoreCase))
+        {
+            // SQL repositories for production — each operation throws InvalidOperationException
+            // with a user-friendly message if the database is unreachable, so the app starts
+            // cleanly even when no DB is available yet.
+            builder.RegisterType<SqlCustomerRepository>()
+                   .As<ICustomerRepository>()
+                   .InstancePerDependency();
+
+            builder.RegisterType<SqlAccountRepository>()
+                   .As<IAccountRepository>()
+                   .InstancePerDependency();
+
+            builder.RegisterType<SqlEmployeeRepository>()
+                   .As<IEmployeeRepository>()
+                   .InstancePerDependency();
+
+            builder.RegisterType<SqlTransactionRepository>()
+                   .As<ITransactionRepository>()
+                   .InstancePerDependency();
+
+            builder.RegisterType<SqlUserRepository>()
+                   .As<IUserRepository>()
+                   .InstancePerDependency();
+
+            builder.RegisterType<SqlReportRepository>()
+                   .As<IReportRepository>()
+                   .InstancePerDependency();
+        }
+        else
+        {
+            throw new InvalidOperationException($"Invalid DataMode '{dataMode}'. Must be 'InMemory' or 'Sql'.");
+        }
+
+        // Business services layer - these wrap repositories with additional logic
         builder.RegisterType<CustomerService>()
                .As<ICustomerService>()
                .SingleInstance();
@@ -102,6 +169,11 @@ public class AppBootstrapper : BootstrapperBase
 
         builder.RegisterType<UserService>()
                .As<IUserService>()
+               .SingleInstance();
+
+        // Unified authentication service using IUserRepository
+        builder.RegisterType<AuthService>()
+               .As<IAuthService>()
                .SingleInstance();
 
         // Shell - SingleInstance to maintain state

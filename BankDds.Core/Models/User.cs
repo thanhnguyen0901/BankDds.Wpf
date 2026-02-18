@@ -7,5 +7,5 @@ public class User
     public UserGroup UserGroup { get; set; }
     public string DefaultBranch { get; set; } = string.Empty;
     public string? CustomerCMND { get; set; }
-    public int? EmployeeId { get; set; }
+    public string? EmployeeId { get; set; }
 }

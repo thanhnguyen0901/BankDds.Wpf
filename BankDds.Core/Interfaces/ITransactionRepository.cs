@@ -2,7 +2,10 @@ using BankDds.Core.Models;
 
 namespace BankDds.Core.Interfaces;
 
-public interface ITransactionService
+/// <summary>
+/// Repository interface for Transaction data access operations
+/// </summary>
+public interface ITransactionRepository
 {
     Task<List<Transaction>> GetTransactionsByAccountAsync(string sotk);
     Task<List<Transaction>> GetTransactionsByBranchAsync(string branchCode, DateTime? fromDate = null, DateTime? toDate = null);

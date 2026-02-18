@@ -239,6 +239,25 @@
         <Setter Property="Margin" Value="0,10,0,0" />
     </Style>
 
+    <!--  ==================== VALIDATION ERROR PANEL (inline, inside edit forms) ====================  -->
+    <!--  Usage: wrap in a Border with this style; bind Visibility via BoolToVisibilityConverter on HasError  -->
+    <Style x:Key="ValidationErrorPanelStyle" TargetType="Border">
+        <Setter Property="Padding" Value="12,10" />
+        <Setter Property="Background" Value="#FFF0F0" />
+        <Setter Property="BorderBrush" Value="#DC143C" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Margin" Value="0,0,0,15" />
+    </Style>
+
+    <!--  ==================== SUCCESS MESSAGE STYLE ====================  -->
+    <Style x:Key="SuccessMessageStyle" TargetType="TextBlock">
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="#388E3C" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="0,5,0,0" />
+    </Style>
+
     <!--  ==================== DETAIL PANEL STYLE ====================  -->
     <Style x:Key="DetailPanelStyle" TargetType="Border">
         <Setter Property="Background" Value="White" />

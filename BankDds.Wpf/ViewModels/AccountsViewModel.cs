@@ -105,7 +105,7 @@ public class AccountsViewModel : BaseViewModel
         }
     }
 
-    public string ErrorMessage
+    public new string ErrorMessage
     {
         get => _errorMessage;
         set
@@ -116,7 +116,7 @@ public class AccountsViewModel : BaseViewModel
         }
     }
 
-    public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
+    public new bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
 
     // CanExecute properties - Standard CRUD pattern
     public bool CanAdd => SelectedCustomer != null && !IsEditing;
@@ -345,8 +345,13 @@ public class AccountsViewModel : BaseViewModel
         });
     }
 
-    private string GenerateAccountNumber()
+    /// <summary>
+    /// Generates a 9-character account number: "TK" + 7 zero-padded digits.
+    /// Format matches nChar(9) SQL column and seed data (e.g. "TK0000001").
+    /// Uses the last 7 significant digits of DateTime.Ticks to minimise collisions.
+    /// </summary>
+    private static string GenerateAccountNumber()
     {
-        return $"TK{DateTime.Now:yyyyMMddHHmmss}";
+        return $"TK{DateTime.Now.Ticks % 10_000_000:D7}";
     }
 }

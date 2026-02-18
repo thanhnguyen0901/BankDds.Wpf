@@ -1,6 +1,7 @@
 using Caliburn.Micro;
 using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
+using BankDds.Core.Validators;
 using System.Collections.ObjectModel;
 
 namespace BankDds.Wpf.ViewModels;
@@ -10,6 +11,7 @@ public class EmployeesViewModel : Screen
     private readonly IEmployeeService _employeeService;
     private readonly IUserSession _userSession;
     private readonly IDialogService _dialogService;
+    private readonly EmployeeValidator _validator;
     
     private ObservableCollection<Employee> _employees = new();
     private Employee? _selectedEmployee;
@@ -18,11 +20,16 @@ public class EmployeesViewModel : Screen
     private string _errorMessage = string.Empty;
     private string _transferBranch = string.Empty;
 
-    public EmployeesViewModel(IEmployeeService employeeService, IUserSession userSession, IDialogService dialogService)
+    public EmployeesViewModel(
+        IEmployeeService employeeService, 
+        IUserSession userSession, 
+        IDialogService dialogService,
+        EmployeeValidator validator)
     {
         _employeeService = employeeService;
         _userSession = userSession;
         _dialogService = dialogService;
+        _validator = validator;
         DisplayName = "Employee Management";
     }
 
@@ -146,6 +153,7 @@ public class EmployeesViewModel : Screen
     {
         EditingEmployee = new Employee
         {
+            MANV = GenerateEmployeeId(),
             MACN = _userSession.SelectedBranch,
             TrangThaiXoa = 0
         };
@@ -176,6 +184,16 @@ public class EmployeesViewModel : Screen
 
     public async Task Save()
     {
+        // Validate before saving
+        var validationResult = await _validator.ValidateAsync(EditingEmployee);
+        if (!validationResult.IsValid)
+        {
+            // Aggregate all validation errors
+            ErrorMessage = string.Join(Environment.NewLine, 
+                validationResult.Errors.Select(e => e.ErrorMessage));
+            return;
+        }
+
         try
         {
             bool result;
@@ -274,6 +292,16 @@ public class EmployeesViewModel : Screen
         IsEditing = false;
         EditingEmployee = new Employee();
         ErrorMessage = string.Empty;
+    }
+
+    /// <summary>
+    /// Generates a 10-character employee ID: "NV" + 8 zero-padded digits.
+    /// Format matches nChar(10) SQL column and seed data (e.g. "NV00000001").
+    /// Uses the last 8 significant digits of DateTime.Ticks to minimise collisions.
+    /// </summary>
+    private static string GenerateEmployeeId()
+    {
+        return $"NV{DateTime.Now.Ticks % 100_000_000:D8}";
     }
 
     public async Task ExecuteTransferBranch()

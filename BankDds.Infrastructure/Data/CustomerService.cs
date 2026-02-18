@@ -3,77 +3,96 @@ using BankDds.Core.Models;
 
 namespace BankDds.Infrastructure.Data;
 
+/// <summary>
+/// Customer service that delegates to ICustomerRepository for data access with authorization
+/// </summary>
 public class CustomerService : ICustomerService
 {
-    private readonly List<Customer> _customers = new()
+    private readonly ICustomerRepository _customerRepository;
+    private readonly IAuthorizationService _authorizationService;
+
+    public CustomerService(ICustomerRepository customerRepository, IAuthorizationService authorizationService)
     {
-        new Customer { CMND = "123456", Ho = "Nguyen Van", Ten = "A", DiaChi = "123 Le Loi", SDT = "0901234567", Phai = "Nam", MaCN = "BENTHANH" },
-        new Customer { CMND = "234567", Ho = "Tran Thi", Ten = "B", DiaChi = "456 Nguyen Hue", SDT = "0902345678", Phai = "Nu", MaCN = "BENTHANH" },
-        new Customer { CMND = "345678", Ho = "Le Van", Ten = "C", DiaChi = "789 Tran Hung Dao", SDT = "0903456789", Phai = "Nam", MaCN = "TANDINH" },
-        new Customer { CMND = "456789", Ho = "Pham Thi", Ten = "D", DiaChi = "321 Hai Ba Trung", SDT = "0904567890", Phai = "Nu", MaCN = "TANDINH" },
-        new Customer { CMND = "c123456", Ho = "Khach", Ten = "Hang", DiaChi = "999 Customer St", SDT = "0905678901", Phai = "Nam", MaCN = "BENTHANH" }
-    };
+        _customerRepository = customerRepository;
+        _authorizationService = authorizationService;
+    }
 
     public Task<List<Customer>> GetCustomersByBranchAsync(string branchCode)
     {
-        var customers = _customers.Where(c => c.MaCN == branchCode).ToList();
-        return Task.FromResult(customers);
+        // Verify user can access this branch
+        _authorizationService.RequireCanAccessBranch(branchCode);
+        return _customerRepository.GetCustomersByBranchAsync(branchCode);
     }
 
     public Task<List<Customer>> GetAllCustomersAsync()
     {
-        return Task.FromResult(_customers.ToList());
+        // Only NganHang can get all customers across branches
+        if (!_authorizationService.CanAccessBranch("ALL"))
+        {
+            throw new UnauthorizedAccessException("Only bank-level users can access all customers.");
+        }
+        return _customerRepository.GetAllCustomersAsync();
     }
 
-    public Task<Customer?> GetCustomerByCMNDAsync(string cmnd)
+    public async Task<Customer?> GetCustomerByCMNDAsync(string cmnd)
     {
-        var customer = _customers.FirstOrDefault(c => c.CMND == cmnd);
-        return Task.FromResult(customer);
+        // Get customer first to check branch
+        var customer = await _customerRepository.GetCustomerByCMNDAsync(cmnd);
+        if (customer == null)
+            return null;
+
+        // Verify authorization
+        _authorizationService.RequireCanAccessCustomer(cmnd);
+        _authorizationService.RequireCanAccessBranch(customer.MaCN);
+        
+        return customer;
     }
 
-    public Task<bool> AddCustomerAsync(Customer customer)
+    public async Task<bool> AddCustomerAsync(Customer customer)
     {
-        if (_customers.Any(c => c.CMND == customer.CMND))
-            return Task.FromResult(false);
-
-        _customers.Add(customer);
-        return Task.FromResult(true);
+        // Verify user can modify this branch
+        _authorizationService.RequireCanModifyBranch(customer.MaCN);
+        
+        return await _customerRepository.AddCustomerAsync(customer);
     }
 
-    public Task<bool> UpdateCustomerAsync(Customer customer)
+    public async Task<bool> UpdateCustomerAsync(Customer customer)
     {
-        var existing = _customers.FirstOrDefault(c => c.CMND == customer.CMND);
+        // Get existing customer to verify branch access
+        var existing = await _customerRepository.GetCustomerByCMNDAsync(customer.CMND);
         if (existing == null)
-            return Task.FromResult(false);
+            return false;
 
-        existing.Ho = customer.Ho;
-        existing.Ten = customer.Ten;
-        existing.DiaChi = customer.DiaChi;
-        existing.SDT = customer.SDT;
-        existing.Phai = customer.Phai;
-        existing.MaCN = customer.MaCN;
-
-        return Task.FromResult(true);
+        // Verify user can modify both old and new branch
+        _authorizationService.RequireCanModifyBranch(existing.MaCN);
+        _authorizationService.RequireCanModifyBranch(customer.MaCN);
+        
+        return await _customerRepository.UpdateCustomerAsync(customer);
     }
 
-    public Task<bool> DeleteCustomerAsync(string cmnd)
+    public async Task<bool> DeleteCustomerAsync(string cmnd)
     {
-        var customer = _customers.FirstOrDefault(c => c.CMND == cmnd);
+        // Get customer to check branch
+        var customer = await _customerRepository.GetCustomerByCMNDAsync(cmnd);
         if (customer == null)
-            return Task.FromResult(false);
+            return false;
 
-        // Soft delete: set TrangThaiXoa = 1 instead of removing from list
-        customer.TrangThaiXoa = 1;
-        return Task.FromResult(true);
+        // Verify user can modify this branch
+        _authorizationService.RequireCanModifyBranch(customer.MaCN);
+        
+        return await _customerRepository.DeleteCustomerAsync(cmnd);
     }
 
-    public Task<bool> RestoreCustomerAsync(string cmnd)
+    public async Task<bool> RestoreCustomerAsync(string cmnd)
     {
-        var customer = _customers.FirstOrDefault(c => c.CMND == cmnd);
+        // Get customer to check branch
+        var customer = await _customerRepository.GetCustomerByCMNDAsync(cmnd);
         if (customer == null)
-            return Task.FromResult(false);
+            return false;
 
-        customer.TrangThaiXoa = 0;
-        return Task.FromResult(true);
+        // Verify user can modify this branch
+        _authorizationService.RequireCanModifyBranch(customer.MaCN);
+        
+        return await _customerRepository.RestoreCustomerAsync(cmnd);
     }
 }

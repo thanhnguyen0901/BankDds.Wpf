@@ -3,95 +3,58 @@ using BankDds.Core.Models;
 
 namespace BankDds.Infrastructure.Data;
 
+/// <summary>
+/// Report service that delegates to IReportRepository for data access with authorization
+/// </summary>
 public class ReportService : IReportService
 {
-    private readonly IAccountService _accountService;
-    private readonly ITransactionService _transactionService;
-    private readonly ICustomerService _customerService;
+    private readonly IReportRepository _reportRepository;
+    private readonly IAccountRepository _accountRepository;
+    private readonly IAuthorizationService _authorizationService;
 
     public ReportService(
-        IAccountService accountService,
-        ITransactionService transactionService,
-        ICustomerService customerService)
+        IReportRepository reportRepository,
+        IAccountRepository accountRepository,
+        IAuthorizationService authorizationService)
     {
-        _accountService = accountService;
-        _transactionService = transactionService;
-        _customerService = customerService;
+        _reportRepository = reportRepository;
+        _accountRepository = accountRepository;
+        _authorizationService = authorizationService;
     }
 
     public async Task<AccountStatement> GetAccountStatementAsync(string sotk, DateTime fromDate, DateTime toDate)
     {
-        var account = await _accountService.GetAccountAsync(sotk);
+        var account = await _accountRepository.GetAccountAsync(sotk);
         if (account == null)
             throw new InvalidOperationException("Account not found");
 
-        var allTransactions = await _transactionService.GetTransactionsByAccountAsync(sotk);
-
-        // Calculate opening balance
-        var openingTransactions = allTransactions.Where(t => t.NGAYGD < fromDate).ToList();
-        decimal openingBalance = account.SODU;
+        // Verify user can access this account
+        _authorizationService.RequireCanAccessAccount(account.CMND);
+        _authorizationService.RequireCanAccessBranch(account.MACN);
         
-        foreach (var trans in allTransactions.Where(t => t.NGAYGD >= fromDate))
-        {
-            if (trans.SOTK == sotk)
-            {
-                if (trans.LOAIGD == "GT")
-                    openingBalance -= trans.SOTIEN;
-                else if (trans.LOAIGD == "RT" || trans.LOAIGD == "CK")
-                    openingBalance += trans.SOTIEN;
-            }
-            else if (trans.SOTK_NHAN == sotk)
-            {
-                openingBalance -= trans.SOTIEN;
-            }
-        }
-
-        // Get transactions in period
-        var periodTransactions = allTransactions
-            .Where(t => t.NGAYGD >= fromDate && t.NGAYGD <= toDate)
-            .OrderBy(t => t.NGAYGD)
-            .ToList();
-
-        // Calculate closing balance
-        decimal closingBalance = openingBalance;
-        foreach (var trans in periodTransactions)
-        {
-            if (trans.SOTK == sotk)
-            {
-                if (trans.LOAIGD == "GT")
-                    closingBalance += trans.SOTIEN;
-                else if (trans.LOAIGD == "RT" || trans.LOAIGD == "CK")
-                    closingBalance -= trans.SOTIEN;
-            }
-            else if (trans.SOTK_NHAN == sotk)
-            {
-                closingBalance += trans.SOTIEN;
-            }
-        }
-
-        return new AccountStatement
-        {
-            SOTK = sotk,
-            FromDate = fromDate,
-            ToDate = toDate,
-            OpeningBalance = openingBalance,
-            Transactions = periodTransactions,
-            ClosingBalance = closingBalance
-        };
+        var statement = await _reportRepository.GetAccountStatementAsync(sotk, fromDate, toDate);
+        if (statement == null)
+            throw new InvalidOperationException("Unable to generate account statement");
+        
+        return statement;
     }
 
     public async Task<List<Account>> GetAccountsOpenedInPeriodAsync(DateTime fromDate, DateTime toDate)
     {
-        var allAccounts = await _accountService.GetAllAccountsAsync();
-        return allAccounts
-            .Where(a => a.NGAYMOTK >= fromDate && a.NGAYMOTK <= toDate)
-            .OrderBy(a => a.NGAYMOTK)
-            .ToList();
+        _authorizationService.RequireCanAccessReports();
+
+        // NganHang gets all branches; ChiNhanh is automatically scoped to their branch
+        var branchFilter = _authorizationService.GetEffectiveBranchFilter();
+        return await _reportRepository.GetAccountsOpenedInPeriodAsync(fromDate, toDate, branchFilter);
     }
 
     public async Task<Dictionary<string, int>> GetCustomerCountByBranchAsync()
     {
-        var customers = await _customerService.GetAllCustomersAsync();
+        _authorizationService.RequireCanAccessReports();
+
+        // NganHang sees all branches; ChiNhanh sees only their branch
+        var branchFilter = _authorizationService.GetEffectiveBranchFilter();
+        var customers = await _reportRepository.GetCustomersByBranchAsync(branchFilter);
         return customers
             .GroupBy(c => c.MaCN)
             .ToDictionary(g => g.Key, g => g.Count());
@@ -99,64 +62,31 @@ public class ReportService : IReportService
 
     public async Task<List<Customer>> GetCustomersByBranchReportAsync(string? branchCode = null)
     {
-        var customers = await _customerService.GetAllCustomersAsync();
-        
-        if (!string.IsNullOrEmpty(branchCode))
+        _authorizationService.RequireCanAccessReports(branchCode);
+
+        // Verify branch access
+        if (branchCode != null && branchCode != "ALL")
         {
-            customers = customers.Where(c => c.MaCN == branchCode).ToList();
+            _authorizationService.RequireCanAccessBranch(branchCode);
         }
         
-        return customers.OrderBy(c => c.FullName).ToList();
+        return await _reportRepository.GetCustomersByBranchAsync(branchCode);
     }
 
     public async Task<TransactionSummary> GetTransactionSummaryAsync(DateTime fromDate, DateTime toDate, string? branchCode = null)
     {
-        List<Transaction> transactions;
+        _authorizationService.RequireCanAccessReports(branchCode);
+
+        // Verify branch access
+        if (branchCode != null && branchCode != "ALL")
+        {
+            _authorizationService.RequireCanAccessBranch(branchCode);
+        }
         
-        if (string.IsNullOrEmpty(branchCode))
-        {
-            // Get all transactions across all branches
-            var allAccounts = await _accountService.GetAllAccountsAsync();
-            var allTransactions = new List<Transaction>();
-            
-            foreach (var account in allAccounts)
-            {
-                var accountTransactions = await _transactionService.GetTransactionsByAccountAsync(account.SOTK);
-                allTransactions.AddRange(accountTransactions);
-            }
-            
-            transactions = allTransactions
-                .Where(t => t.NGAYGD >= fromDate && t.NGAYGD <= toDate)
-                .OrderByDescending(t => t.NGAYGD)
-                .ToList();
-        }
-        else
-        {
-            // Get transactions for specific branch
-            transactions = await _transactionService.GetTransactionsByBranchAsync(branchCode, fromDate, toDate);
-        }
-
-        // Remove duplicates (a transaction might be counted twice if it involves two accounts)
-        var uniqueTransactions = transactions
-            .GroupBy(t => t.MAGD)
-            .Select(g => g.First())
-            .ToList();
-
-        var summary = new TransactionSummary
-        {
-            FromDate = fromDate,
-            ToDate = toDate,
-            BranchCode = branchCode,
-            Transactions = uniqueTransactions,
-            TotalTransactionCount = uniqueTransactions.Count,
-            DepositCount = uniqueTransactions.Count(t => t.LOAIGD == "GT"),
-            WithdrawalCount = uniqueTransactions.Count(t => t.LOAIGD == "RT"),
-            TransferCount = uniqueTransactions.Count(t => t.LOAIGD == "CK"),
-            TotalDepositAmount = uniqueTransactions.Where(t => t.LOAIGD == "GT").Sum(t => t.SOTIEN),
-            TotalWithdrawalAmount = uniqueTransactions.Where(t => t.LOAIGD == "RT").Sum(t => t.SOTIEN),
-            TotalTransferAmount = uniqueTransactions.Where(t => t.LOAIGD == "CK").Sum(t => t.SOTIEN)
-        };
-
+        var summary = await _reportRepository.GetTransactionSummaryAsync(fromDate, toDate, branchCode);
+        if (summary == null)
+            throw new InvalidOperationException("Unable to generate transaction summary");
+        
         return summary;
     }
 }

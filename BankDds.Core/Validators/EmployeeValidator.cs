@@ -6,6 +6,11 @@ public class EmployeeValidator : AbstractValidator<Models.Employee>
 {
     public EmployeeValidator()
     {
+        // Employee ID validation - must be exactly 10 characters (nChar(10))
+        RuleFor(x => x.MANV)
+            .NotEmpty().WithMessage("Employee ID (MANV) is required")
+            .Length(10).WithMessage("Employee ID must be exactly 10 characters");
+
         // Last name validation
         RuleFor(x => x.HO)
             .NotEmpty().WithMessage("Last name (HO) is required")
@@ -32,10 +37,10 @@ public class EmployeeValidator : AbstractValidator<Models.Employee>
             .NotEmpty().WithMessage("Gender (PHAI) is required")
             .Must(x => x == "Nam" || x == "Nu").WithMessage("Gender must be 'Nam' or 'Nu'");
 
-        // Address validation: Optional but limited length
+        // Address validation: REQUIRED, limited length
         RuleFor(x => x.DIACHI)
-            .MaximumLength(200).WithMessage("Address cannot exceed 200 characters")
-            .When(x => !string.IsNullOrEmpty(x.DIACHI));
+            .NotEmpty().WithMessage("Address (DIACHI) is required")
+            .MaximumLength(200).WithMessage("Address cannot exceed 200 characters");
 
         // Branch code validation
         RuleFor(x => x.MACN)

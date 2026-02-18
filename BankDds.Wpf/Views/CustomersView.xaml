@@ -5,28 +5,39 @@
     xmlns:converters="clr-namespace:BankDds.Wpf.Converters"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    d:DesignHeight="700"
-    d:DesignWidth="1100"
+    d:DesignHeight="860"
+    d:DesignWidth="1200"
     Background="White"
     mc:Ignorable="d">
     <UserControl.Resources>
         <converters:BoolToVisibilityConverter x:Key="BoolToVisConverter" />
+        <converters:InvertedBoolToVisibilityConverter x:Key="InvertedBoolToVis" />
         <converters:NullToBoolConverter x:Key="NullToBoolConverter" />
     </UserControl.Resources>
+
     <Grid Margin="20">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />  <!--  0: Page title  -->
+            <RowDefinition Height="Auto" />  <!--  1: Customer CRUD buttons  -->
+            <RowDefinition Height="260" />   <!--  2: Customer master DataGrid / edit overlay  -->
+            <RowDefinition Height="*" />     <!--  3: Account SubForm  -->
+            <RowDefinition Height="Auto" />  <!--  4: Page-level status messages  -->
         </Grid.RowDefinitions>
+
+        <!--  ═══════════════════════════════════════════════════════
+              ROW 0 · Page title
+              ═══════════════════════════════════════════════════════  -->
         <TextBlock
             Grid.Row="0"
             Style="{StaticResource PageTitleStyle}"
             Text="Customer Management" />
+
+        <!--  ═══════════════════════════════════════════════════════
+              ROW 1 · Customer CRUD buttons
+              ═══════════════════════════════════════════════════════  -->
         <StackPanel
             Grid.Row="1"
-            Margin="0,0,0,15"
+            Margin="0,0,0,8"
             Orientation="Horizontal">
             <Button
                 x:Name="Add"
@@ -45,6 +56,10 @@
                 Content="Restore"
                 Style="{StaticResource SuccessButtonStyle}" />
         </StackPanel>
+
+        <!--  ═══════════════════════════════════════════════════════
+              ROW 2 · Customer master DataGrid
+              ═══════════════════════════════════════════════════════  -->
         <DataGrid
             x:Name="Customers"
             Grid.Row="2"
@@ -52,39 +67,49 @@
             Style="{StaticResource StandardDataGridStyle}">
             <DataGrid.Columns>
                 <DataGridTextColumn
-                    Width="120"
+                    Width="110"
                     Binding="{Binding CMND}"
                     Header="CMND" />
                 <DataGridTextColumn
-                    Width="150"
+                    Width="130"
                     Binding="{Binding Ho}"
                     Header="Last Name" />
                 <DataGridTextColumn
-                    Width="100"
+                    Width="90"
                     Binding="{Binding Ten}"
                     Header="First Name" />
+                <DataGridTextColumn
+                    Width="100"
+                    Binding="{Binding NgaySinh, StringFormat=dd/MM/yyyy}"
+                    Header="Date of Birth" />
+                <DataGridTextColumn
+                    Width="100"
+                    Binding="{Binding NgayCap, StringFormat=dd/MM/yyyy}"
+                    Header="ID Card Date" />
                 <DataGridTextColumn
                     Width="*"
                     Binding="{Binding DiaChi}"
                     Header="Address" />
                 <DataGridTextColumn
-                    Width="120"
+                    Width="110"
                     Binding="{Binding SDT}"
                     Header="Phone" />
                 <DataGridTextColumn
-                    Width="80"
+                    Width="60"
                     Binding="{Binding Phai}"
                     Header="Gender" />
                 <DataGridTextColumn
-                    Width="100"
+                    Width="90"
                     Binding="{Binding MaCN}"
                     Header="Branch" />
                 <DataGridTextColumn
-                    Width="80"
+                    Width="70"
                     Binding="{Binding StatusText}"
                     Header="Status" />
             </DataGrid.Columns>
         </DataGrid>
+
+        <!--  ROW 2 overlay · Customer Edit / Add Form  -->
         <Border
             Grid.Row="2"
             Style="{StaticResource DetailPanelStyle}"
@@ -92,51 +117,125 @@
             <ScrollViewer Padding="20" VerticalScrollBarVisibility="Auto">
                 <StackPanel>
                     <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Customer Details" />
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="CMND:" />
+
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="CMND: *" />
                     <TextBox
                         Margin="0,0,0,12"
                         IsEnabled="{Binding SelectedCustomer, Converter={StaticResource NullToBoolConverter}}"
                         Style="{StaticResource StandardTextBoxStyle}"
                         Text="{Binding EditingCustomer.CMND, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Last Name:" />
-                    <TextBox
-                        Margin="0,0,0,12"
-                        Style="{StaticResource StandardTextBoxStyle}"
-                        Text="{Binding EditingCustomer.Ho, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="First Name:" />
-                    <TextBox
-                        Margin="0,0,0,12"
-                        Style="{StaticResource StandardTextBoxStyle}"
-                        Text="{Binding EditingCustomer.Ten, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Address:" />
-                    <TextBox
-                        Margin="0,0,0,12"
-                        Style="{StaticResource StandardTextBoxStyle}"
-                        Text="{Binding EditingCustomer.DiaChi, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Phone:" />
-                    <TextBox
-                        Margin="0,0,0,12"
-                        Style="{StaticResource StandardTextBoxStyle}"
-                        Text="{Binding EditingCustomer.SDT, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Gender:" />
-                    <ComboBox
-                        Margin="0,0,0,12"
-                        SelectedValue="{Binding EditingCustomer.Phai}"
-                        Style="{StaticResource StandardComboBoxStyle}">
-                        <ComboBoxItem Content="Nam" />
-                        <ComboBoxItem Content="Nu" />
-                    </ComboBox>
+
+                    <Grid Margin="0,0,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Last Name (Ho): *" />
+                            <TextBox
+                                Margin="0,0,0,12"
+                                Style="{StaticResource StandardTextBoxStyle}"
+                                Text="{Binding EditingCustomer.Ho, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Style="{StaticResource StandardLabelStyle}" Text="First Name (Ten): *" />
+                            <TextBox
+                                Margin="0,0,0,12"
+                                Style="{StaticResource StandardTextBoxStyle}"
+                                Text="{Binding EditingCustomer.Ten, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid Margin="0,0,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Date of Birth (NgaySinh): *" />
+                            <DatePicker
+                                MinHeight="32"
+                                Margin="0,0,0,12"
+                                Padding="10"
+                                FontSize="14"
+                                SelectedDate="{Binding EditingCustomer.NgaySinh}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Style="{StaticResource StandardLabelStyle}" Text="ID Card Issue Date (NgayCap): *" />
+                            <DatePicker
+                                MinHeight="32"
+                                Margin="0,0,0,12"
+                                Padding="10"
+                                FontSize="14"
+                                SelectedDate="{Binding EditingCustomer.NgayCap}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="80" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Address (DiaChi): *" />
+                            <TextBox
+                                Margin="0,0,0,12"
+                                Style="{StaticResource StandardTextBoxStyle}"
+                                Text="{Binding EditingCustomer.DiaChi, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Phone (SDT):" />
+                            <TextBox
+                                Margin="0,0,0,12"
+                                Style="{StaticResource StandardTextBoxStyle}"
+                                Text="{Binding EditingCustomer.SDT, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="4">
+                            <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Gender: *" />
+                            <ComboBox
+                                Margin="0,0,0,12"
+                                SelectedValue="{Binding EditingCustomer.Phai}"
+                                Style="{StaticResource StandardComboBoxStyle}">
+                                <ComboBoxItem Content="Nam" />
+                                <ComboBoxItem Content="Nu" />
+                            </ComboBox>
+                        </StackPanel>
+                    </Grid>
+
                     <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Branch:" />
                     <TextBox
-                        Margin="0,0,0,20"
+                        Margin="0,0,0,12"
                         Background="#F0F0F0"
                         IsReadOnly="True"
                         Style="{StaticResource StandardTextBoxStyle}"
-                        Text="{Binding EditingCustomer.MaCN, UpdateSourceTrigger=PropertyChanged}" />
+                        Text="{Binding EditingCustomer.MaCN}" />
+
+                    <!--  Inline validation errors  -->
+                    <Border
+                        Style="{StaticResource ValidationErrorPanelStyle}"
+                        Visibility="{Binding HasError, Converter={StaticResource BoolToVisConverter}}">
+                        <StackPanel>
+                            <TextBlock
+                                Margin="0,0,0,4"
+                                FontWeight="SemiBold"
+                                Foreground="#8B0000"
+                                Text="Please fix the following errors:" />
+                            <TextBlock
+                                Foreground="#8B0000"
+                                Text="{Binding ErrorMessage}"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+
                     <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
                         <Button
                             x:Name="Save"
-                            Content="Save"
+                            Content="Save Customer"
                             Style="{StaticResource SuccessButtonStyle}" />
                         <Button
                             x:Name="Cancel"
@@ -147,17 +246,258 @@
                 </StackPanel>
             </ScrollViewer>
         </Border>
-        <TextBlock
-            x:Name="ErrorMessage"
-            Grid.Row="3"
-            Style="{StaticResource ErrorMessageStyle}" />
-        
-        <!-- Loading Overlay -->
-        <Grid Grid.Row="0" Grid.RowSpan="4" Style="{StaticResource LoadingOverlayStyle}">
-            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                <ProgressBar Style="{StaticResource LoadingSpinnerStyle}"/>
-                <TextBlock Text="Loading..." Foreground="White" Margin="0,10,0,0" 
-                           HorizontalAlignment="Center" FontSize="14"/>
+
+        <!--  ═══════════════════════════════════════════════════════
+              ROW 3 · Account SubForm
+              ═══════════════════════════════════════════════════════  -->
+        <Grid Grid.Row="3" Margin="0,10,0,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />  <!--  3a: Section header + account buttons  -->
+                <RowDefinition Height="*" />     <!--  3b: Account DataGrid or edit form  -->
+            </Grid.RowDefinitions>
+
+            <!--  Placeholder — shown when no customer is selected  -->
+            <Border
+                Grid.RowSpan="2"
+                Padding="20"
+                Background="#F8F9FA"
+                BorderBrush="#DEE2E6"
+                BorderThickness="1"
+                CornerRadius="4"
+                Visibility="{Binding HasSelectedCustomer, Converter={StaticResource InvertedBoolToVis}}">
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    FontSize="14"
+                    FontStyle="Italic"
+                    Foreground="#6C757D"
+                    Text="↑  Select a customer from the list above to view and manage their accounts." />
+            </Border>
+
+            <!--  3a: Account section header + action buttons  -->
+            <Grid
+                Grid.Row="0"
+                Margin="0,0,0,8"
+                Visibility="{Binding HasSelectedCustomer, Converter={StaticResource BoolToVisConverter}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!--  Section title showing selected customer name  -->
+                <StackPanel Grid.Column="0" Orientation="Vertical" VerticalAlignment="Bottom">
+                    <TextBlock Style="{StaticResource SectionTitleStyle}" Margin="0">
+                        <TextBlock.Text>
+                            <MultiBinding StringFormat="Accounts — {0} (CMND: {1})">
+                                <Binding Path="SelectedCustomer.FullName" FallbackValue="" />
+                                <Binding Path="SelectedCustomer.CMND" FallbackValue="" />
+                            </MultiBinding>
+                        </TextBlock.Text>
+                    </TextBlock>
+                </StackPanel>
+
+                <!--  Account action buttons  -->
+                <StackPanel
+                    Grid.Column="1"
+                    Orientation="Horizontal"
+                    VerticalAlignment="Bottom">
+                    <Button
+                        x:Name="AddAccount"
+                        Content="Open Account"
+                        Style="{StaticResource PrimaryButtonStyle}" />
+                    <Button
+                        x:Name="EditAccount"
+                        Content="Edit"
+                        Style="{StaticResource WarningButtonStyle}" />
+                    <Button
+                        x:Name="CloseAccount"
+                        Content="Close Account"
+                        Style="{StaticResource DangerButtonStyle}" />
+                    <Button
+                        x:Name="ReopenAccount"
+                        Content="Reopen"
+                        Style="{StaticResource SuccessButtonStyle}" />
+                </StackPanel>
+            </Grid>
+
+            <!--  3b: Account DataGrid (visible when customer selected and NOT editing an account)  -->
+            <DataGrid
+                x:Name="CustomerAccounts"
+                Grid.Row="1"
+                SelectedItem="{Binding SelectedAccount, Mode=TwoWay}"
+                Style="{StaticResource StandardDataGridStyle}"
+                Visibility="{Binding IsEditingAccount, Converter={StaticResource InvertedBoolToVis}}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn
+                        Width="140"
+                        Binding="{Binding SOTK}"
+                        Header="Account Number" />
+                    <DataGridTextColumn
+                        Width="160"
+                        Binding="{Binding SODU, StringFormat=N0}"
+                        Header="Balance (VND)" />
+                    <DataGridTextColumn
+                        Width="90"
+                        Binding="{Binding MACN}"
+                        Header="Branch" />
+                    <DataGridTextColumn
+                        Width="110"
+                        Binding="{Binding NGAYMOTK, StringFormat=dd/MM/yyyy}"
+                        Header="Open Date" />
+                    <DataGridTextColumn
+                        Width="*"
+                        Binding="{Binding StatusDisplay}"
+                        Header="Status">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Status}" Value="Active">
+                                        <Setter Property="Foreground" Value="#388E3C" />
+                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Status}" Value="Closed">
+                                        <Setter Property="Foreground" Value="#999999" />
+                                        <Setter Property="FontStyle" Value="Italic" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <!--  3b overlay: Account Open / Edit Form  -->
+            <Border
+                Grid.Row="1"
+                Style="{StaticResource DetailPanelStyle}"
+                Visibility="{Binding IsEditingAccount, Converter={StaticResource BoolToVisConverter}}">
+                <ScrollViewer Padding="20" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Open / Edit Account" />
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!--  Left column  -->
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Account Number (SOTK):" />
+                                <TextBox
+                                    Margin="0,0,0,12"
+                                    Background="#F0F0F0"
+                                    IsReadOnly="True"
+                                    Style="{StaticResource StandardTextBoxStyle}"
+                                    Text="{Binding EditingAccount.SOTK}" />
+
+                                <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Customer CMND:" />
+                                <TextBox
+                                    Margin="0,0,0,12"
+                                    Background="#F0F0F0"
+                                    IsReadOnly="True"
+                                    Style="{StaticResource StandardTextBoxStyle}"
+                                    Text="{Binding EditingAccount.CMND}" />
+
+                                <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Branch:" />
+                                <TextBox
+                                    Margin="0,0,0,12"
+                                    Background="#F0F0F0"
+                                    IsReadOnly="True"
+                                    Style="{StaticResource StandardTextBoxStyle}"
+                                    Text="{Binding EditingAccount.MACN}" />
+                            </StackPanel>
+
+                            <!--  Right column  -->
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Open Date:" />
+                                <TextBox
+                                    Margin="0,0,0,12"
+                                    Background="#F0F0F0"
+                                    IsReadOnly="True"
+                                    Style="{StaticResource StandardTextBoxStyle}"
+                                    Text="{Binding EditingAccount.NGAYMOTK, StringFormat=dd/MM/yyyy HH:mm}" />
+
+                                <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Initial Balance (VND):" />
+                                <TextBox
+                                    Margin="0,0,0,12"
+                                    Style="{StaticResource StandardTextBoxStyle}"
+                                    Text="{Binding EditingAccount.SODU, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Status:" />
+                                <TextBox
+                                    Margin="0,0,0,12"
+                                    Background="#F0F0F0"
+                                    IsReadOnly="True"
+                                    Style="{StaticResource StandardTextBoxStyle}"
+                                    Text="{Binding EditingAccount.Status}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <!--  Account inline validation errors  -->
+                        <Border
+                            Style="{StaticResource ValidationErrorPanelStyle}"
+                            Visibility="{Binding HasAccountError, Converter={StaticResource BoolToVisConverter}}">
+                            <StackPanel>
+                                <TextBlock
+                                    Margin="0,0,0,4"
+                                    FontWeight="SemiBold"
+                                    Foreground="#8B0000"
+                                    Text="Please fix the following errors:" />
+                                <TextBlock
+                                    Foreground="#8B0000"
+                                    Text="{Binding AccountErrorMessage}"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+
+                        <StackPanel
+                            Margin="0,10,0,0"
+                            HorizontalAlignment="Right"
+                            Orientation="Horizontal">
+                            <Button
+                                x:Name="SaveAccount"
+                                Content="Save Account"
+                                Style="{StaticResource SuccessButtonStyle}" />
+                            <Button
+                                x:Name="CancelAccount"
+                                Margin="0"
+                                Content="Cancel"
+                                Style="{StaticResource SecondaryButtonStyle}" />
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <!--  ═══════════════════════════════════════════════════════
+              ROW 4 · Page-level status messages
+              ═══════════════════════════════════════════════════════  -->
+        <StackPanel Grid.Row="4" Margin="0,8,0,0">
+            <TextBlock
+                Style="{StaticResource SuccessMessageStyle}"
+                Text="{Binding SuccessMessage}"
+                Visibility="{Binding HasSuccess, Converter={StaticResource BoolToVisConverter}}" />
+            <TextBlock
+                x:Name="ErrorMessage"
+                Style="{StaticResource ErrorMessageStyle}"
+                Visibility="{Binding HasError, Converter={StaticResource BoolToVisConverter}}" />
+        </StackPanel>
+
+        <!--  Loading overlay spanning all rows  -->
+        <Grid
+            Grid.Row="0"
+            Grid.RowSpan="5"
+            Style="{StaticResource LoadingOverlayStyle}">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <ProgressBar Style="{StaticResource LoadingSpinnerStyle}" />
+                <TextBlock
+                    Margin="0,10,0,0"
+                    HorizontalAlignment="Center"
+                    FontSize="14"
+                    Foreground="White"
+                    Text="Loading..." />
             </StackPanel>
         </Grid>
     </Grid>

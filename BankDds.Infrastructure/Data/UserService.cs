@@ -3,58 +3,68 @@ using BankDds.Core.Models;
 
 namespace BankDds.Infrastructure.Data;
 
+/// <summary>
+/// User service that delegates to IUserRepository for data access.
+/// Enforces authorization rules for user management.
+/// </summary>
 public class UserService : IUserService
 {
-    private readonly List<User> _users = new()
+    private readonly IUserRepository _userRepository;
+    private readonly IAuthorizationService _authorizationService;
+
+    public UserService(IUserRepository userRepository, IAuthorizationService authorizationService)
     {
-        new User { Username = "admin", PasswordHash = BCrypt.Net.BCrypt.HashPassword("123"), UserGroup = UserGroup.NganHang, DefaultBranch = "ALL", EmployeeId = 1 },
-        new User { Username = "btuser", PasswordHash = BCrypt.Net.BCrypt.HashPassword("123"), UserGroup = UserGroup.ChiNhanh, DefaultBranch = "BENTHANH", EmployeeId = 2 },
-        new User { Username = "tduser", PasswordHash = BCrypt.Net.BCrypt.HashPassword("123"), UserGroup = UserGroup.ChiNhanh, DefaultBranch = "TANDINH", EmployeeId = 3 },
-        new User { Username = "c123456", PasswordHash = BCrypt.Net.BCrypt.HashPassword("123"), UserGroup = UserGroup.KhachHang, DefaultBranch = "BENTHANH", CustomerCMND = "c123456", EmployeeId = null }
-    };
+        _userRepository = userRepository;
+        _authorizationService = authorizationService;
+    }
 
     public Task<User?> GetUserAsync(string username)
     {
-        var user = _users.FirstOrDefault(u => u.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
-        return Task.FromResult(user);
+        // Admin access required to view users
+        _authorizationService.RequireAdminAccess();
+        return _userRepository.GetUserAsync(username);
     }
 
     public Task<bool> AddUserAsync(User user)
     {
-        if (_users.Any(u => u.Username.Equals(user.Username, StringComparison.OrdinalIgnoreCase)))
-            return Task.FromResult(false);
+        // Check if user can access admin
+        _authorizationService.RequireAdminAccess();
 
-        _users.Add(user);
-        return Task.FromResult(true);
+        // Check if user can create this type of user
+        _authorizationService.RequireCanCreateUser(user.UserGroup);
+
+        // ChiNhanh admins may only create logins for their own branch
+        _authorizationService.RequireCanManageUserInBranch(user.DefaultBranch);
+
+        return _userRepository.AddUserAsync(user);
     }
 
     public Task<bool> UpdateUserAsync(User user)
     {
-        var existing = _users.FirstOrDefault(u => u.Username.Equals(user.Username, StringComparison.OrdinalIgnoreCase));
-        if (existing == null)
-            return Task.FromResult(false);
+        // Admin access required
+        _authorizationService.RequireAdminAccess();
 
-        existing.PasswordHash = user.PasswordHash;
-        existing.UserGroup = user.UserGroup;
-        existing.DefaultBranch = user.DefaultBranch;
-        existing.CustomerCMND = user.CustomerCMND;
-        existing.EmployeeId = user.EmployeeId;
+        // Check if user can modify this type of user
+        _authorizationService.RequireCanCreateUser(user.UserGroup);
 
-        return Task.FromResult(true);
+        // ChiNhanh admins may only update logins belonging to their own branch
+        _authorizationService.RequireCanManageUserInBranch(user.DefaultBranch);
+
+        return _userRepository.UpdateUserAsync(user);
     }
 
     public Task<bool> DeleteUserAsync(string username)
     {
-        var user = _users.FirstOrDefault(u => u.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
-        if (user == null)
-            return Task.FromResult(false);
-
-        _users.Remove(user);
-        return Task.FromResult(true);
+        // Admin access required
+        _authorizationService.RequireAdminAccess();
+        
+        return _userRepository.DeleteUserAsync(username);
     }
 
     public Task<List<User>> GetAllUsersAsync()
     {
-        return Task.FromResult(_users.ToList());
+        // Admin access required to list all users
+        _authorizationService.RequireAdminAccess();
+        return _userRepository.GetAllUsersAsync();
     }
 }

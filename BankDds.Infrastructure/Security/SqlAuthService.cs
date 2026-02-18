@@ -1,45 +1,48 @@
+using BankDds.Core.Interfaces;
+
 namespace BankDds.Infrastructure.Security;
 
+/// <summary>
+/// Legacy SQL-targeted auth service — NOT registered in the DI container.
+/// <para>
+/// <see cref="AuthService"/> is the single registered <see cref="IAuthService"/> implementation.
+/// It already delegates to <see cref="IUserRepository"/>, which is bound to either
+/// <c>InMemoryUserRepository</c> or <c>SqlUserRepository</c> depending on the
+/// <c>DataMode</c> setting in <c>appsettings.json</c>.  There is therefore no reason
+/// to register this class.  It is kept for reference only and may be deleted.
+/// </para>
+/// </summary>
+[Obsolete("Use AuthService (the registered IAuthService). It handles both InMemory and SQL modes via IUserRepository.")]
 public class SqlAuthService : IAuthService
 {
-    // Hard-coded users with hashed passwords and employee IDs
-    private readonly Dictionary<string, (string PasswordHash, string UserGroup, string DefaultBranch, string? CustomerCMND, int? EmployeeId)> _users = new()
-    {
-        ["admin"] = (BCrypt.Net.BCrypt.HashPassword("123"), "NganHang", "ALL", null, 1),
-        ["btuser"] = (BCrypt.Net.BCrypt.HashPassword("123"), "ChiNhanh", "BENTHANH", null, 2),
-        ["tduser"] = (BCrypt.Net.BCrypt.HashPassword("123"), "ChiNhanh", "TANDINH", null, 3),
-        ["c123456"] = (BCrypt.Net.BCrypt.HashPassword("123"), "KhachHang", "BENTHANH", "c123456", null)
-    };
+    private readonly IUserRepository _userRepository;
 
-    public Task<AuthResult> LoginAsync(string serverName, string userName, string password)
+    public SqlAuthService(IUserRepository userRepository)
     {
-        // Verify user exists and password matches
-        if (_users.TryGetValue(userName, out var user))
+        _userRepository = userRepository;
+    }
+
+    public async Task<AuthResult> LoginAsync(string serverName, string userName, string password)
+    {
+        var user = await _userRepository.GetUserAsync(userName);
+        if (user != null && BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
         {
-            // Verify password hash
-            if (BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
+            return new AuthResult
             {
-                return Task.FromResult(new AuthResult
-                {
-                    Success = true,
-                    UserGroup = user.UserGroup,
-                    DefaultBranch = user.DefaultBranch,
-                    CustomerCMND = user.CustomerCMND,
-                    EmployeeId = user.EmployeeId
-                });
-            }
+                Success = true,
+                UserGroup = user.UserGroup.ToString(),
+                DefaultBranch = user.DefaultBranch,
+                CustomerCMND = user.CustomerCMND,
+                EmployeeId = user.EmployeeId
+            };
         }
 
-        // Authentication failed
-        return Task.FromResult(new AuthResult
+        return new AuthResult
         {
             Success = false,
             ErrorMessage = "Invalid username or password"
-        });
+        };
     }
 
-    public Task LogoutAsync()
-    {
-        return Task.CompletedTask;
-    }
+    public Task LogoutAsync() => Task.CompletedTask;
 }

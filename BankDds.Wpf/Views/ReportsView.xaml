@@ -142,31 +142,47 @@
                             </Grid>
                             <Separator Margin="0,0,0,15" />
                             <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Transactions:" />
+                            <!--
+                                DE3 statement columns:
+                                Số dư đầu | Ngày | Loại GD | Số tiền | Số dư sau
+                                Binds to AccountStatement.Lines (List<StatementLine>).
+                            -->
                             <DataGrid
                                 Height="300"
-                                ItemsSource="{Binding AccountStatement.Transactions}"
+                                AutoGenerateColumns="False"
+                                CanUserAddRows="False"
+                                IsReadOnly="True"
+                                ItemsSource="{Binding AccountStatement.Lines}"
                                 Style="{StaticResource StandardDataGridStyle}">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn
+                                        Width="130"
+                                        Binding="{Binding OpeningBalance, StringFormat=N0}"
+                                        Header="Số dư đầu" />
+                                    <DataGridTextColumn
+                                        Width="110"
+                                        Binding="{Binding Date, StringFormat=dd/MM/yyyy}"
+                                        Header="Ngày" />
+                                    <DataGridTextColumn
+                                        Width="90"
+                                        Binding="{Binding TypeDisplay}"
+                                        Header="Loại GD" />
+                                    <DataGridTextColumn
+                                        Width="130"
+                                        Binding="{Binding AmountDisplay}"
+                                        Header="Số tiền" />
+                                    <DataGridTextColumn
+                                        Width="130"
+                                        Binding="{Binding RunningBalance, StringFormat=N0}"
+                                        Header="Số dư sau" />
+                                    <DataGridTextColumn
                                         Width="100"
-                                        Binding="{Binding MAGD}"
-                                        Header="Trans. ID" />
-                                    <DataGridTextColumn
-                                        Width="80"
-                                        Binding="{Binding LOAIGD}"
-                                        Header="Type" />
-                                    <DataGridTextColumn
-                                        Width="120"
-                                        Binding="{Binding NGAYGD, StringFormat=dd/MM/yyyy}"
-                                        Header="Date" />
+                                        Binding="{Binding TransactionId}"
+                                        Header="Mã GD" />
                                     <DataGridTextColumn
                                         Width="*"
-                                        Binding="{Binding SOTIEN, StringFormat=N0}"
-                                        Header="Amount" />
-                                    <DataGridTextColumn
-                                        Width="120"
-                                        Binding="{Binding SOTK_NHAN}"
-                                        Header="To Account" />
+                                        Binding="{Binding Description}"
+                                        Header="Diễn giải" />
                                 </DataGrid.Columns>
                             </DataGrid>
                         </StackPanel>

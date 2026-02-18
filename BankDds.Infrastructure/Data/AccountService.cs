@@ -3,96 +3,130 @@ using BankDds.Core.Models;
 
 namespace BankDds.Infrastructure.Data;
 
+/// <summary>
+/// Account service that delegates to IAccountRepository for data access with authorization
+/// </summary>
 public class AccountService : IAccountService
 {
-    private readonly List<Account> _accounts = new()
+    private readonly IAccountRepository _accountRepository;
+    private readonly ICustomerRepository _customerRepository;
+    private readonly IAuthorizationService _authorizationService;
+
+    public AccountService(
+        IAccountRepository accountRepository, 
+        ICustomerRepository customerRepository,
+        IAuthorizationService authorizationService)
     {
-        new Account { SOTK = "001001", CMND = "123456", SODU = 10000000, MACN = "BENTHANH", NGAYMOTK = DateTime.Now.AddMonths(-6), Status = "Active" },
-        new Account { SOTK = "001002", CMND = "234567", SODU = 5000000, MACN = "BENTHANH", NGAYMOTK = DateTime.Now.AddMonths(-3), Status = "Active" },
-        new Account { SOTK = "002001", CMND = "345678", SODU = 8000000, MACN = "TANDINH", NGAYMOTK = DateTime.Now.AddMonths(-12), Status = "Active" },
-        new Account { SOTK = "002002", CMND = "456789", SODU = 15000000, MACN = "TANDINH", NGAYMOTK = DateTime.Now.AddMonths(-8), Status = "Active" },
-        new Account { SOTK = "001003", CMND = "c123456", SODU = 3000000, MACN = "BENTHANH", NGAYMOTK = DateTime.Now.AddMonths(-1), Status = "Active" }
-    };
+        _accountRepository = accountRepository;
+        _customerRepository = customerRepository;
+        _authorizationService = authorizationService;
+    }
 
     public Task<List<Account>> GetAccountsByBranchAsync(string branchCode)
     {
-        var accounts = _accounts.Where(a => a.MACN == branchCode).ToList();
-        return Task.FromResult(accounts);
+        // Verify user can access this branch
+        _authorizationService.RequireCanAccessBranch(branchCode);
+        return _accountRepository.GetAccountsByBranchAsync(branchCode);
     }
 
     public Task<List<Account>> GetAllAccountsAsync()
     {
-        return Task.FromResult(_accounts.ToList());
+        // Only NganHang can get all accounts
+        if (!_authorizationService.CanAccessBranch("ALL"))
+        {
+            throw new UnauthorizedAccessException("Only bank-level users can access all accounts.");
+        }
+        return _accountRepository.GetAllAccountsAsync();
     }
 
-    public Task<List<Account>> GetAccountsByCustomerAsync(string cmnd)
+    public async Task<List<Account>> GetAccountsByCustomerAsync(string cmnd)
     {
-        var accounts = _accounts.Where(a => a.CMND == cmnd).ToList();
-        return Task.FromResult(accounts);
+        // Verify user can access this customer
+        _authorizationService.RequireCanAccessCustomer(cmnd);
+        
+        // Get customer to verify branch access
+        var customer = await _customerRepository.GetCustomerByCMNDAsync(cmnd);
+        if (customer != null)
+        {
+            _authorizationService.RequireCanAccessBranch(customer.MaCN);
+        }
+        
+        return await _accountRepository.GetAccountsByCustomerAsync(cmnd);
     }
 
-    public Task<Account?> GetAccountAsync(string sotk)
+    public async Task<Account?> GetAccountAsync(string sotk)
     {
-        var account = _accounts.FirstOrDefault(a => a.SOTK == sotk);
-        return Task.FromResult(account);
+        var account = await _accountRepository.GetAccountAsync(sotk);
+        if (account == null)
+            return null;
+
+        // Verify user can access this account's customer and branch
+        _authorizationService.RequireCanAccessAccount(account.CMND);
+        _authorizationService.RequireCanAccessBranch(account.MACN);
+        
+        return account;
     }
 
-    public Task<bool> AddAccountAsync(Account account)
+    public async Task<bool> AddAccountAsync(Account account)
     {
-        if (_accounts.Any(a => a.SOTK == account.SOTK))
-            return Task.FromResult(false);
-
-        _accounts.Add(account);
-        return Task.FromResult(true);
+        // Verify user can modify this branch
+        _authorizationService.RequireCanModifyBranch(account.MACN);
+        
+        // Verify customer exists and user can access
+        var customer = await _customerRepository.GetCustomerByCMNDAsync(account.CMND);
+        if (customer == null)
+            throw new InvalidOperationException("Customer not found");
+        
+        _authorizationService.RequireCanAccessCustomer(account.CMND);
+        
+        return await _accountRepository.AddAccountAsync(account);
     }
 
-    public Task<bool> UpdateAccountAsync(Account account)
+    public async Task<bool> UpdateAccountAsync(Account account)
     {
-        var existing = _accounts.FirstOrDefault(a => a.SOTK == account.SOTK);
+        var existing = await _accountRepository.GetAccountAsync(account.SOTK);
         if (existing == null)
-            return Task.FromResult(false);
+            return false;
 
-        existing.SODU = account.SODU;
-        existing.Status = account.Status;
-        return Task.FromResult(true);
+        // Verify user can modify this branch
+        _authorizationService.RequireCanModifyBranch(existing.MACN);
+        
+        return await _accountRepository.UpdateAccountAsync(account);
     }
 
-    public Task<bool> DeleteAccountAsync(string sotk)
+    public async Task<bool> DeleteAccountAsync(string sotk)
     {
-        var account = _accounts.FirstOrDefault(a => a.SOTK == sotk);
+        var account = await _accountRepository.GetAccountAsync(sotk);
         if (account == null)
-            return Task.FromResult(false);
+            return false;
 
-        if (account.SODU != 0)
-            return Task.FromResult(false); // Cannot delete account with balance
-
-        _accounts.Remove(account);
-        return Task.FromResult(true);
+        // Verify user can modify this branch
+        _authorizationService.RequireCanModifyBranch(account.MACN);
+        
+        return await _accountRepository.DeleteAccountAsync(sotk);
     }
 
-    public Task<bool> CloseAccountAsync(string sotk)
+    public async Task<bool> CloseAccountAsync(string sotk)
     {
-        var account = _accounts.FirstOrDefault(a => a.SOTK == sotk);
+        var account = await _accountRepository.GetAccountAsync(sotk);
         if (account == null)
-            return Task.FromResult(false);
+            return false;
 
-        if (account.SODU != 0)
-            return Task.FromResult(false); // Cannot close account with non-zero balance
-
-        account.Status = "Closed";
-        return Task.FromResult(true);
+        // Verify user can modify this branch
+        _authorizationService.RequireCanModifyBranch(account.MACN);
+        
+        return await _accountRepository.CloseAccountAsync(sotk);
     }
 
-    public Task<bool> ReopenAccountAsync(string sotk)
+    public async Task<bool> ReopenAccountAsync(string sotk)
     {
-        var account = _accounts.FirstOrDefault(a => a.SOTK == sotk);
+        var account = await _accountRepository.GetAccountAsync(sotk);
         if (account == null)
-            return Task.FromResult(false);
+            return false;
 
-        if (account.Status != "Closed")
-            return Task.FromResult(false); // Account must be closed to reopen
-
-        account.Status = "Active";
-        return Task.FromResult(true);
+        // Verify user can modify this branch
+        _authorizationService.RequireCanModifyBranch(account.MACN);
+        
+        return await _accountRepository.ReopenAccountAsync(sotk);
     }
 }

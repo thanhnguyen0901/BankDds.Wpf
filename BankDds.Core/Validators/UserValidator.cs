@@ -14,9 +14,10 @@ public class UserValidator : AbstractValidator<Models.User>
 
         // PasswordHash validation (only validate that it exists for new users)
         // Skip this validation when updating existing users without password change
+        // The caller sets RootContextData["SkipPasswordValidation"] = true for edit-without-password-change.
         RuleFor(x => x.PasswordHash)
             .NotEmpty().WithMessage("Password is required")
-            .Unless(x => x.GetType().GetProperty("SkipPasswordValidation") != null);
+            .Unless((user, ctx) => ctx.RootContextData.ContainsKey("SkipPasswordValidation"));
 
         // Default branch validation
         RuleFor(x => x.DefaultBranch)
@@ -34,10 +35,10 @@ public class UserValidator : AbstractValidator<Models.User>
             .Matches(@"^\d+$").WithMessage("Customer CMND must contain only numeric digits")
             .When(x => x.UserGroup == Models.UserGroup.KhachHang && !string.IsNullOrEmpty(x.CustomerCMND));
 
-        // EmployeeId validation: Should be provided for non-customer users
+        // EmployeeId validation: Should be provided for non-customer users - exactly 10 characters
         RuleFor(x => x.EmployeeId)
             .NotNull().WithMessage("Employee ID is required for bank and branch users")
-            .GreaterThan(0).WithMessage("Employee ID must be a valid positive number")
+            .Length(10).WithMessage("Employee ID must be exactly 10 characters")
             .When(x => x.UserGroup == Models.UserGroup.NganHang || x.UserGroup == Models.UserGroup.ChiNhanh);
     }
 }

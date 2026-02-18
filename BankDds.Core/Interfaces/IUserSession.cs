@@ -10,7 +10,7 @@ public interface IUserSession
     string SelectedBranch { get; }
     List<string> PermittedBranches { get; }
     string? CustomerCMND { get; }
-    int? EmployeeId { get; }
+    string? EmployeeId { get; }
     
     void SetSession(
         string username,
@@ -19,7 +19,7 @@ public interface IUserSession
         string selectedBranch,
         List<string> permittedBranches,
         string? customerCMND = null,
-        int? employeeId = null);
+        string? employeeId = null);
     
     void ClearSession();
     
