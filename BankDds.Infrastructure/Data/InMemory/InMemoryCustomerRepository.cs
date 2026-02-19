@@ -15,7 +15,7 @@ public class InMemoryCustomerRepository : ICustomerRepository
             NgaySinh = new DateTime(1990, 1, 15), 
             DiaChi = "123 Le Loi", 
             NgayCap = new DateTime(2008, 1, 20), 
-            SDT = "0901234567", 
+            SODT = "0901234567", 
             Phai = "Nam", 
             MaCN = "BENTHANH" 
         },
@@ -27,7 +27,7 @@ public class InMemoryCustomerRepository : ICustomerRepository
             NgaySinh = new DateTime(1992, 5, 10), 
             DiaChi = "456 Nguyen Hue", 
             NgayCap = new DateTime(2010, 5, 15), 
-            SDT = "0902345678", 
+            SODT = "0902345678", 
             Phai = "Nữ", 
             MaCN = "BENTHANH" 
         },
@@ -39,7 +39,7 @@ public class InMemoryCustomerRepository : ICustomerRepository
             NgaySinh = new DateTime(1985, 8, 25), 
             DiaChi = "789 Tran Hung Dao", 
             NgayCap = new DateTime(2003, 9, 1), 
-            SDT = "0903456789", 
+            SODT = "0903456789", 
             Phai = "Nam", 
             MaCN = "TANDINH" 
         },
@@ -51,7 +51,7 @@ public class InMemoryCustomerRepository : ICustomerRepository
             NgaySinh = new DateTime(1995, 3, 12), 
             DiaChi = "321 Hai Ba Trung", 
             NgayCap = new DateTime(2013, 3, 20), 
-            SDT = "0904567890", 
+            SODT = "0904567890", 
             Phai = "Nữ", 
             MaCN = "TANDINH" 
         },
@@ -63,7 +63,7 @@ public class InMemoryCustomerRepository : ICustomerRepository
             NgaySinh = new DateTime(1988, 7, 8), 
             DiaChi = "999 Customer St", 
             NgayCap = new DateTime(2006, 7, 15), 
-            SDT = "0905678901", 
+            SODT = "0905678901", 
             Phai = "Nam", 
             MaCN = "BENTHANH" 
         }
@@ -106,7 +106,7 @@ public class InMemoryCustomerRepository : ICustomerRepository
         existing.NgaySinh = customer.NgaySinh;
         existing.DiaChi = customer.DiaChi;
         existing.NgayCap = customer.NgayCap;
-        existing.SDT = customer.SDT;
+        existing.SODT = customer.SODT;
         existing.Phai = customer.Phai;
         existing.MaCN = customer.MaCN;
 

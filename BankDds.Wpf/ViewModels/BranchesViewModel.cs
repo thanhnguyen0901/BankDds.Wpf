@@ -120,7 +120,7 @@ public class BranchesViewModel : BaseViewModel
             MACN   = SelectedBranch.MACN,
             TENCN  = SelectedBranch.TENCN,
             DiaChi = SelectedBranch.DiaChi,
-            SoDT   = SelectedBranch.SoDT
+            SODT   = SelectedBranch.SODT
         };
         IsEditing      = true;
         ErrorMessage   = string.Empty;

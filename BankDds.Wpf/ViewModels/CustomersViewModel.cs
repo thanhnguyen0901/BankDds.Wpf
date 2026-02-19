@@ -251,7 +251,7 @@ public class CustomersViewModel : BaseViewModel
             NgaySinh = SelectedCustomer.NgaySinh,
             DiaChi = SelectedCustomer.DiaChi,
             NgayCap = SelectedCustomer.NgayCap,
-            SDT = SelectedCustomer.SDT,
+            SODT = SelectedCustomer.SODT,
             Phai = SelectedCustomer.Phai,
             MaCN = SelectedCustomer.MaCN
         };

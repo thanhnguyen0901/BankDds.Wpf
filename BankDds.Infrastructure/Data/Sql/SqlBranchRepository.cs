@@ -102,7 +102,7 @@ public class SqlBranchRepository : IBranchRepository
             command.Parameters.AddWithValue("@MACN",   branch.MACN);
             command.Parameters.AddWithValue("@TENCN",  branch.TENCN);
             command.Parameters.AddWithValue("@DIACHI", string.IsNullOrEmpty(branch.DiaChi) ? (object)DBNull.Value : branch.DiaChi);
-            command.Parameters.AddWithValue("@SODT",   string.IsNullOrEmpty(branch.SoDT)   ? (object)DBNull.Value : branch.SoDT);
+            command.Parameters.AddWithValue("@SODT",   string.IsNullOrEmpty(branch.SODT)   ? (object)DBNull.Value : branch.SODT);
             return await command.ExecuteNonQueryAsync() > 0;
         }
         catch (SqlException ex)
@@ -124,7 +124,7 @@ public class SqlBranchRepository : IBranchRepository
             command.Parameters.AddWithValue("@MACN",   branch.MACN);
             command.Parameters.AddWithValue("@TENCN",  branch.TENCN);
             command.Parameters.AddWithValue("@DIACHI", string.IsNullOrEmpty(branch.DiaChi) ? (object)DBNull.Value : branch.DiaChi);
-            command.Parameters.AddWithValue("@SODT",   string.IsNullOrEmpty(branch.SoDT)   ? (object)DBNull.Value : branch.SoDT);
+            command.Parameters.AddWithValue("@SODT",   string.IsNullOrEmpty(branch.SODT)   ? (object)DBNull.Value : branch.SODT);
             return await command.ExecuteNonQueryAsync() > 0;
         }
         catch (SqlException ex)
@@ -164,6 +164,6 @@ public class SqlBranchRepository : IBranchRepository
         MACN   = reader.GetString(reader.GetOrdinal("MACN")).Trim(),
         TENCN  = reader.GetString(reader.GetOrdinal("TENCN")),
         DiaChi = reader.IsDBNull(reader.GetOrdinal("DIACHI")) ? string.Empty : reader.GetString(reader.GetOrdinal("DIACHI")),
-        SoDT   = reader.IsDBNull(reader.GetOrdinal("SODT"))   ? string.Empty : reader.GetString(reader.GetOrdinal("SODT"))
+        SODT   = reader.IsDBNull(reader.GetOrdinal("SODT"))   ? string.Empty : reader.GetString(reader.GetOrdinal("SODT"))
     };
 }

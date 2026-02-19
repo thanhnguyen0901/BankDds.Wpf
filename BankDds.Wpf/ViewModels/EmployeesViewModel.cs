@@ -174,7 +174,7 @@ public class EmployeesViewModel : Screen
             DIACHI = SelectedEmployee.DIACHI,
             CMND = SelectedEmployee.CMND,
             PHAI = SelectedEmployee.PHAI,
-            SDT = SelectedEmployee.SDT,
+            SODT = SelectedEmployee.SODT,
             MACN = SelectedEmployee.MACN,
             TrangThaiXoa = SelectedEmployee.TrangThaiXoa
         };

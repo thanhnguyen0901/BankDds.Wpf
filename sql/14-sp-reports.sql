@@ -1,4 +1,4 @@
-/*=============================================================================
+﻿/*=============================================================================
   14-sp-reports.sql — Stored Procedures for Reports
   Generated: 2026-02-18
 
@@ -64,7 +64,7 @@ BEGIN
                     AND NGAYGD >= @TuNgay AND Status = N'Completed'), 0)
         -- reverse outgoing transfers in period
         + ISNULL((SELECT SUM(SOTIEN) FROM dbo.GD_CHUYENTIEN
-                  WHERE SOTK = @SOTK
+                  WHERE SOTK_CHUYEN = @SOTK
                     AND NGAYGD >= @TuNgay AND Status = N'Completed'), 0)
         -- reverse deposits in period
         - ISNULL((SELECT SUM(SOTIEN) FROM dbo.GD_GOIRUT
@@ -106,7 +106,7 @@ BEGIN
             -SOTIEN AS SignedAmount,
             CAST(1 AS bit) AS IsDebit
         FROM dbo.GD_CHUYENTIEN
-        WHERE SOTK   = @SOTK
+        WHERE SOTK_CHUYEN = @SOTK
           AND NGAYGD BETWEEN @TuNgay AND @DenNgay
           AND Status = N'Completed'
 
@@ -260,10 +260,10 @@ BEGIN
 
     UNION ALL
 
-    SELECT ct.MAGD, ct.SOTK, ct.LOAIGD, ct.NGAYGD, ct.SOTIEN, ct.MANV,
+    SELECT ct.MAGD, ct.SOTK_CHUYEN AS SOTK, ct.LOAIGD, ct.NGAYGD, ct.SOTIEN, ct.MANV,
            ct.SOTK_NHAN, ct.Status, ct.ErrorMessage
     FROM   dbo.GD_CHUYENTIEN ct
-    JOIN   dbo.TAIKHOAN      tk ON tk.SOTK = ct.SOTK
+    JOIN   dbo.TAIKHOAN      tk ON tk.SOTK = ct.SOTK_CHUYEN
     WHERE  ct.NGAYGD BETWEEN @FromDate AND @ToDate
       AND  (@BranchCode IS NULL OR tk.MACN = @BranchCode)
 

@@ -89,7 +89,7 @@ public class SqlEmployeeRepository : IEmployeeRepository
             command.Parameters.AddWithValue("@DIACHI", (object?)employee.DIACHI ?? DBNull.Value);
             command.Parameters.AddWithValue("@CMND",   (object?)employee.CMND   ?? DBNull.Value);
             command.Parameters.AddWithValue("@PHAI",   employee.PHAI);
-            command.Parameters.AddWithValue("@SDT",    (object?)employee.SDT    ?? DBNull.Value);
+            command.Parameters.AddWithValue("@SODT",    (object?)employee.SODT    ?? DBNull.Value);
             command.Parameters.AddWithValue("@MACN",   employee.MACN);
             return await command.ExecuteNonQueryAsync() > 0;
         }
@@ -109,7 +109,7 @@ public class SqlEmployeeRepository : IEmployeeRepository
             command.Parameters.AddWithValue("@DIACHI", (object?)employee.DIACHI ?? DBNull.Value);
             command.Parameters.AddWithValue("@CMND",   (object?)employee.CMND   ?? DBNull.Value);
             command.Parameters.AddWithValue("@PHAI",   employee.PHAI);
-            command.Parameters.AddWithValue("@SDT",    (object?)employee.SDT    ?? DBNull.Value);
+            command.Parameters.AddWithValue("@SODT",    (object?)employee.SODT    ?? DBNull.Value);
             command.Parameters.AddWithValue("@MACN",   employee.MACN);
             return await command.ExecuteNonQueryAsync() > 0;
         }
@@ -166,7 +166,7 @@ public class SqlEmployeeRepository : IEmployeeRepository
         DIACHI       = reader.IsDBNull(reader.GetOrdinal("DIACHI")) ? "" : reader.GetString(reader.GetOrdinal("DIACHI")),
         CMND         = reader.IsDBNull(reader.GetOrdinal("CMND"))   ? "" : reader.GetString(reader.GetOrdinal("CMND")).Trim(),
         PHAI         = reader.GetString(reader.GetOrdinal("PHAI")).Trim(),
-        SDT          = reader.IsDBNull(reader.GetOrdinal("SDT"))    ? "" : reader.GetString(reader.GetOrdinal("SDT")),
+        SODT          = reader.IsDBNull(reader.GetOrdinal("SODT"))    ? "" : reader.GetString(reader.GetOrdinal("SODT")),
         MACN         = reader.GetString(reader.GetOrdinal("MACN")).Trim(),
         TrangThaiXoa = reader.IsDBNull(reader.GetOrdinal("TrangThaiXoa")) ? 0 : reader.GetInt32(reader.GetOrdinal("TrangThaiXoa"))
     };

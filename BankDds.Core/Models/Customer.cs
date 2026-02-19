@@ -8,7 +8,7 @@ public class Customer
     public DateTime? NgaySinh { get; set; }
     public string DiaChi { get; set; } = string.Empty;
     public DateTime? NgayCap { get; set; }  // ID card issue date - REQUIRED in DE3
-    public string SDT { get; set; } = string.Empty;
+    public string SODT { get; set; } = string.Empty;
     public string Phai { get; set; } = string.Empty;
     public string MaCN { get; set; } = string.Empty;
     public int TrangThaiXoa { get; set; } = 0; // 0 = Active, 1 = Deleted

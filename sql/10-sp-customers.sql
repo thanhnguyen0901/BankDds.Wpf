@@ -1,4 +1,4 @@
-/*=============================================================================
+﻿/*=============================================================================
   10-sp-customers.sql — Stored Procedures for KHACHHANG
   Generated: 2026-02-18
 
@@ -39,7 +39,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
     DECLARE @Branch nChar(10) = COALESCE(@MACN, @BranchCode);
-    SELECT CMND, HO, TEN, NGAYSINH, DIACHI, NGAYCAP, SDT, PHAI, MACN, TrangThaiXoa
+    SELECT CMND, HO, TEN, NGAYSINH, DIACHI, NGAYCAP, SODT, PHAI, MACN, TrangThaiXoa
     FROM   dbo.KHACHHANG
     WHERE  (@Branch IS NULL OR MACN = @Branch)
     ORDER BY HO ASC, TEN ASC;
@@ -58,7 +58,7 @@ CREATE PROCEDURE dbo.SP_GetCustomerByCMND
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT CMND, HO, TEN, NGAYSINH, DIACHI, NGAYCAP, SDT, PHAI, MACN, TrangThaiXoa
+    SELECT CMND, HO, TEN, NGAYSINH, DIACHI, NGAYCAP, SODT, PHAI, MACN, TrangThaiXoa
     FROM   dbo.KHACHHANG
     WHERE  CMND = @CMND;
 END
@@ -79,7 +79,7 @@ CREATE PROCEDURE dbo.SP_AddCustomer
     @NGAYSINH date          = NULL,
     @DIACHI   nvarchar(100) = NULL,
     @NGAYCAP  date          = NULL,
-    @SDT      varchar(11)   = NULL,
+    @SODT      nvarchar(15)  = NULL,
     @PHAI     nChar(3),
     @MACN     nChar(10)
 AS
@@ -87,8 +87,8 @@ BEGIN
     SET NOCOUNT OFF;   -- caller checks ExecuteNonQueryAsync() > 0
     IF EXISTS (SELECT 1 FROM dbo.KHACHHANG WHERE CMND = @CMND)
         RETURN;        -- returns 0 rows affected
-    INSERT INTO dbo.KHACHHANG (CMND, HO, TEN, NGAYSINH, DIACHI, NGAYCAP, SDT, PHAI, MACN, TrangThaiXoa)
-    VALUES (@CMND, @HO, @TEN, @NGAYSINH, @DIACHI, @NGAYCAP, @SDT, @PHAI, @MACN, 0);
+    INSERT INTO dbo.KHACHHANG (CMND, HO, TEN, NGAYSINH, DIACHI, NGAYCAP, SODT, PHAI, MACN, TrangThaiXoa)
+    VALUES (@CMND, @HO, @TEN, @NGAYSINH, @DIACHI, @NGAYCAP, @SODT, @PHAI, @MACN, 0);
 END
 GO
 
@@ -106,7 +106,7 @@ CREATE PROCEDURE dbo.SP_UpdateCustomer
     @NGAYSINH date          = NULL,
     @DIACHI   nvarchar(100) = NULL,
     @NGAYCAP  date          = NULL,
-    @SDT      varchar(11)   = NULL,
+    @SODT      nvarchar(15)  = NULL,
     @PHAI     nChar(3),
     @MACN     nChar(10)
 AS
@@ -114,7 +114,7 @@ BEGIN
     SET NOCOUNT OFF;
     UPDATE dbo.KHACHHANG
     SET    HO = @HO, TEN = @TEN, NGAYSINH = @NGAYSINH, DIACHI = @DIACHI,
-           NGAYCAP = @NGAYCAP, SDT = @SDT, PHAI = @PHAI, MACN = @MACN
+           NGAYCAP = @NGAYCAP, SODT = @SODT, PHAI = @PHAI, MACN = @MACN
     WHERE  CMND = @CMND;
 END
 GO
@@ -172,7 +172,7 @@ CREATE PROCEDURE dbo.SP_GetAllCustomers
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT CMND, HO, TEN, NGAYSINH, DIACHI, NGAYCAP, SDT, PHAI, MACN, TrangThaiXoa
+    SELECT CMND, HO, TEN, NGAYSINH, DIACHI, NGAYCAP, SODT, PHAI, MACN, TrangThaiXoa
     FROM   dbo.KHACHHANG_ALL
     ORDER BY HO ASC, TEN ASC;
 END
@@ -193,7 +193,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
     DECLARE @Branch nChar(10) = COALESCE(@MACN, @BranchCode);
-    SELECT CMND, HO, TEN, NGAYSINH, DIACHI, NGAYCAP, SDT, PHAI, MACN, TrangThaiXoa
+    SELECT CMND, HO, TEN, NGAYSINH, DIACHI, NGAYCAP, SODT, PHAI, MACN, TrangThaiXoa
     FROM   dbo.KHACHHANG_ALL
     WHERE  (@Branch IS NULL OR MACN = @Branch)
     ORDER BY HO ASC, TEN ASC;

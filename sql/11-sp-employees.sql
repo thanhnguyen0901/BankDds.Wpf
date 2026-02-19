@@ -1,4 +1,4 @@
-/*=============================================================================
+﻿/*=============================================================================
   11-sp-employees.sql — Stored Procedures for NHANVIEN
   Generated: 2026-02-18
 
@@ -33,7 +33,7 @@ CREATE PROCEDURE dbo.SP_GetEmployeesByBranch
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT MANV, HO, TEN, DIACHI, CMND, PHAI, SDT, MACN, TrangThaiXoa
+    SELECT MANV, HO, TEN, DIACHI, CMND, PHAI, SODT, MACN, TrangThaiXoa
     FROM   dbo.NHANVIEN
     WHERE  MACN = @MACN
     ORDER BY HO ASC, TEN ASC;
@@ -53,7 +53,7 @@ CREATE PROCEDURE dbo.SP_GetEmployee
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT MANV, HO, TEN, DIACHI, CMND, PHAI, SDT, MACN, TrangThaiXoa
+    SELECT MANV, HO, TEN, DIACHI, CMND, PHAI, SODT, MACN, TrangThaiXoa
     FROM   dbo.NHANVIEN
     WHERE  MANV = @MANV;
 END
@@ -75,15 +75,15 @@ CREATE PROCEDURE dbo.SP_AddEmployee
     @DIACHI nvarchar(100) = NULL,
     @CMND   nChar(10)     = NULL,
     @PHAI   nChar(3),
-    @SDT    varchar(11)   = NULL,
+    @SODT    nvarchar(15)  = NULL,
     @MACN   nChar(10)
 AS
 BEGIN
     SET NOCOUNT OFF;
     IF EXISTS (SELECT 1 FROM dbo.NHANVIEN WHERE MANV = @MANV)
         RETURN;   -- duplicate MANV → returns 0 rows affected
-    INSERT INTO dbo.NHANVIEN (MANV, HO, TEN, DIACHI, CMND, PHAI, SDT, MACN, TrangThaiXoa)
-    VALUES (@MANV, @HO, @TEN, @DIACHI, @CMND, @PHAI, @SDT, @MACN, 0);
+    INSERT INTO dbo.NHANVIEN (MANV, HO, TEN, DIACHI, CMND, PHAI, SODT, MACN, TrangThaiXoa)
+    VALUES (@MANV, @HO, @TEN, @DIACHI, @CMND, @PHAI, @SODT, @MACN, 0);
 END
 GO
 
@@ -102,14 +102,14 @@ CREATE PROCEDURE dbo.SP_UpdateEmployee
     @DIACHI nvarchar(100) = NULL,
     @CMND   nChar(10)     = NULL,
     @PHAI   nChar(3),
-    @SDT    varchar(11)   = NULL,
+    @SODT    nvarchar(15)  = NULL,
     @MACN   nChar(10)
 AS
 BEGIN
     SET NOCOUNT OFF;
     UPDATE dbo.NHANVIEN
     SET    HO = @HO, TEN = @TEN, DIACHI = @DIACHI, CMND = @CMND,
-           PHAI = @PHAI, SDT = @SDT, MACN = @MACN
+           PHAI = @PHAI, SODT = @SODT, MACN = @MACN
     WHERE  MANV = @MANV;
 END
 GO
@@ -203,7 +203,7 @@ CREATE PROCEDURE dbo.SP_GetAllEmployees
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT MANV, HO, TEN, DIACHI, CMND, PHAI, SDT, MACN, TrangThaiXoa
+    SELECT MANV, HO, TEN, DIACHI, CMND, PHAI, SODT, MACN, TrangThaiXoa
     FROM   dbo.NHANVIEN_ALL
     ORDER BY MACN ASC, HO ASC, TEN ASC;
 END

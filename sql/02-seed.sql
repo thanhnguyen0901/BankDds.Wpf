@@ -43,13 +43,13 @@ GO
 INSERT INTO dbo.NGUOIDUNG (Username, PasswordHash, UserGroup, DefaultBranch, CustomerCMND, EmployeeId, TrangThaiXoa)
 VALUES
     -- Bank-level administrator
-    (N'admin',   N'<BCRYPT_HASH_OF_123>', 0, N'ALL',      NULL,           N'NV00000001', 0),
+    (N'admin',   N'$2a$11$Fsb2XNzQJ09xzUshizbqLuAihWhqWOHRWklRTTTjCUaTiFPk5UKVW', 0, N'ALL',      NULL,           N'NV00000001', 0),
     -- Branch administrator — Bến Thành
-    (N'btuser',  N'<BCRYPT_HASH_OF_123>', 1, N'BENTHANH', NULL,           N'NV00000002', 0),
+    (N'btuser',  N'$2a$11$Fsb2XNzQJ09xzUshizbqLuAihWhqWOHRWklRTTTjCUaTiFPk5UKVW', 1, N'BENTHANH', NULL,           N'NV00000002', 0),
     -- Branch administrator — Tân Định
-    (N'tduser',  N'<BCRYPT_HASH_OF_123>', 1, N'TANDINH',  NULL,           N'NV00000003', 0),
+    (N'tduser',  N'$2a$11$Fsb2XNzQJ09xzUshizbqLuAihWhqWOHRWklRTTTjCUaTiFPk5UKVW', 1, N'TANDINH',  NULL,           N'NV00000003', 0),
     -- Customer account (CMND links to KHACHHANG record)
-    (N'c123456', N'<BCRYPT_HASH_OF_123>', 2, N'BENTHANH', N'0056789012',  NULL,          0);
+    (N'c123456', N'$2a$11$Fsb2XNzQJ09xzUshizbqLuAihWhqWOHRWklRTTTjCUaTiFPk5UKVW', 2, N'BENTHANH', N'0056789012',  NULL,          0);
 GO
 
 
@@ -60,14 +60,14 @@ USE NGANHANG_BT;
 GO
 
 -- ── NHANVIEN ─────────────────────────────────────────────────────────────────
-INSERT INTO dbo.NHANVIEN (MANV, HO, TEN, DIACHI, CMND, PHAI, SDT, MACN, TrangThaiXoa)
+INSERT INTO dbo.NHANVIEN (MANV, HO, TEN, DIACHI, CMND, PHAI, SODT, MACN, TrangThaiXoa)
 VALUES
     (N'NV00000001', N'Nguyen', N'Admin',   N'123 Admin St',    N'0011111111', N'Nam', N'0911111111', N'BENTHANH', 0),
     (N'NV00000002', N'Tran',   N'Manager', N'456 Manager Ave', N'0022222222', N'Nam', N'0922222222', N'BENTHANH', 0);
 GO
 
 -- ── KHACHHANG ────────────────────────────────────────────────────────────────
-INSERT INTO dbo.KHACHHANG (CMND, HO, TEN, NGAYSINH, DIACHI, NGAYCAP, SDT, PHAI, MACN, TrangThaiXoa)
+INSERT INTO dbo.KHACHHANG (CMND, HO, TEN, NGAYSINH, DIACHI, NGAYCAP, SODT, PHAI, MACN, TrangThaiXoa)
 VALUES
     (N'0012345678', N'Nguyen Van', N'A',    '1990-01-15', N'123 Le Loi',      '2008-01-20', N'0901234567', N'Nam', N'BENTHANH', 0),
     (N'0023456789', N'Tran Thi',   N'B',    '1992-05-10', N'456 Nguyen Hue',  '2010-05-15', N'0902345678', N'Nữ', N'BENTHANH', 0),
@@ -83,13 +83,13 @@ VALUES
 GO
 
 -- ── GD_GOIRUT ─────────────────────────────────────────────────────────────────
--- Seed transaction IDs use short strings (GD001…); generated IDs will be GD000000006+.
-INSERT INTO dbo.GD_GOIRUT (MAGD, SOTK, LOAIGD, NGAYGD, SOTIEN, MANV, Status)
+-- MAGD is int IDENTITY(1,1) — do not specify MAGD; DB auto-assigns 1, 2, 3, 4 …
+INSERT INTO dbo.GD_GOIRUT (SOTK, LOAIGD, NGAYGD, SOTIEN, MANV, Status)
 VALUES
-    (N'GD001', N'TK0000001', N'GT', '2026-02-08', 2000000, N'NV00000001', N'Completed'),
-    (N'GD002', N'TK0000001', N'RT', '2026-02-13',  500000, N'NV00000001', N'Completed'),
-    (N'GD003', N'TK0000002', N'GT', '2026-02-11', 1000000, N'NV00000002', N'Completed'),
-    (N'GD005', N'TK0000005', N'GT', '2026-02-17',  500000, N'NV00000001', N'Completed');
+    (N'TK0000001', N'GT', '2026-02-08', 2000000, N'NV00000001', N'Completed'),
+    (N'TK0000001', N'RT', '2026-02-13',  500000, N'NV00000001', N'Completed'),
+    (N'TK0000002', N'GT', '2026-02-11', 1000000, N'NV00000002', N'Completed'),
+    (N'TK0000005', N'GT', '2026-02-17',  500000, N'NV00000001', N'Completed');
 GO
 
 
@@ -100,14 +100,14 @@ USE NGANHANG_TD;
 GO
 
 -- ── NHANVIEN ─────────────────────────────────────────────────────────────────
-INSERT INTO dbo.NHANVIEN (MANV, HO, TEN, DIACHI, CMND, PHAI, SDT, MACN, TrangThaiXoa)
+INSERT INTO dbo.NHANVIEN (MANV, HO, TEN, DIACHI, CMND, PHAI, SODT, MACN, TrangThaiXoa)
 VALUES
     (N'NV00000003', N'Le',   N'Teller', N'789 Teller Rd',  N'0033333333', N'Nữ', N'0933333333', N'TANDINH', 0),
     (N'NV00000004', N'Pham', N'Staff',  N'321 Staff Blvd', N'0044444444', N'Nữ', N'0944444444', N'TANDINH', 0);
 GO
 
 -- ── KHACHHANG ────────────────────────────────────────────────────────────────
-INSERT INTO dbo.KHACHHANG (CMND, HO, TEN, NGAYSINH, DIACHI, NGAYCAP, SDT, PHAI, MACN, TrangThaiXoa)
+INSERT INTO dbo.KHACHHANG (CMND, HO, TEN, NGAYSINH, DIACHI, NGAYCAP, SODT, PHAI, MACN, TrangThaiXoa)
 VALUES
     (N'0034567890', N'Le Van',  N'C', '1985-08-25', N'789 Tran Hung Dao', '2003-09-01', N'0903456789', N'Nam', N'TANDINH', 0),
     (N'0045678901', N'Pham Thi',N'D', '1995-03-12', N'321 Hai Ba Trung',  '2013-03-20', N'0904567890', N'Nữ', N'TANDINH', 0);
@@ -121,7 +121,8 @@ VALUES
 GO
 
 -- ── GD_GOIRUT ─────────────────────────────────────────────────────────────────
-INSERT INTO dbo.GD_GOIRUT (MAGD, SOTK, LOAIGD, NGAYGD, SOTIEN, MANV, Status)
+-- MAGD is int IDENTITY(1,1) — do not specify MAGD; DB auto-assigns.
+INSERT INTO dbo.GD_GOIRUT (SOTK, LOAIGD, NGAYGD, SOTIEN, MANV, Status)
 VALUES
-    (N'GD004', N'TK0000003', N'GT', '2026-02-15', 3000000, N'NV00000003', N'Completed');
+    (N'TK0000003', N'GT', '2026-02-15', 3000000, N'NV00000003', N'Completed');
 GO

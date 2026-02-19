@@ -44,9 +44,9 @@ public class CustomerValidator : AbstractValidator<Models.Customer>
             .When(x => x.NgayCap.HasValue && x.NgaySinh.HasValue);
 
         // Phone validation: Optional, but if provided must be 10-11 digits starting with 0
-        RuleFor(x => x.SDT)
+        RuleFor(x => x.SODT)
             .Matches(@"^(0\d{9,10})$").WithMessage("Phone number must be 10-11 digits and start with 0")
-            .When(x => !string.IsNullOrEmpty(x.SDT));
+            .When(x => !string.IsNullOrEmpty(x.SODT));
 
         // Gender validation: Must be "Nam" or "Nữ" (GAP-10: diacritic required per DE3 §I.2)
         RuleFor(x => x.Phai)

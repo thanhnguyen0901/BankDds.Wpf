@@ -92,7 +92,7 @@ public class SqlCustomerRepository : ICustomerRepository
             command.Parameters.AddWithValue("@NGAYSINH", (object?)customer.NgaySinh ?? DBNull.Value);
             command.Parameters.AddWithValue("@DIACHI",   (object?)customer.DiaChi   ?? DBNull.Value);
             command.Parameters.AddWithValue("@NGAYCAP",  (object?)customer.NgayCap  ?? DBNull.Value);
-            command.Parameters.AddWithValue("@SDT",      (object?)customer.SDT      ?? DBNull.Value);
+            command.Parameters.AddWithValue("@SODT",      (object?)customer.SODT      ?? DBNull.Value);
             command.Parameters.AddWithValue("@PHAI",     customer.Phai);
             command.Parameters.AddWithValue("@MACN",     customer.MaCN);
             return await command.ExecuteNonQueryAsync() > 0;
@@ -113,7 +113,7 @@ public class SqlCustomerRepository : ICustomerRepository
             command.Parameters.AddWithValue("@NGAYSINH", (object?)customer.NgaySinh ?? DBNull.Value);
             command.Parameters.AddWithValue("@DIACHI",   (object?)customer.DiaChi   ?? DBNull.Value);
             command.Parameters.AddWithValue("@NGAYCAP",  (object?)customer.NgayCap  ?? DBNull.Value);
-            command.Parameters.AddWithValue("@SDT",      (object?)customer.SDT      ?? DBNull.Value);
+            command.Parameters.AddWithValue("@SODT",      (object?)customer.SODT      ?? DBNull.Value);
             command.Parameters.AddWithValue("@PHAI",     customer.Phai);
             command.Parameters.AddWithValue("@MACN",     customer.MaCN);
             return await command.ExecuteNonQueryAsync() > 0;
@@ -157,7 +157,7 @@ public class SqlCustomerRepository : ICustomerRepository
         NgaySinh    = reader.IsDBNull(reader.GetOrdinal("NGAYSINH")) ? null : reader.GetDateTime(reader.GetOrdinal("NGAYSINH")),
         DiaChi      = reader.IsDBNull(reader.GetOrdinal("DIACHI"))   ? ""   : reader.GetString(reader.GetOrdinal("DIACHI")),
         NgayCap     = reader.IsDBNull(reader.GetOrdinal("NGAYCAP"))  ? null : reader.GetDateTime(reader.GetOrdinal("NGAYCAP")),
-        SDT         = reader.IsDBNull(reader.GetOrdinal("SDT"))      ? ""   : reader.GetString(reader.GetOrdinal("SDT")),
+        SODT         = reader.IsDBNull(reader.GetOrdinal("SODT"))      ? ""   : reader.GetString(reader.GetOrdinal("SODT")),
         Phai        = reader.GetString(reader.GetOrdinal("PHAI")).Trim(),
         MaCN        = reader.GetString(reader.GetOrdinal("MACN")).Trim(),
         TrangThaiXoa = reader.IsDBNull(reader.GetOrdinal("TrangThaiXoa")) ? 0 : reader.GetInt32(reader.GetOrdinal("TrangThaiXoa"))

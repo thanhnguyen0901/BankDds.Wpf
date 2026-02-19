@@ -8,7 +8,7 @@ public class Employee
     public string DIACHI { get; set; } = string.Empty;
     public string CMND { get; set; } = string.Empty;
     public string PHAI { get; set; } = string.Empty; // "Nam" or "Nữ" (GAP-10)
-    public string SDT { get; set; } = string.Empty;
+    public string SODT { get; set; } = string.Empty;
     public string MACN { get; set; } = string.Empty;
     public int TrangThaiXoa { get; set; } = 0; // 0 = Active, 1 = Deleted
 

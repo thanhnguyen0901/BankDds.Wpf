@@ -124,7 +124,7 @@ public class InMemoryReportRepository : IReportRepository
                 OpeningBalance  = before,
                 Date            = t.NGAYGD,
                 TransactionType = t.LOAIGD == "CT" && t.SOTK_NHAN == accountNumber ? "CT" : t.LOAIGD,
-                TransactionId   = t.MAGD,
+                TransactionId   = t.MAGD.ToString(),
                 Amount          = t.SOTIEN,
                 RunningBalance  = running,
                 Description     = description,

@@ -22,10 +22,10 @@ public class BranchValidator : AbstractValidator<Branch>
         RuleFor(x => x.DiaChi)
             .MaximumLength(100).WithMessage("Address cannot exceed 100 characters");
 
-        // SoDT: optional; if provided must start with 0 and be 10–15 digits
-        RuleFor(x => x.SoDT)
+        // SODT: optional; if provided must start with 0 and be 10–15 digits
+        RuleFor(x => x.SODT)
             .MaximumLength(15).WithMessage("Phone number cannot exceed 15 characters")
             .Matches(@"^0\d{9,14}$").WithMessage("Phone number must start with 0 and be 10–15 digits")
-            .When(x => !string.IsNullOrEmpty(x.SoDT));
+            .When(x => !string.IsNullOrEmpty(x.SODT));
     }
 }

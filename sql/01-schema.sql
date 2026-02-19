@@ -38,10 +38,11 @@ GO
 IF OBJECT_ID('dbo.CHINHANH', 'U') IS NULL
 CREATE TABLE dbo.CHINHANH (
     MACN    nChar(10)     NOT NULL,
-    TENCN   nvarchar(50)  NOT NULL,
+    TENCN   nvarchar(100) NOT NULL,
     DIACHI  nvarchar(100) NULL,
-    SODT    varchar(15)   NULL,
-    CONSTRAINT PK_CHINHANH PRIMARY KEY (MACN)
+    SODT    nvarchar(15)  NULL,
+    CONSTRAINT PK_CHINHANH    PRIMARY KEY (MACN),
+    CONSTRAINT UQ_CN_TENCN    UNIQUE      (TENCN)
 );
 GO
 
@@ -96,9 +97,9 @@ CREATE TABLE dbo.KHACHHANG (
     HO           nvarchar(50)  NOT NULL,
     TEN          nvarchar(10)  NOT NULL,
     NGAYSINH     date          NULL,
-    DIACHI       nvarchar(100) NULL,
-    NGAYCAP      date          NULL,
-    SDT          varchar(11)   NULL,
+    DIACHI       nvarchar(100) NOT NULL,
+    NGAYCAP      date          NOT NULL,
+    SODT         nvarchar(15)  NULL,
     PHAI         nChar(3)      NOT NULL,
     MACN         nChar(10)     NOT NULL,
     TrangThaiXoa tinyint       NOT NULL DEFAULT 0,
@@ -117,15 +118,16 @@ CREATE TABLE dbo.NHANVIEN (
     MANV         nChar(10)     NOT NULL,
     HO           nvarchar(50)  NOT NULL,
     TEN          nvarchar(10)  NOT NULL,
-    DIACHI       nvarchar(100) NULL,
-    CMND         nChar(10)     NULL,
+    DIACHI       nvarchar(100) NOT NULL,
+    CMND         nChar(10)     NOT NULL,
     PHAI         nChar(3)      NOT NULL,
-    SDT          varchar(11)   NULL,
+    SODT         nvarchar(15)  NULL,
     MACN         nChar(10)     NOT NULL,
     TrangThaiXoa tinyint       NOT NULL DEFAULT 0,
-    CONSTRAINT PK_NHANVIEN  PRIMARY KEY (MANV),
-    CONSTRAINT CK_NV_PHAI   CHECK (PHAI IN (N'Nam', N'Nữ')),
-    CONSTRAINT CK_NV_TTX    CHECK (TrangThaiXoa IN (0, 1))
+    CONSTRAINT PK_NHANVIEN    PRIMARY KEY (MANV),
+    CONSTRAINT UQ_NV_CMND     UNIQUE      (CMND),
+    CONSTRAINT CK_NV_PHAI     CHECK (PHAI IN (N'Nam', N'Nữ')),
+    CONSTRAINT CK_NV_TTX      CHECK (TrangThaiXoa IN (0, 1))
 );
 GO
 
@@ -138,7 +140,7 @@ CREATE TABLE dbo.TAIKHOAN (
     CMND      nChar(10)    NOT NULL,
     SODU      money        NOT NULL DEFAULT 0,
     MACN      nChar(10)    NOT NULL,
-    NGAYMOTK  date         NOT NULL DEFAULT CAST(GETDATE() AS date),
+    NGAYMOTK  datetime     NOT NULL DEFAULT GETDATE(),
     Status    nvarchar(10) NOT NULL DEFAULT 'Active',
     CONSTRAINT PK_TAIKHOAN     PRIMARY KEY (SOTK),
     CONSTRAINT CK_TK_SODU      CHECK (SODU >= 0),
@@ -147,43 +149,36 @@ CREATE TABLE dbo.TAIKHOAN (
 );
 GO
 
--- ── Sequence: unique MAGD per branch ──────────────────────────────────────────
--- Seed data inserts GD001–GD005 explicitly; generated IDs start at GD000000006.
-IF NOT EXISTS (SELECT 1 FROM sys.sequences WHERE object_id = OBJECT_ID('dbo.SEQ_MAGD'))
-    CREATE SEQUENCE dbo.SEQ_MAGD
-        AS bigint
-        START WITH 6
-        INCREMENT BY 1
-        NO CYCLE;
-GO
-
 -- ── Deposits and withdrawals ──────────────────────────────────────────────────
 -- LOAIGD: 'GT' = Gửi tiền (deposit) | 'RT' = Rút tiền (withdrawal)
+-- MAGD: int IDENTITY — DB auto-assigns; no application-side MAGD generation needed.
 IF OBJECT_ID('dbo.GD_GOIRUT', 'U') IS NULL
 CREATE TABLE dbo.GD_GOIRUT (
-    MAGD         nvarchar(20)  NOT NULL,
+    MAGD         int           NOT NULL IDENTITY(1,1),
     SOTK         nChar(9)      NOT NULL,
     LOAIGD       nChar(2)      NOT NULL,
     NGAYGD       datetime      NOT NULL DEFAULT GETDATE(),
-    SOTIEN       money         NOT NULL,
+    SOTIEN       money         NOT NULL DEFAULT 100000,
     MANV         nChar(10)     NOT NULL,
     Status       nvarchar(10)  NOT NULL DEFAULT 'Completed',
     ErrorMessage nvarchar(500) NULL,
     CONSTRAINT PK_GD_GOIRUT    PRIMARY KEY (MAGD),
     CONSTRAINT CK_GR_LOAIGD    CHECK (LOAIGD IN ('GT', 'RT')),
-    CONSTRAINT CK_GR_SOTIEN    CHECK (SOTIEN > 0),
-    CONSTRAINT FK_GR_TAIKHOAN  FOREIGN KEY (SOTK) REFERENCES dbo.TAIKHOAN(SOTK)
+    CONSTRAINT CK_GR_SOTIEN    CHECK (SOTIEN >= 100000),
+    CONSTRAINT FK_GR_TAIKHOAN  FOREIGN KEY (SOTK)  REFERENCES dbo.TAIKHOAN(SOTK),
+    CONSTRAINT FK_GR_MANV      FOREIGN KEY (MANV)  REFERENCES dbo.NHANVIEN(MANV)
 );
 GO
 
 -- ── Fund transfers ────────────────────────────────────────────────────────────
--- SOTK      = source account (the payer; called SOTK_CHUYEN in SP parameters)
--- SOTK_NHAN = destination account (may be on a different branch server — no cross-server FK)
+-- SOTK_CHUYEN = source account (the payer)
+-- SOTK_NHAN   = destination account (may be on a different branch server — no cross-server FK)
 -- LOAIGD is always 'CT' = Chuyển tiền (GAP-03: 'CK' is invalid per DB CHECK constraint)
+-- MAGD: int IDENTITY — DB auto-assigns; no application-side MAGD generation needed.
 IF OBJECT_ID('dbo.GD_CHUYENTIEN', 'U') IS NULL
 CREATE TABLE dbo.GD_CHUYENTIEN (
-    MAGD         nvarchar(20)  NOT NULL,
-    SOTK         nChar(9)      NOT NULL,
+    MAGD         int           NOT NULL IDENTITY(1,1),
+    SOTK_CHUYEN  nChar(9)      NOT NULL,
     SOTK_NHAN    nChar(9)      NOT NULL,
     LOAIGD       nChar(2)      NOT NULL DEFAULT 'CT',
     NGAYGD       datetime      NOT NULL DEFAULT GETDATE(),
@@ -191,10 +186,11 @@ CREATE TABLE dbo.GD_CHUYENTIEN (
     MANV         nChar(10)     NOT NULL,
     Status       nvarchar(10)  NOT NULL DEFAULT 'Completed',
     ErrorMessage nvarchar(500) NULL,
-    CONSTRAINT PK_GD_CHUYENTIEN  PRIMARY KEY (MAGD),
-    CONSTRAINT CK_CT_LOAIGD      CHECK (LOAIGD = 'CT'),
-    CONSTRAINT CK_CT_SOTIEN      CHECK (SOTIEN > 0),
-    CONSTRAINT FK_CT_SOTK        FOREIGN KEY (SOTK) REFERENCES dbo.TAIKHOAN(SOTK)
+    CONSTRAINT PK_GD_CHUYENTIEN   PRIMARY KEY (MAGD),
+    CONSTRAINT CK_CT_LOAIGD       CHECK (LOAIGD = 'CT'),
+    CONSTRAINT CK_CT_SOTIEN       CHECK (SOTIEN > 0),
+    CONSTRAINT FK_CT_SOTK_CHUYEN  FOREIGN KEY (SOTK_CHUYEN) REFERENCES dbo.TAIKHOAN(SOTK),
+    CONSTRAINT FK_CT_MANV         FOREIGN KEY (MANV)        REFERENCES dbo.NHANVIEN(MANV)
     -- No FK on SOTK_NHAN: cross-branch destination lives on another server.
 );
 GO

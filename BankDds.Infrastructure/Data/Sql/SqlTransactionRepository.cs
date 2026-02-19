@@ -403,7 +403,7 @@ public class SqlTransactionRepository : ITransactionRepository
         return new Transaction
         {
             // nChar columns space-padded — Trim() normalises for model comparisons.
-            MAGD = reader.GetString(reader.GetOrdinal("MAGD")).Trim(),
+            MAGD = reader.GetInt32(reader.GetOrdinal("MAGD")),
             SOTK = reader.GetString(reader.GetOrdinal("SOTK")).Trim(),
             LOAIGD = reader.GetString(reader.GetOrdinal("LOAIGD")).Trim(),
             NGAYGD = reader.GetDateTime(reader.GetOrdinal("NGAYGD")),

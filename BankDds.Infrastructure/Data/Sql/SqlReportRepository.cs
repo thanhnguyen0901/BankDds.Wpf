@@ -119,7 +119,7 @@ public class SqlReportRepository : IReportRepository
                         OpeningBalance  = reader.GetDecimal(reader.GetOrdinal("OpeningBal")),
                         Date            = reader.GetDateTime(reader.GetOrdinal("NGAYGD")),
                         TransactionType = reader.GetString(reader.GetOrdinal("LOAIGD")),
-                        TransactionId   = reader.GetString(reader.GetOrdinal("MAGD")),
+                        TransactionId   = reader.GetInt32(reader.GetOrdinal("MAGD")).ToString(),
                         Amount          = reader.GetDecimal(reader.GetOrdinal("SOTIEN")),
                         RunningBalance  = reader.GetDecimal(reader.GetOrdinal("RunningBalance")),
                         Description     = reader.IsDBNull(reader.GetOrdinal("Description")) ? "" : reader.GetString(reader.GetOrdinal("Description")),
@@ -309,7 +309,7 @@ public class SqlReportRepository : IReportRepository
             NgaySinh = reader.IsDBNull(reader.GetOrdinal("NGAYSINH")) ? null : reader.GetDateTime(reader.GetOrdinal("NGAYSINH")),
             DiaChi = reader.IsDBNull(reader.GetOrdinal("DIACHI")) ? "" : reader.GetString(reader.GetOrdinal("DIACHI")),
             NgayCap = reader.IsDBNull(reader.GetOrdinal("NGAYCAP")) ? null : reader.GetDateTime(reader.GetOrdinal("NGAYCAP")),
-            SDT = reader.IsDBNull(reader.GetOrdinal("SDT")) ? "" : reader.GetString(reader.GetOrdinal("SDT")),
+            SODT = reader.IsDBNull(reader.GetOrdinal("SODT")) ? "" : reader.GetString(reader.GetOrdinal("SODT")),
             Phai = reader.GetString(reader.GetOrdinal("PHAI")).Trim(),
             MaCN = reader.GetString(reader.GetOrdinal("MACN")).Trim(),
             TrangThaiXoa = reader.GetInt32(reader.GetOrdinal("TrangThaiXoa"))
@@ -321,7 +321,7 @@ public class SqlReportRepository : IReportRepository
         return new Transaction
         {
             // nChar columns space-padded — Trim() normalises for model comparisons.
-            MAGD = reader.GetString(reader.GetOrdinal("MAGD")).Trim(),
+            MAGD = reader.GetInt32(reader.GetOrdinal("MAGD")),
             SOTK = reader.GetString(reader.GetOrdinal("SOTK")).Trim(),
             LOAIGD = reader.GetString(reader.GetOrdinal("LOAIGD")).Trim(),
             NGAYGD = reader.GetDateTime(reader.GetOrdinal("NGAYGD")),

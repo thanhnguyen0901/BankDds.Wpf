@@ -15,14 +15,14 @@ public class InMemoryBranchRepository : IBranchRepository
             MACN   = "BENTHANH",
             TENCN  = "Bến Thành",
             DiaChi = "Số 1 Công trường Quách Thị Trang, Q.1, TP.HCM",
-            SoDT   = "02838292929"
+            SODT   = "02838292929"
         },
         new Branch
         {
             MACN   = "TANDINH",
             TENCN  = "Tân Định",
             DiaChi = "Số 50 Trần Quang Khải, Q.1, TP.HCM",
-            SoDT   = "02838441122"
+            SODT   = "02838441122"
         }
     };
 
@@ -48,7 +48,7 @@ public class InMemoryBranchRepository : IBranchRepository
         if (existing == null) return Task.FromResult(false);
         existing.TENCN  = branch.TENCN;
         existing.DiaChi = branch.DiaChi;
-        existing.SoDT   = branch.SoDT;
+        existing.SODT   = branch.SODT;
         return Task.FromResult(true);
     }
 

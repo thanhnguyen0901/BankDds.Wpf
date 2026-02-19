@@ -1,4 +1,4 @@
-/*=============================================================================
+﻿/*=============================================================================
   12-sp-accounts.sql — Stored Procedures for TAIKHOAN
   Generated: 2026-02-18
 
@@ -94,7 +94,7 @@ CREATE PROCEDURE dbo.SP_AddAccount
     @CMND     nChar(10),
     @SODU     money,
     @MACN     nChar(10),
-    @NGAYMOTK date
+    @NGAYMOTK datetime
 AS
 BEGIN
     SET NOCOUNT OFF;

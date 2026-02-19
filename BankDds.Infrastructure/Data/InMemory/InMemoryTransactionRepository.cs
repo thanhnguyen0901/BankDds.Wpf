@@ -10,11 +10,11 @@ public class InMemoryTransactionRepository : ITransactionRepository
 {
     private readonly List<Transaction> _transactions = new()
     {
-        new Transaction { MAGD = "GD001", SOTK = "TK0000001", LOAIGD = "GT", NGAYGD = DateTime.Now.AddDays(-10), SOTIEN = 2000000, MANV = "NV00000001", Status = "Completed" },
-        new Transaction { MAGD = "GD002", SOTK = "TK0000001", LOAIGD = "RT", NGAYGD = DateTime.Now.AddDays(-5), SOTIEN = 500000, MANV = "NV00000001", Status = "Completed" },
-        new Transaction { MAGD = "GD003", SOTK = "TK0000002", LOAIGD = "GT", NGAYGD = DateTime.Now.AddDays(-7), SOTIEN = 1000000, MANV = "NV00000002", Status = "Completed" },
-        new Transaction { MAGD = "GD004", SOTK = "TK0000003", LOAIGD = "GT", NGAYGD = DateTime.Now.AddDays(-3), SOTIEN = 3000000, MANV = "NV00000003", Status = "Completed" },
-        new Transaction { MAGD = "GD005", SOTK = "TK0000005", LOAIGD = "GT", NGAYGD = DateTime.Now.AddDays(-1), SOTIEN = 500000, MANV = "NV00000001", Status = "Completed" }
+        new Transaction { MAGD = 1, SOTK = "TK0000001", LOAIGD = "GT", NGAYGD = DateTime.Now.AddDays(-10), SOTIEN = 2000000, MANV = "NV00000001", Status = "Completed" },
+        new Transaction { MAGD = 2, SOTK = "TK0000001", LOAIGD = "RT", NGAYGD = DateTime.Now.AddDays(-5), SOTIEN = 500000, MANV = "NV00000001", Status = "Completed" },
+        new Transaction { MAGD = 3, SOTK = "TK0000002", LOAIGD = "GT", NGAYGD = DateTime.Now.AddDays(-7), SOTIEN = 1000000, MANV = "NV00000002", Status = "Completed" },
+        new Transaction { MAGD = 4, SOTK = "TK0000003", LOAIGD = "GT", NGAYGD = DateTime.Now.AddDays(-3), SOTIEN = 3000000, MANV = "NV00000003", Status = "Completed" },
+        new Transaction { MAGD = 5, SOTK = "TK0000005", LOAIGD = "GT", NGAYGD = DateTime.Now.AddDays(-1), SOTIEN = 500000, MANV = "NV00000001", Status = "Completed" }
     };
 
     private readonly IAccountRepository _accountRepository;
@@ -78,7 +78,7 @@ public class InMemoryTransactionRepository : ITransactionRepository
     {
         var transaction = new Transaction
         {
-            MAGD = $"GD{_nextId++:D3}",
+            MAGD = _nextId++,
             SOTK = sotk,
             LOAIGD = "GT",
             NGAYGD = DateTime.Now,
@@ -134,7 +134,7 @@ public class InMemoryTransactionRepository : ITransactionRepository
     {
         var transaction = new Transaction
         {
-            MAGD = $"GD{_nextId++:D3}",
+            MAGD = _nextId++,
             SOTK = sotk,
             LOAIGD = "RT",
             NGAYGD = DateTime.Now,
@@ -197,7 +197,7 @@ public class InMemoryTransactionRepository : ITransactionRepository
     public async Task<bool> TransferAsync(string sotkFrom, string sotkTo, decimal amount, string manv)
     {
         var now  = DateTime.Now;
-        var magd = $"GD{_nextId++:D3}";
+        var magd = _nextId++;
 
         // Records a failed audit entry and throws so the caller gets a meaningful message.
         void Fail(string reason)

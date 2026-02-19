@@ -1,4 +1,4 @@
-/*=============================================================================
+﻿/*=============================================================================
   13-sp-transactions.sql — Stored Procedures for GD_GOIRUT / GD_CHUYENTIEN
   Generated: 2026-02-18
 
@@ -51,15 +51,15 @@ BEGIN
     UNION ALL
 
     -- Outgoing transfers (this account is source)
-    SELECT MAGD, SOTK, LOAIGD, NGAYGD, SOTIEN, MANV,
+    SELECT MAGD, SOTK_CHUYEN AS SOTK, LOAIGD, NGAYGD, SOTIEN, MANV,
            SOTK_NHAN, Status, ErrorMessage
     FROM   dbo.GD_CHUYENTIEN
-    WHERE  SOTK = @SOTK
+    WHERE  SOTK_CHUYEN = @SOTK
 
     UNION ALL
 
     -- Incoming transfers (this account is destination, recorded locally)
-    SELECT MAGD, SOTK, LOAIGD, NGAYGD, SOTIEN, MANV,
+    SELECT MAGD, SOTK_CHUYEN AS SOTK, LOAIGD, NGAYGD, SOTIEN, MANV,
            SOTK_NHAN, Status, ErrorMessage
     FROM   dbo.GD_CHUYENTIEN
     WHERE  SOTK_NHAN = @SOTK
@@ -92,10 +92,10 @@ BEGIN
 
     UNION ALL
 
-    SELECT ct.MAGD, ct.SOTK, ct.LOAIGD, ct.NGAYGD, ct.SOTIEN, ct.MANV,
+    SELECT ct.MAGD, ct.SOTK_CHUYEN AS SOTK, ct.LOAIGD, ct.NGAYGD, ct.SOTIEN, ct.MANV,
            ct.SOTK_NHAN, ct.Status, ct.ErrorMessage
     FROM   dbo.GD_CHUYENTIEN ct
-    JOIN   dbo.TAIKHOAN      tk ON tk.SOTK = ct.SOTK
+    JOIN   dbo.TAIKHOAN      tk ON tk.SOTK = ct.SOTK_CHUYEN
     WHERE  tk.MACN   = @MACN
       AND  ct.NGAYGD BETWEEN @FromDate AND @ToDate
 
@@ -142,7 +142,7 @@ BEGIN
     SET NOCOUNT ON;
     SELECT ISNULL(SUM(SOTIEN), 0)
     FROM   dbo.GD_CHUYENTIEN
-    WHERE  SOTK   = @SOTK
+    WHERE  SOTK_CHUYEN = @SOTK
       AND  CAST(NGAYGD AS date) = CAST(@Date AS date)
       AND  Status = N'Completed';
 END
@@ -178,12 +178,9 @@ BEGIN
             RETURN;
         END
 
-        -- Record the transaction
-        DECLARE @MAGD nvarchar(20) =
-            N'GD' + RIGHT(N'000000000' + CAST(NEXT VALUE FOR dbo.SEQ_MAGD AS varchar(9)), 9);
-
-        INSERT INTO dbo.GD_GOIRUT (MAGD, SOTK, LOAIGD, NGAYGD, SOTIEN, MANV, Status)
-        VALUES (@MAGD, @SOTK, N'GT', GETDATE(), @Amount, @MANV, N'Completed');
+        -- Record the transaction (MAGD is int IDENTITY -- auto-assigned by DB)
+        INSERT INTO dbo.GD_GOIRUT (SOTK, LOAIGD, NGAYGD, SOTIEN, MANV, Status)
+        VALUES (@SOTK, N'GT', GETDATE(), @Amount, @MANV, N'Completed');
 
         COMMIT;
     END TRY
@@ -226,11 +223,9 @@ BEGIN
             RETURN;
         END
 
-        DECLARE @MAGD nvarchar(20) =
-            N'GD' + RIGHT(N'000000000' + CAST(NEXT VALUE FOR dbo.SEQ_MAGD AS varchar(9)), 9);
-
-        INSERT INTO dbo.GD_GOIRUT (MAGD, SOTK, LOAIGD, NGAYGD, SOTIEN, MANV, Status)
-        VALUES (@MAGD, @SOTK, N'RT', GETDATE(), @Amount, @MANV, N'Completed');
+        -- Record the transaction (MAGD is int IDENTITY -- auto-assigned by DB)
+        INSERT INTO dbo.GD_GOIRUT (SOTK, LOAIGD, NGAYGD, SOTIEN, MANV, Status)
+        VALUES (@SOTK, N'RT', GETDATE(), @Amount, @MANV, N'Completed');
 
         COMMIT;
     END TRY
@@ -260,13 +255,11 @@ CREATE PROCEDURE dbo.SP_CreateTransferTransaction
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @MAGD nvarchar(20) =
-        N'GD' + RIGHT(N'000000000' + CAST(NEXT VALUE FOR dbo.SEQ_MAGD AS varchar(9)), 9);
+    -- MAGD is int IDENTITY -- auto-assigned by DB
+    INSERT INTO dbo.GD_CHUYENTIEN (SOTK_CHUYEN, SOTK_NHAN, LOAIGD, NGAYGD, SOTIEN, MANV, Status)
+    VALUES (@SOTK_FROM, @SOTK_TO, N'CT', GETDATE(), @Amount, @MANV, N'Completed');
 
-    INSERT INTO dbo.GD_CHUYENTIEN (MAGD, SOTK, SOTK_NHAN, LOAIGD, NGAYGD, SOTIEN, MANV, Status)
-    VALUES (@MAGD, @SOTK_FROM, @SOTK_TO, N'CT', GETDATE(), @Amount, @MANV, N'Completed');
-
-    SELECT @MAGD;   -- scalar return consumed by ExecuteScalarAsync
+    SELECT CAST(SCOPE_IDENTITY() AS int);   -- returns new MAGD int to caller   -- scalar return consumed by ExecuteScalarAsync
 END
 GO
 
@@ -328,12 +321,9 @@ BEGIN
         IF @@ROWCOUNT = 0
             THROW 50003, N'Destination account not found or not active.', 1;
 
-        -- Record outgoing transfer on this (source) server
-        DECLARE @MAGD nvarchar(20) =
-            N'GD' + RIGHT(N'000000000' + CAST(NEXT VALUE FOR dbo.SEQ_MAGD AS varchar(9)), 9);
-
-        INSERT INTO dbo.GD_CHUYENTIEN (MAGD, SOTK, SOTK_NHAN, LOAIGD, NGAYGD, SOTIEN, MANV, Status)
-        VALUES (@MAGD, @SOTK_CHUYEN, @SOTK_NHAN, N'CT', GETDATE(), @SOTIEN, @MANV, N'Completed');
+        -- Record outgoing transfer on this (source) server (MAGD is int IDENTITY)
+        INSERT INTO dbo.GD_CHUYENTIEN (SOTK_CHUYEN, SOTK_NHAN, LOAIGD, NGAYGD, SOTIEN, MANV, Status)
+        VALUES (@SOTK_CHUYEN, @SOTK_NHAN, N'CT', GETDATE(), @SOTIEN, @MANV, N'Completed');
 
         COMMIT TRANSACTION;
     END TRY
@@ -344,33 +334,57 @@ BEGIN
 END
 GO
 
--- ── Version for SERVER2 / NGANHANG_TD  (deploy to SERVER2 instead of above) ──
--- IF OBJECT_ID('dbo.SP_CrossBranchTransfer', 'P') IS NOT NULL
---     DROP PROCEDURE dbo.SP_CrossBranchTransfer;
+-- == Version for SERVER2 / NGANHANG_TD (deploy to SERVER2 ONLY; do NOT run on SERVER1) ==
+-- USE NGANHANG_TD;  -- <- uncomment for SERVER2 deployment
 -- GO
--- CREATE PROCEDURE dbo.SP_CrossBranchTransfer
---     @SOTK_CHUYEN nChar(9), @SOTK_NHAN nChar(9),
---     @SOTIEN money, @MANV nChar(10), @DEST_BRANCH nvarchar(20)
--- AS
--- BEGIN
---     SET NOCOUNT ON; SET XACT_ABORT ON;
---     BEGIN DISTRIBUTED TRANSACTION;
---     BEGIN TRY
---         UPDATE dbo.TAIKHOAN SET SODU = SODU - @SOTIEN
---         WHERE SOTK = @SOTK_CHUYEN AND Status = N'Active' AND SODU >= @SOTIEN;
---         IF @@ROWCOUNT = 0 THROW 50001, N'Insufficient funds or not active.', 1;
---         IF @DEST_BRANCH = N'BENTHANH'
---         BEGIN
---             UPDATE [SERVER1].[NGANHANG_BT].[dbo].TAIKHOAN SET SODU = SODU + @SOTIEN
---             WHERE SOTK = @SOTK_NHAN AND Status = N'Active';
---         END
---         ELSE THROW 50002, N'Unknown destination branch.', 1;
---         IF @@ROWCOUNT = 0 THROW 50003, N'Destination account not found or not active.', 1;
---         DECLARE @MAGD nvarchar(20) = N'GD' + RIGHT(N'000000000' + CAST(NEXT VALUE FOR dbo.SEQ_MAGD AS varchar(9)), 9);
---         INSERT INTO dbo.GD_CHUYENTIEN (MAGD,SOTK,SOTK_NHAN,LOAIGD,NGAYGD,SOTIEN,MANV,Status)
---         VALUES (@MAGD,@SOTK_CHUYEN,@SOTK_NHAN,N'CT',GETDATE(),@SOTIEN,@MANV,N'Completed');
---         COMMIT TRANSACTION;
---     END TRY
---     BEGIN CATCH IF @@TRANCOUNT > 0 ROLLBACK; THROW; END CATCH
--- END
--- GO
+IF OBJECT_ID('dbo.SP_CrossBranchTransfer', 'P') IS NOT NULL
+    DROP PROCEDURE dbo.SP_CrossBranchTransfer;
+GO
+CREATE PROCEDURE dbo.SP_CrossBranchTransfer
+    @SOTK_CHUYEN nChar(9),
+    @SOTK_NHAN   nChar(9),
+    @SOTIEN      money,
+    @MANV        nChar(10),
+    @DEST_BRANCH nvarchar(20)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+    BEGIN DISTRIBUTED TRANSACTION;
+    BEGIN TRY
+        -- Debit source account (SERVER2)
+        UPDATE dbo.TAIKHOAN
+        SET    SODU = SODU - @SOTIEN
+        WHERE  SOTK   = @SOTK_CHUYEN
+          AND  Status = N'Active'
+          AND  SODU  >= @SOTIEN;
+
+        IF @@ROWCOUNT = 0
+            THROW 50001, N'Insufficient funds or account not active at source.', 1;
+
+        -- Credit destination account (SERVER1 via Linked Server)
+        IF @DEST_BRANCH = N'BENTHANH'
+        BEGIN
+            UPDATE [SERVER1].[NGANHANG_BT].[dbo].TAIKHOAN
+            SET    SODU = SODU + @SOTIEN
+            WHERE  SOTK   = @SOTK_NHAN
+              AND  Status = N'Active';
+        END
+        ELSE
+            THROW 50002, N'Unknown destination branch.', 1;
+
+        IF @@ROWCOUNT = 0
+            THROW 50003, N'Destination account not found or not active.', 1;
+
+        -- Record outgoing transfer on this (source) server (MAGD is int IDENTITY)
+        INSERT INTO dbo.GD_CHUYENTIEN (SOTK_CHUYEN, SOTK_NHAN, LOAIGD, NGAYGD, SOTIEN, MANV, Status)
+        VALUES (@SOTK_CHUYEN, @SOTK_NHAN, N'CT', GETDATE(), @SOTIEN, @MANV, N'Completed');
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END
+GO
