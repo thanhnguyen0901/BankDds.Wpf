@@ -3,32 +3,34 @@
   Generated: 2026-02-18
 =============================================================================
 
-  DATABASE TOPOLOGY
-  -----------------
-  SERVER1  / NGANHANG_BT  : Chi nhánh Bến Thành  (branch code BENTHANH)
-  SERVER2  / NGANHANG_TD  : Chi nhánh Tân Định    (branch code TANDINH)
-  SERVER3  / NGANHANG     : Bank_Main — central tables, cross-branch views, SPs
+  DATABASE TOPOLOGY  (DE3 – Distributed Banking)
+  -----------------------------------------------
+  Coordinator (default instance) : DESKTOP-JBB41QU            → DB NGANHANG         (Bank_Main — central tables, views, auth)
+  SERVER1  (linked server name)  : DESKTOP-JBB41QU\SQLSERVER2 → DB NGANHANG_BT      (Chi nhánh Bến Thành — BENTHANH)
+  SERVER2  (linked server name)  : DESKTOP-JBB41QU\SQLSERVER3 → DB NGANHANG_TD      (Chi nhánh Tân Định  — TANDINH)
+  SERVER3  (linked server name)  : DESKTOP-JBB41QU\SQLSERVER4 → DB NGANHANG_TRACUU  (Tra cứu — tổng hợp KH cả 2 CN)
 
   EXECUTION ORDER
   ---------------
-  1.  SERVER3  : run SECTION A  (creates CHINHANH, NGUOIDUNG, SEQ_MANV)
-  2.  SERVER1  : run SECTION B  targeting NGANHANG_BT
-  3.  SERVER2  : run SECTION B  targeting NGANHANG_TD
-  4.  All servers: configure Linked Servers per SECTION C (one-time, manual)
-  5.  SERVER3  : run SECTION D  (cross-branch views; requires Linked Servers)
-  6.  Run 02-seed.sql
-  7.  Run sp scripts 10-sp-customers.sql through 15-sp-auth.sql in order
+  1.  Coordinator (DESKTOP-JBB41QU)            : run SECTION A  (creates CHINHANH, NGUOIDUNG, SEQ_MANV)
+  2.  SERVER1 (DESKTOP-JBB41QU\SQLSERVER2)     : run SECTION B  targeting NGANHANG_BT
+  3.  SERVER2 (DESKTOP-JBB41QU\SQLSERVER3)     : run SECTION B  targeting NGANHANG_TD
+  4.  All instances: run 16-linked-servers.sql  (Linked Server setup — one-time)
+  5.  Coordinator (DESKTOP-JBB41QU)            : run SECTION D  (cross-branch views; requires Linked Servers)
+  6.  SERVER3 (DESKTOP-JBB41QU\SQLSERVER4)     : run SECTION E  (TraCuu views; requires Linked Servers)
+  7.  Run 02-seed.sql
+  8.  Run sp scripts 10-sp-customers.sql through 15-sp-auth.sql in order
 
   CONNECTION STRING MAPPING  (appsettings.json)
   -----------------------------------------------
-  Branch_BENTHANH → Server=SERVER1;Database=NGANHANG_BT
-  Branch_TANDINH  → Server=SERVER2;Database=NGANHANG_TD
-  Bank_Main       → Server=SERVER3;Database=NGANHANG
+  Branch_BENTHANH → Server=DESKTOP-JBB41QU\SQLSERVER2;Database=NGANHANG_BT
+  Branch_TANDINH  → Server=DESKTOP-JBB41QU\SQLSERVER3;Database=NGANHANG_TD
+  Bank_Main       → Server=DESKTOP-JBB41QU;Database=NGANHANG
 =============================================================================*/
 
 
 /* =========================================================================
-   SECTION A — Bank_Main  (run on SERVER3, database NGANHANG)
+   SECTION A — Bank_Main  (run on Coordinator — default instance DESKTOP-JBB41QU, database NGANHANG)
    ========================================================================= */
 
 USE NGANHANG;
@@ -77,13 +79,14 @@ GO
 
 
 /* =========================================================================
-   SECTION B — Branch Database  (run TWICE: once on SERVER1/NGANHANG_BT,
-                                           once on SERVER2/NGANHANG_TD)
-   Change the USE statement before each run.
+   SECTION B — Branch Database  (run TWICE:
+     1) Connect to DESKTOP-JBB41QU\SQLSERVER2 → USE NGANHANG_BT  (SERVER1 — BENTHANH)
+     2) Connect to DESKTOP-JBB41QU\SQLSERVER3 → USE NGANHANG_TD  (SERVER2 — TANDINH))
+   Uncomment the correct USE statement before each run.
    ========================================================================= */
 
--- USE NGANHANG_BT;   -- ← uncomment for SERVER1
--- USE NGANHANG_TD;   -- ← uncomment for SERVER2
+-- USE NGANHANG_BT;   -- ← uncomment when running on DESKTOP-JBB41QU\SQLSERVER2 (SERVER1)
+-- USE NGANHANG_TD;   -- ← uncomment when running on DESKTOP-JBB41QU\SQLSERVER3 (SERVER2)
 GO
 
 -- ── Customers ─────────────────────────────────────────────────────────────────
@@ -106,8 +109,7 @@ CREATE TABLE dbo.KHACHHANG (
     CONSTRAINT PK_KHACHHANG   PRIMARY KEY (CMND),
     CONSTRAINT CK_KH_PHAI     CHECK (PHAI IN (N'Nam', N'Nữ')),
     CONSTRAINT CK_KH_TTX      CHECK (TrangThaiXoa IN (0, 1))
-    -- Cross-server FK to CHINHANH is enforced at application/SP layer only.
-    -- Remove if running branch DB standalone without Linked Server SERVER3.
+    -- Cross-server FK to CHINHANH (on Coordinator/NGANHANG) is enforced at application/SP layer only.
 );
 GO
 
@@ -197,31 +199,31 @@ GO
 
 
 /* =========================================================================
-   SECTION C — Linked Server Configuration  (one-time manual setup)
+   SECTION C — Linked Server Configuration
    =========================================================================
 
-   Run on SERVER1 (NGANHANG_BT) to allow outbound calls to SERVER2 and SERVER3:
+   >>> MOVED TO: 16-linked-servers.sql <<<
 
-       EXEC sp_addlinkedserver    @server = N'SERVER2', @srvproduct = N'SQL Server';
-       EXEC sp_addlinkedsrvlogin  @rmtsrvname = N'SERVER2', @useself = 'false',
-                                  @locallogin = NULL, @rmtuser = N'sa', @rmtpassword = N'123';
-       EXEC sp_addlinkedserver    @server = N'SERVER3', @srvproduct = N'SQL Server';
-       EXEC sp_addlinkedsrvlogin  @rmtsrvname = N'SERVER3', @useself = 'false',
-                                  @locallogin = NULL, @rmtuser = N'sa', @rmtpassword = N'123';
+   Run 16-linked-servers.sql on each instance in the correct section:
+     Section A → Coordinator (DESKTOP-JBB41QU)            — creates SERVER1, SERVER2, SERVER3
+     Section B → SERVER1     (DESKTOP-JBB41QU\SQLSERVER2) — creates SERVER2
+     Section C → SERVER2     (DESKTOP-JBB41QU\SQLSERVER3) — creates SERVER1
+     Section D → SERVER3     (DESKTOP-JBB41QU\SQLSERVER4) — creates SERVER1, SERVER2
 
-   Repeat symmetrically on SERVER2 (replace SERVER2↔SERVER1).
-   Repeat on SERVER3 to reach both SERVER1 and SERVER2.
+   All linked servers use:
+     @provider = 'MSOLEDBSQL', @datasrc = <real instance name>
+     Login: sa / Password!123
+     Options: data access = true, rpc = true, rpc out = true
 
-   For SP_CrossBranchTransfer, MSDTC must be running on all three servers.
+   For SP_CrossBranchTransfer, MSDTC must be running on all instances.
    Enable via: Component Services → MSDTC → Security → "Network DTC Access" ON.
-
-   WARNING: Replace 'sa'/'123' with dedicated service accounts for production.
    ========================================================================= */
 
 
 /* =========================================================================
-   SECTION D — Bank_Main cross-branch views  (run on SERVER3 / NGANHANG)
-                Requires Linked Servers SERVER1 and SERVER2 from SECTION C.
+   SECTION D — Bank_Main cross-branch views
+                (run on Coordinator — default instance DESKTOP-JBB41QU, database NGANHANG)
+                Requires Linked Servers SERVER1 and SERVER2 from 16-linked-servers.sql.
    ========================================================================= */
 
 USE NGANHANG;
@@ -262,4 +264,22 @@ CREATE VIEW dbo.GD_CHUYENTIEN_ALL AS
     SELECT * FROM [SERVER1].[NGANHANG_BT].[dbo].GD_CHUYENTIEN
     UNION ALL
     SELECT * FROM [SERVER2].[NGANHANG_TD].[dbo].GD_CHUYENTIEN;
+GO
+
+
+/* =========================================================================
+   SECTION E — TraCuu  (run on SERVER3 — DESKTOP-JBB41QU\SQLSERVER4, database NGANHANG_TRACUU)
+                Requires Linked Servers SERVER1 and SERVER2 from 16-linked-servers.sql Section D.
+   ========================================================================= */
+
+USE NGANHANG_TRACUU;
+GO
+
+IF OBJECT_ID('dbo.V_KHACHHANG_ALL', 'V') IS NOT NULL DROP VIEW dbo.V_KHACHHANG_ALL;
+GO
+
+CREATE VIEW dbo.V_KHACHHANG_ALL AS
+    SELECT * FROM [SERVER1].[NGANHANG_BT].[dbo].KHACHHANG
+    UNION ALL
+    SELECT * FROM [SERVER2].[NGANHANG_TD].[dbo].KHACHHANG;
 GO

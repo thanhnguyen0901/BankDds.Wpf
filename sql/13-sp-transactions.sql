@@ -3,13 +3,14 @@
   Generated: 2026-02-18
 
   EXECUTION:
-    Run SECTION A on SERVER1 (NGANHANG_BT) AND SERVER2 (NGANHANG_TD)
+    Run SECTION A on SERVER1 (DESKTOP-JBB41QU\SQLSERVER2 / NGANHANG_BT)
+    AND SERVER2 (DESKTOP-JBB41QU\SQLSERVER3 / NGANHANG_TD)
 
   DISTRIBUTED TRANSACTIONS:
     SP_CrossBranchTransfer uses BEGIN DISTRIBUTED TRANSACTION + Linked Server.
-    MSDTC must be running and configured on both source and destination servers.
+    MSDTC must be running and configured on both source and destination instances.
     Linked servers (SERVER1 / SERVER2) must be registered beforehand
-    (see 01-schema.sql SECTION C).
+    (see 16-linked-servers.sql).
     The SP version on each branch server only ever calls the OTHER branch via
     Linked Server — never itself. If you add more branches add a new IF block.
 =============================================================================*/
@@ -19,8 +20,8 @@
    SECTION A — Branch Databases  (run on NGANHANG_BT and NGANHANG_TD)
    ========================================================================= */
 
--- USE NGANHANG_BT;  -- ← uncomment for SERVER1
--- USE NGANHANG_TD;  -- ← uncomment for SERVER2
+-- USE NGANHANG_BT;  -- ← uncomment when running on DESKTOP-JBB41QU\SQLSERVER2 (SERVER1)
+-- USE NGANHANG_TD;  -- ← uncomment when running on DESKTOP-JBB41QU\SQLSERVER3 (SERVER2)
 GO
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -273,7 +274,7 @@ GO
 --              @MANV         — employee performing the transfer
 --              @DEST_BRANCH  — target branch code ('BENTHANH' or 'TANDINH')
 --
--- Requires: MSDTC running + Linked Servers configured (01-schema.sql SECTION C)
+-- Requires: MSDTC running + Linked Servers configured (16-linked-servers.sql)
 -- Uses BEGIN DISTRIBUTED TRANSACTION so both sides commit or roll back together.
 --
 -- SERVER1 version targets SERVER2, SERVER2 version targets SERVER1.
@@ -334,8 +335,8 @@ BEGIN
 END
 GO
 
--- == Version for SERVER2 / NGANHANG_TD (deploy to SERVER2 ONLY; do NOT run on SERVER1) ==
--- USE NGANHANG_TD;  -- <- uncomment for SERVER2 deployment
+-- == Version for SERVER2 / NGANHANG_TD (deploy to DESKTOP-JBB41QU\SQLSERVER3 ONLY; do NOT run on SERVER1) ==
+-- USE NGANHANG_TD;  -- <- uncomment when running on DESKTOP-JBB41QU\SQLSERVER3 (SERVER2)
 -- GO
 IF OBJECT_ID('dbo.SP_CrossBranchTransfer', 'P') IS NOT NULL
     DROP PROCEDURE dbo.SP_CrossBranchTransfer;

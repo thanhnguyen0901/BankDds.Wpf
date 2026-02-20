@@ -3,9 +3,9 @@
   Generated: 2026-02-18
 
   EXECUTION:
-    Run SECTION A on SERVER1 (NGANHANG_BT)
-    Run SECTION A on SERVER2 (NGANHANG_TD)
-    Run SECTION B on SERVER3 (NGANHANG)    ← Bank_Main SPs + MANV sequence SP
+    Run SECTION A on SERVER1 (DESKTOP-JBB41QU\SQLSERVER2 / NGANHANG_BT)
+    Run SECTION A on SERVER2 (DESKTOP-JBB41QU\SQLSERVER3 / NGANHANG_TD)
+    Run SECTION B on Coordinator (DESKTOP-JBB41QU / NGANHANG)  ← Bank_Main SPs + MANV sequence SP
 
   C# callers:
     SqlEmployeeRepository  → branch and bank connections (see per-SP comments)
@@ -16,8 +16,8 @@
    SECTION A — Branch Databases  (run on NGANHANG_BT and NGANHANG_TD)
    ========================================================================= */
 
--- USE NGANHANG_BT;  -- ← uncomment for SERVER1
--- USE NGANHANG_TD;  -- ← uncomment for SERVER2
+-- USE NGANHANG_BT;  -- ← uncomment when running on DESKTOP-JBB41QU\SQLSERVER2 (SERVER1)
+-- USE NGANHANG_TD;  -- ← uncomment when running on DESKTOP-JBB41QU\SQLSERVER3 (SERVER2)
 GO
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -186,7 +186,7 @@ GO
 
 
 /* =========================================================================
-   SECTION B — Bank_Main (run on SERVER3 / NGANHANG)
+   SECTION B — Bank_Main (run on Coordinator — DESKTOP-JBB41QU / NGANHANG)
    ========================================================================= */
 
 USE NGANHANG;

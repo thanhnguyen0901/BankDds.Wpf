@@ -2,7 +2,7 @@
   15-sp-auth.sql — Stored Procedures for NGUOIDUNG (Users) and CHINHANH (Branches)
   Generated: 2026-02-18
 
-  All procedures in this file run on SERVER3 / NGANHANG (Bank_Main).
+  All procedures in this file run on Coordinator (default instance DESKTOP-JBB41QU) / NGANHANG (Bank_Main).
   SqlUserRepository and SqlBranchRepository both use GetBankConnection().
 
   GAP-12: SP_SoftDeleteUser / SP_RestoreUser use TrangThaiXoa (0=active, 1=deleted)

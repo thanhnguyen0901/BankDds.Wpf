@@ -17,14 +17,14 @@
 
   EXECUTION ORDER
   ---------------
-  1. Run on SERVER3 (NGANHANG):     SECTION A — CHINHANH + NGUOIDUNG
-  2. Run on SERVER1 (NGANHANG_BT):  SECTION B — BENTHANH branch data
-  3. Run on SERVER2 (NGANHANG_TD):  SECTION C — TANDINH  branch data
+  1. Run on Coordinator (DESKTOP-JBB41QU / NGANHANG):          SECTION A — CHINHANH + NGUOIDUNG
+  2. Run on SERVER1 (DESKTOP-JBB41QU\SQLSERVER2 / NGANHANG_BT): SECTION B — BENTHANH branch data
+  3. Run on SERVER2 (DESKTOP-JBB41QU\SQLSERVER3 / NGANHANG_TD): SECTION C — TANDINH  branch data
 =============================================================================*/
 
 
 /* =========================================================================
-   SECTION A — Bank_Main (SERVER3 / NGANHANG)
+   SECTION A — Bank_Main (Coordinator — DESKTOP-JBB41QU / NGANHANG)
    ========================================================================= */
 USE NGANHANG;
 GO
@@ -54,7 +54,7 @@ GO
 
 
 /* =========================================================================
-   SECTION B — BENTHANH branch (SERVER1 / NGANHANG_BT)
+   SECTION B — BENTHANH branch (SERVER1 — DESKTOP-JBB41QU\SQLSERVER2 / NGANHANG_BT)
    ========================================================================= */
 USE NGANHANG_BT;
 GO
@@ -94,7 +94,7 @@ GO
 
 
 /* =========================================================================
-   SECTION C — TANDINH branch (SERVER2 / NGANHANG_TD)
+   SECTION C — TANDINH branch (SERVER2 — DESKTOP-JBB41QU\SQLSERVER3 / NGANHANG_TD)
    ========================================================================= */
 USE NGANHANG_TD;
 GO
