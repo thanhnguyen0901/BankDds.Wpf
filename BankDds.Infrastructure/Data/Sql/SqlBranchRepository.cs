@@ -8,10 +8,10 @@ namespace BankDds.Infrastructure.Data.Sql;
 
 /// <summary>
 /// SQL Server implementation of IBranchRepository.
-/// All operations execute against Bank_Main (SERVER3) because CHINHANH is a central
-/// reference table, not stored on individual branch servers.
+/// All operations execute against the Publisher (NGANHANG_PUB) because CHINHANH is a central
+/// reference table replicated to all subscribers.
 ///
-/// Required stored procedures on Bank_Main:
+/// Required stored procedures on Publisher:
 ///
 ///   SP_GetBranches
 ///     Returns: MACN nChar(10), TENCN nvarchar(50), DIACHI nvarchar(100), SODT varchar(15)
@@ -41,9 +41,9 @@ public class SqlBranchRepository : IBranchRepository
         _logger = logger;
     }
 
-    // All branch CRUD runs on Bank_Main — branches are a central reference table.
+    // All branch CRUD runs on Publisher — branches are a central reference table.
     private SqlConnection CreateBankConnection() =>
-        new SqlConnection(_connectionStringProvider.GetBankConnection());
+        new SqlConnection(_connectionStringProvider.GetPublisherConnection());
 
     public async Task<List<Branch>> GetAllBranchesAsync()
     {

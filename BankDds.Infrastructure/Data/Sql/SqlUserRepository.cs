@@ -24,7 +24,7 @@ public class SqlUserRepository : IUserRepository
         _logger = logger;
     }
 
-    private string GetConnectionString() => _connectionStringProvider.GetBankConnection();
+    private string GetConnectionString() => _connectionStringProvider.GetPublisherConnection();
 
     public async Task<User?> GetUserAsync(string username)
     {

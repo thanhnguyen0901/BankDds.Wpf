@@ -8,4 +8,6 @@ public class AuthResult
     public string DefaultBranch { get; set; } = string.Empty;
     public string? CustomerCMND { get; set; }
     public string? EmployeeId { get; set; }
+    /// <summary>HOTEN returned by sp_DangNhap (USER_NAME()).</summary>
+    public string? DisplayName { get; set; }
 }

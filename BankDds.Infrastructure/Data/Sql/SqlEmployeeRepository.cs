@@ -51,7 +51,8 @@ public class SqlEmployeeRepository : IEmployeeRepository
         var employees = new List<Employee>();
         try
         {
-            using var connection = new SqlConnection(_connectionStringProvider.GetBankConnection());
+            // Publisher has all employee data via Merge Replication.
+            using var connection = new SqlConnection(_connectionStringProvider.GetPublisherConnection());
             await connection.OpenAsync();
             using var command = new SqlCommand("SP_GetAllEmployees", connection) { CommandType = CommandType.StoredProcedure };
             using var reader = await command.ExecuteReaderAsync();
@@ -146,8 +147,8 @@ public class SqlEmployeeRepository : IEmployeeRepository
     {
         try
         {
-            // Cross-branch transfer: use the main bank connection
-            using var connection = new SqlConnection(_connectionStringProvider.GetBankConnection());
+            // Cross-branch transfer: use Publisher (SP uses linked-server or runs locally).
+            using var connection = new SqlConnection(_connectionStringProvider.GetPublisherConnection());
             await connection.OpenAsync();
             using var command = new SqlCommand("SP_TransferEmployee", connection) { CommandType = CommandType.StoredProcedure };
             command.Parameters.AddWithValue("@MANV",     manv);
@@ -172,19 +173,15 @@ public class SqlEmployeeRepository : IEmployeeRepository
     };
 
     /// <summary>
-    /// Returns a collision-free MANV via SP_GetNextManv executed on the main bank server.
-    /// SP contract (execute on Bank_Main, reads from linked servers or a central sequence):
-    ///   SELECT 'NV' + RIGHT('00000000' + CAST(
-    ///       ISNULL(MAX(CAST(SUBSTRING(MANV,3,8) AS INT)), 0) + 1
-    ///   AS VARCHAR(8)), 8)
-    ///   FROM NHANVIEN_ALL   -- a view unioning all branch NHANVIEN tables
-    /// Alternatively use: SELECT NEXT VALUE FOR dbo.SEQ_MANV
+    /// Returns a collision-free MANV via SP_GetNextManv executed on the Publisher.
+    /// Publisher has all employee rows via Merge Replication, so MAX(MANV) is global.
     /// </summary>
     public async Task<string> GenerateEmployeeIdAsync()
     {
         try
         {
-            using var connection = new SqlConnection(_connectionStringProvider.GetBankConnection());
+            // SP_GetNextManv runs on Publisher where all branches are visible.
+            using var connection = new SqlConnection(_connectionStringProvider.GetPublisherConnection());
             await connection.OpenAsync();
             using var command = new SqlCommand("SP_GetNextManv", connection) { CommandType = CommandType.StoredProcedure };
             var result = await command.ExecuteScalarAsync();

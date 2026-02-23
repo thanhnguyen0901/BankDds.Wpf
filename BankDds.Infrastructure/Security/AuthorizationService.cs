@@ -56,11 +56,12 @@ public class AuthorizationService : IAuthorizationService
 
     public bool CanModifyBranch(string branchCode)
     {
-        // NganHang can modify only in the selected branch context
+        // Banking rule: NganHang is view-only — can choose branch to view data/reports
+        // but CANNOT perform CRUD operations.
         if (_userSession.UserGroup == UserGroup.NganHang)
-            return branchCode == _userSession.SelectedBranch && _userSession.SelectedBranch != "ALL";
+            return false;
 
-        // ChiNhanh can only modify their own branch
+        // ChiNhanh can only modify their own branch (full CRUD)
         if (_userSession.UserGroup == UserGroup.ChiNhanh)
             return branchCode == _userSession.SelectedBranch;
 

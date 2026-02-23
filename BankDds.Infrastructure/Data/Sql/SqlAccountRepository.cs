@@ -66,10 +66,8 @@ public class SqlAccountRepository : IAccountRepository
 
         try
         {
-            // GAP-07: GetAllAccountsAsync spans all branches — must use Bank_Main (SERVER3),
-            // not the session-branch connection. NganHang users with SelectedBranch=ALL
-            // would otherwise hit only one branch server and miss accounts from all others.
-            using var connection = new SqlConnection(_connectionStringProvider.GetBankConnection());
+            // Publisher (NGANHANG_PUB) has all data via Merge Replication — no UNION ALL needed.
+            using var connection = new SqlConnection(_connectionStringProvider.GetPublisherConnection());
             await connection.OpenAsync();
 
             using var command = new SqlCommand("SP_GetAllAccounts", connection)

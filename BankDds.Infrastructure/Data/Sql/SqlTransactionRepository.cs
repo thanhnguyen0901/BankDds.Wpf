@@ -13,18 +13,15 @@ public class SqlTransactionRepository : ITransactionRepository
 {
     private readonly IConnectionStringProvider _connectionStringProvider;
     private readonly IUserSession _userSession;
-    private readonly IAccountRepository _accountRepository;
     private readonly ILogger<SqlTransactionRepository> _logger;
 
     public SqlTransactionRepository(
         IConnectionStringProvider connectionStringProvider,
         IUserSession userSession,
-        IAccountRepository accountRepository,
         ILogger<SqlTransactionRepository> logger)
     {
         _connectionStringProvider = connectionStringProvider;
         _userSession = userSession;
-        _accountRepository = accountRepository;
         _logger = logger;
     }
 
@@ -194,170 +191,47 @@ public class SqlTransactionRepository : ITransactionRepository
     }
 
     /// <summary>
-    /// Transfers money between two accounts, routing on branch topology (GAP-02 fix).
-    /// <list type="bullet">
-    ///   <item><b>Same-branch</b> (sourceAccount.MACN == destAccount.MACN): single
-    ///       ADO.NET connection + <see cref="SqlTransaction"/> on that server — no MSDTC needed.</item>
-    ///   <item><b>Cross-branch</b> (different MACN): delegates to
-    ///       <c>SP_CrossBranchTransfer</c> on the source-branch server, which uses a Linked Server
-    ///       reference and <c>BEGIN DISTRIBUTED TRANSACTION</c> (MSDTC) to debit source,
-    ///       credit destination, and record <c>GD_CHUYENTIEN</c> atomically.</item>
-    /// </list>
-    /// In both cases all business validation is performed before touching the database.
+    /// Unified transfer — delegates 100% to SP_CrossBranchTransfer on the
+    /// source-branch subscriber.  The SP handles both same-branch (local TXN)
+    /// and cross-branch (DISTRIBUTED TRANSACTION via LINK1) paths internally.
+    /// <para>
+    /// Banking rule: C# calls ONE SP on the source branch; no pre-validation of
+    /// the destination account that would incorrectly block remote accounts.
+    /// </para>
     /// </summary>
     public async Task<bool> TransferAsync(string sotkFrom, string sotkTo, decimal amount, string manv)
-    {        sotkFrom = sotkFrom.Trim(); sotkTo = sotkTo.Trim(); manv = manv.Trim();
+    {
+        sotkFrom = sotkFrom.Trim(); sotkTo = sotkTo.Trim(); manv = manv.Trim();
         _logger.LogInformation("Transfer: From={SotkFrom} To={SotkTo} Amount={Amount} MANV={MANV}",
                                sotkFrom, sotkTo, amount, manv);
-        // ── Pre-validation (no DB round-trip) ────────────────────────────────
+
+        // ── Minimal pre-validation (no DB round-trip) ────────────────────────
         if (amount <= 0)
             throw new InvalidOperationException("Transfer amount must be greater than 0.");
 
         if (sotkFrom == sotkTo)
             throw new InvalidOperationException("Cannot transfer to the same account.");
 
-        // ── Pre-validate accounts (outside transaction — for rich error messages) ──
-        var sourceAccount = await _accountRepository.GetAccountAsync(sotkFrom);
-        if (sourceAccount == null)
-            throw new InvalidOperationException($"Source account '{sotkFrom}' not found.");
-        if (sourceAccount.Status == "Closed")
-            throw new InvalidOperationException("Cannot transfer from a closed account.");
-        if (sourceAccount.SODU < amount)
-            throw new InvalidOperationException(
-                $"Insufficient balance. Available: {sourceAccount.SODU:N0} VND, requested: {amount:N0} VND.");
-
-        var destAccount = await _accountRepository.GetAccountAsync(sotkTo);
-        if (destAccount == null)
-            throw new InvalidOperationException($"Destination account '{sotkTo}' not found.");
-        if (destAccount.Status == "Closed")
-            throw new InvalidOperationException("Cannot transfer to a closed account.");
-
-        // ── Route on branch topology ──────────────────────────────────────────
-        // Branch codes come from the pre-validated account objects, not from _userSession,
-        // so the correct physical server is always targeted regardless of session context.
-        string sourceBranch = sourceAccount.MACN;
-        string destBranch   = destAccount.MACN;
-
-        return string.Equals(sourceBranch, destBranch, StringComparison.OrdinalIgnoreCase)
-            ? await ExecuteSameBranchTransferAsync(sotkFrom, sotkTo, amount, manv, sourceBranch)
-            : await ExecuteCrossBranchTransferAsync(sotkFrom, sotkTo, amount, manv, sourceBranch, destBranch);
-    }
-
-    /// <summary>
-    /// Same-branch transfer: single ADO.NET connection and transaction on the branch server.
-    /// All three SPs (debit, credit, GD_CHUYENTIEN INSERT) run atomically under one
-    /// <see cref="SqlTransaction"/>. No MSDTC required.
-    /// </summary>
-    private async Task<bool> ExecuteSameBranchTransferAsync(
-        string sotkFrom, string sotkTo, decimal amount, string manv, string branch)
-    {
-        _logger.LogInformation("Same-branch transfer: branch={Branch} From={SotkFrom} To={SotkTo}",
-                               branch, sotkFrom, sotkTo);
-        SqlConnection?  connection    = null;
-        SqlTransaction? dbTransaction = null;
-
+        // ── Single SP call on source branch ──────────────────────────────────
+        // SP_CrossBranchTransfer validates source & destination, detects
+        // same-branch vs cross-branch, and executes the appropriate transaction
+        // (local or distributed via LINK1).  All error codes are returned as
+        // RAISERROR/THROW which surface as SqlException in C#.
         try
         {
-            connection = new SqlConnection(_connectionStringProvider.GetConnectionStringForBranch(branch));
-            await connection.OpenAsync();
-
-            dbTransaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
-
-            // Step 1: Deduct from source account.
-            // SP enforces a locked balance check — 0 rows means concurrent modification.
-            using (var cmd = new SqlCommand("SP_DeductFromAccount", connection, dbTransaction)
-                   { CommandType = CommandType.StoredProcedure })
-            {
-                cmd.Parameters.AddWithValue("@SOTK",   sotkFrom);
-                cmd.Parameters.AddWithValue("@Amount", amount);
-                var rows = await cmd.ExecuteNonQueryAsync();
-                if (rows == 0)
-                    throw new InvalidOperationException(
-                        "Deduction from source account failed — balance may have changed concurrently.");
-            }
-
-            // Step 2: Credit destination account (same connection + transaction).
-            using (var cmd = new SqlCommand("SP_AddToAccount", connection, dbTransaction)
-                   { CommandType = CommandType.StoredProcedure })
-            {
-                cmd.Parameters.AddWithValue("@SOTK",   sotkTo);
-                cmd.Parameters.AddWithValue("@Amount", amount);
-                var rows = await cmd.ExecuteNonQueryAsync();
-                if (rows == 0)
-                    throw new InvalidOperationException(
-                        "Credit to destination account failed — account may have been modified concurrently.");
-            }
-
-            // Step 3: Record GD_CHUYENTIEN row (committed atomically with both balance updates).
-            using (var cmd = new SqlCommand("SP_CreateTransferTransaction", connection, dbTransaction)
-                   { CommandType = CommandType.StoredProcedure })
-            {
-                cmd.Parameters.AddWithValue("@SOTK_FROM", sotkFrom);
-                cmd.Parameters.AddWithValue("@SOTK_TO",   sotkTo);
-                cmd.Parameters.AddWithValue("@Amount",    amount);
-                cmd.Parameters.AddWithValue("@MANV",      manv);
-                await cmd.ExecuteScalarAsync(); // returns MAGD; ignored here
-            }
-
-            await dbTransaction.CommitAsync();
-            return true;
-        }
-        catch (Exception ex)
-        {
-            if (dbTransaction != null)
-            {
-                try { await dbTransaction.RollbackAsync(); }
-                catch { /* ignore secondary rollback failures */ }
-            }
-            if (ex is InvalidOperationException) throw;
-            throw new InvalidOperationException($"Transfer failed: {ex.Message}", ex);
-        }
-        finally
-        {
-            dbTransaction?.Dispose();
-            connection?.Dispose();
-        }
-    }
-
-    /// <summary>
-    /// Cross-branch transfer: calls <c>SP_CrossBranchTransfer</c> on the source-branch server.
-    /// <para>
-    /// That SP uses a SQL Server Linked Server reference to reach the destination server and wraps
-    /// the debit, credit, and GD_CHUYENTIEN INSERT in <c>BEGIN DISTRIBUTED TRANSACTION</c>
-    /// (requires MSDTC to be enabled on both servers).
-    /// </para>
-    /// <para>
-    /// GD_CHUYENTIEN is recorded on the <paramref name="sourceBranch"/> server by the SP.
-    /// </para>
-    /// <para>
-    /// If the SP or Linked Server is not configured, a clear setup-guidance error is thrown
-    /// rather than silently failing with a generic SQL error.
-    /// </para>
-    /// </summary>
-    private async Task<bool> ExecuteCrossBranchTransferAsync(
-        string sotkFrom, string sotkTo, decimal amount, string manv,
-        string sourceBranch, string destBranch)
-    {
-        _logger.LogInformation(
-            "Cross-branch transfer: {SourceBranch}→{DestBranch} From={SotkFrom} To={SotkTo}",
-            sourceBranch, destBranch, sotkFrom, sotkTo);
-        try
-        {
-            using var connection = new SqlConnection(
-                _connectionStringProvider.GetConnectionStringForBranch(sourceBranch));
+            using var connection = new SqlConnection(GetConnectionString());
             await connection.OpenAsync();
 
             using var cmd = new SqlCommand("SP_CrossBranchTransfer", connection)
             {
                 CommandType    = CommandType.StoredProcedure,
-                // Distributed transactions via MSDTC can take longer than local ones
+                // Distributed transactions via MSDTC can take longer than local
                 CommandTimeout = 60
             };
             cmd.Parameters.AddWithValue("@SOTK_CHUYEN", sotkFrom);
             cmd.Parameters.AddWithValue("@SOTK_NHAN",   sotkTo);
             cmd.Parameters.AddWithValue("@SOTIEN",      amount);
             cmd.Parameters.AddWithValue("@MANV",        manv);
-            cmd.Parameters.AddWithValue("@DEST_BRANCH", destBranch);
 
             await cmd.ExecuteNonQueryAsync();
             return true;
@@ -365,36 +239,42 @@ public class SqlTransactionRepository : ITransactionRepository
         catch (SqlException ex) when (ex.Number == 2812)
         {
             // 2812: stored procedure not found
-            _logger.LogError(ex, "Cross-branch SP missing: {SourceBranch}→{DestBranch}", sourceBranch, destBranch);
+            _logger.LogError(ex, "SP_CrossBranchTransfer not found on branch {Branch}",
+                             _userSession.SelectedBranch);
             throw new InvalidOperationException(
-                $"MSDTC/Linked Server not configured: SP_CrossBranchTransfer not found on '{sourceBranch}'. " +
-                "Please follow sql/01-schema.sql §C and docs/audit/99-final-db-readiness.md to create the SP and configure Linked Servers.",
+                $"SP_CrossBranchTransfer not found on branch '{_userSession.SelectedBranch}'. " +
+                "Ensure the SP has been replicated from the Publisher.",
                 ex);
         }
         catch (SqlException ex) when (ex.Number is 8501 or 8517 or 7391)
         {
-            // 8501/8517: MSDTC unavailable; 7391: distributed tx not supported
-            _logger.LogError(ex, "MSDTC unavailable for cross-branch transfer: {SourceBranch}→{DestBranch}", sourceBranch, destBranch);
+            // 8501/8517: MSDTC unavailable; 7391: distributed TX not supported
+            _logger.LogError(ex, "MSDTC error during cross-branch transfer");
             throw new InvalidOperationException(
-                $"MSDTC/Linked Server not configured. Cross-branch transfer from '{sourceBranch}' to '{destBranch}' " +
-                "requires MSDTC to be running on both servers. " +
-                "Please follow sql/01-schema.sql §C and docs/audit/99-final-db-readiness.md.",
+                "MSDTC is not available for cross-branch transfer. " +
+                "Ensure the Distributed Transaction Coordinator service is running on both servers.",
                 ex);
         }
         catch (SqlException ex) when (ex.Number is 7202 or 7399 or 7312)
         {
-            // 7202: Linked Server not found; 7399: provider error; 7312: access denied on Linked Server
-            _logger.LogError(ex, "Linked Server error for cross-branch transfer: {SourceBranch}→{DestBranch}", sourceBranch, destBranch);
+            // 7202: linked server not found; 7399: provider error; 7312: access denied
+            _logger.LogError(ex, "Linked Server (LINK1) error during cross-branch transfer");
             throw new InvalidOperationException(
-                $"MSDTC/Linked Server not configured. Linked Server from '{sourceBranch}' to '{destBranch}' is not set up. " +
-                "Please follow sql/01-schema.sql §C and docs/audit/99-final-db-readiness.md.",
+                "Linked Server LINK1 is not configured. " +
+                "Run sql/distributed_banking/06_linked_servers.sql on the subscriber instance.",
                 ex);
+        }
+        catch (SqlException ex) when (ex.Number >= 50000)
+        {
+            // SP user-defined errors (RAISERROR / THROW 50001–50007)
+            _logger.LogWarning(ex, "Transfer business rule violation: {Message}", ex.Message);
+            throw new InvalidOperationException(ex.Message, ex);
         }
         catch (SqlException ex)
         {
-            _logger.LogError(ex, "Cross-branch transfer SQL error {Number}: {SourceBranch}→{DestBranch}", ex.Number, sourceBranch, destBranch);
+            _logger.LogError(ex, "Transfer SQL error {Number}: {Message}", ex.Number, ex.Message);
             throw new InvalidOperationException(
-                $"Cross-branch transfer failed (SQL error {ex.Number}): {ex.Message}", ex);
+                $"Transfer failed (SQL error {ex.Number}): {ex.Message}", ex);
         }
     }
 

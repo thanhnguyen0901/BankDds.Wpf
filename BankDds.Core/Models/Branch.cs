@@ -2,7 +2,7 @@ namespace BankDds.Core.Models;
 
 /// <summary>
 /// CHINHANH — bank branch reference entity.
-/// Stored in Bank_Main (SERVER3); branch codes are the topology keys used throughout the system.
+/// Stored in Publisher (NGANHANG_PUB); branch codes are the topology keys used throughout the system.
 /// </summary>
 public class Branch
 {

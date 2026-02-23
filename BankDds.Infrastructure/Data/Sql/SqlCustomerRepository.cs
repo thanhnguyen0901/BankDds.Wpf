@@ -50,11 +50,12 @@ public class SqlCustomerRepository : ICustomerRepository
 
     public async Task<List<Customer>> GetAllCustomersAsync()
     {
-        _logger.LogInformation("GetAllCustomers: cross-branch via Bank_Main");
+        _logger.LogInformation("GetAllCustomers: cross-branch via Publisher");
         var customers = new List<Customer>();
         try
         {
-            using var connection = new SqlConnection(_connectionStringProvider.GetBankConnection());
+            // Publisher has all data via Merge Replication — no multi-connection merge needed.
+            using var connection = new SqlConnection(_connectionStringProvider.GetPublisherConnection());
             await connection.OpenAsync();
             using var command = new SqlCommand("SP_GetAllCustomers", connection) { CommandType = CommandType.StoredProcedure };
             using var reader = await command.ExecuteReaderAsync();

@@ -206,7 +206,7 @@ public class AppBootstrapper : BootstrapperBase
                .As<IUserService>()
                .SingleInstance();
 
-        // Unified authentication service using IUserRepository
+        // Banking authentication: SQL login → sp_DangNhap on Publisher
         builder.RegisterType<AuthService>()
                .As<IAuthService>()
                .SingleInstance();

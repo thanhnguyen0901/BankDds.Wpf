@@ -147,8 +147,9 @@ public class SqlReportRepository : IReportRepository
 
         try
         {
+            // Publisher has aggregate data; branch subscriber for branch-scoped queries.
             var connStr = (string.IsNullOrEmpty(branchCode) || branchCode == "ALL")
-                ? _connectionStringProvider.GetBankConnection()
+                ? _connectionStringProvider.GetPublisherConnection()
                 : _connectionStringProvider.GetConnectionStringForBranch(branchCode);
             using var connection = new SqlConnection(connStr);
             await connection.OpenAsync();
@@ -192,10 +193,9 @@ public class SqlReportRepository : IReportRepository
 
         try
         {
-            // GAP-07: route by branchCode — Bank_Main (SERVER3) for ALL/null so the SP
-            // can query across branches via TraCuu views; branch server for a specific branch.
+            // Publisher for aggregate / cross-branch; subscriber for branch-scoped.
             var connStr = (string.IsNullOrEmpty(branchCode) || branchCode == "ALL")
-                ? _connectionStringProvider.GetBankConnection()
+                ? _connectionStringProvider.GetPublisherConnection()
                 : _connectionStringProvider.GetConnectionStringForBranch(branchCode);
             using var connection = new SqlConnection(connStr);
             await connection.OpenAsync();
@@ -227,10 +227,9 @@ public class SqlReportRepository : IReportRepository
                                branchCode ?? "ALL", fromDate, toDate);
         try
         {
-            // GAP-07: route by branchCode — Bank_Main (SERVER3) for ALL/null;
-            // branch server for a specific branch so the SP hits the right data.
+            // Publisher for aggregate / cross-branch; subscriber for branch-scoped.
             var connStr = (string.IsNullOrEmpty(branchCode) || branchCode == "ALL")
-                ? _connectionStringProvider.GetBankConnection()
+                ? _connectionStringProvider.GetPublisherConnection()
                 : _connectionStringProvider.GetConnectionStringForBranch(branchCode);
             using var connection = new SqlConnection(connStr);
             await connection.OpenAsync();

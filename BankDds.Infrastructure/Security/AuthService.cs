@@ -1,72 +1,91 @@
 using BankDds.Core.Interfaces;
-using BankDds.Core.Models;
+using Microsoft.Data.SqlClient;
 
 namespace BankDds.Infrastructure.Security;
 
 /// <summary>
-/// Unified authentication service using IUserRepository as single source of truth
+/// Banking authentication: connects to Publisher with the entered SQL login/password
+/// and calls sp_DangNhap to resolve role (NGANHANG / CHINHANH / KHACHHANG).
+/// No BCrypt, no NGUOIDUNG table — SQL Server handles credential verification.
 /// </summary>
 public class AuthService : IAuthService
 {
-    private readonly IUserRepository _userRepository;
+    private readonly IConnectionStringProvider _connectionStringProvider;
 
-    public AuthService(IUserRepository userRepository)
+    public AuthService(IConnectionStringProvider connectionStringProvider)
     {
-        _userRepository = userRepository;
+        _connectionStringProvider = connectionStringProvider;
     }
 
     public async Task<AuthResult> LoginAsync(string userName, string password)
     {
         try
         {
-            // Get user from repository
-            var user = await _userRepository.GetUserAsync(userName);
+            // Build a Publisher connection string using the entered SQL login/password.
+            // If credentials are wrong, SqlConnection.OpenAsync throws SqlException.
+            var connectionString =
+                _connectionStringProvider.GetPublisherConnectionForLogin(userName, password);
 
-            if (user == null)
-            {
-                return new AuthResult
-                {
-                    Success = false,
-                    ErrorMessage = "Invalid username or password"
-                };
-            }
+            await using var connection = new SqlConnection(connectionString);
+            await connection.OpenAsync();
 
-            // Verify password hash using BCrypt
-            if (!BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
+            // sp_DangNhap returns: MANV (SYSTEM_USER), HOTEN (USER_NAME()), TENNHOM
+            await using var cmd = new SqlCommand("sp_DangNhap", connection)
             {
-                return new AuthResult
-                {
-                    Success = false,
-                    ErrorMessage = "Invalid username or password"
-                };
-            }
-
-            // Block soft-deleted accounts from logging in
-            if (user.TrangThaiXoa == 1)
-            {
-                return new AuthResult
-                {
-                    Success = false,
-                    ErrorMessage = "Tài khoản này đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên."
-                };
-            }
-
-            // Convert UserGroup enum to string for compatibility
-            string userGroupString = user.UserGroup switch
-            {
-                UserGroup.NganHang => "NganHang",
-                UserGroup.ChiNhanh => "ChiNhanh",
-                UserGroup.KhachHang => "KhachHang",
-                _ => "Unknown"
+                CommandType = System.Data.CommandType.StoredProcedure
             };
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+
+            if (!await reader.ReadAsync())
+            {
+                return new AuthResult
+                {
+                    Success = false,
+                    ErrorMessage = "sp_DangNhap returned no rows."
+                };
+            }
+
+            var manv = reader["MANV"]?.ToString() ?? string.Empty;
+            var hoTen = reader["HOTEN"]?.ToString() ?? manv;
+            var tenNhom = reader["TENNHOM"]?.ToString() ?? string.Empty;
+
+            // Map SQL role name to the UserGroup string used by the WPF layer
+            string userGroup = tenNhom.ToUpperInvariant() switch
+            {
+                "NGANHANG" => "NganHang",
+                "CHINHANH" => "ChiNhanh",
+                "KHACHHANG" => "KhachHang",
+                _ => string.Empty
+            };
+
+            if (string.IsNullOrEmpty(userGroup))
+            {
+                return new AuthResult
+                {
+                    Success = false,
+                    ErrorMessage = $"Unknown role '{tenNhom}' returned by sp_DangNhap."
+                };
+            }
+
+            // Store the SQL login credentials in the provider so all subsequent
+            // DB calls (repositories, services) use the same identity.
+            _connectionStringProvider.SetSqlLoginCredentials(userName, password);
 
             return new AuthResult
             {
                 Success = true,
-                UserGroup = userGroupString,
-                DefaultBranch = user.DefaultBranch,
-                CustomerCMND = user.CustomerCMND,
-                EmployeeId = user.EmployeeId
+                UserGroup = userGroup,
+                EmployeeId = manv,
+                DisplayName = hoTen
+            };
+        }
+        catch (SqlException ex)
+        {
+            return new AuthResult
+            {
+                Success = false,
+                ErrorMessage = $"Login failed: {ex.Message}"
             };
         }
         catch (Exception ex)
@@ -74,14 +93,14 @@ public class AuthService : IAuthService
             return new AuthResult
             {
                 Success = false,
-                ErrorMessage = $"Login error: {ex.Message}"
+                ErrorMessage = $"Error: {ex.Message}"
             };
         }
     }
 
     public Task LogoutAsync()
     {
-        // No cleanup needed for repository-based auth
+        _connectionStringProvider.ClearSqlLoginCredentials();
         return Task.CompletedTask;
     }
 }
