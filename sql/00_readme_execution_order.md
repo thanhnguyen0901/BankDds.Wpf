@@ -1,0 +1,179 @@
+# Thứ Tự Thực Thi SQL Ngân Hàng Phân Tán
+
+## Tổng quan
+
+Thư mục này chứa các script SQL đã được tái cấu trúc cho dự án BankDds Ngân Hàng Phân Tán (DE3 — Ngân Hàng).
+
+Các script được tổ chức theo **nơi chạy**, không theo loại thực thể.  
+Chạy chúng theo thứ tự đánh số bên dưới.  
+Mỗi script đều **idempotent** — an toàn khi chạy lại mà không xóa dữ liệu ngoài ý muốn.
+
+---
+
+## Tham Khảo Nhanh Kiến Trúc Mạng
+
+| Vai trò | Máy chủ | Cơ sở dữ liệu |
+|---|---|---|
+| **Máy chủ phát hành / Điều phối (server gốc)** | `DESKTOP-JBB41QU` (mặc định) | `NGANHANG` |
+| **Máy chủ đăng ký nhận CN1 — Bến Thành** | `DESKTOP-JBB41QU\SQLSERVER2` | `NGANHANG_BT` |
+| **Máy chủ đăng ký nhận CN2 — Tân Định** | `DESKTOP-JBB41QU\SQLSERVER3` | `NGANHANG_TD` |
+| **Máy chủ đăng ký nhận TraCuu (chỉ đọc)** | `DESKTOP-JBB41QU\SQLSERVER4` | `NGANHANG_TRACUU` |
+
+---
+
+## Thứ Tự Thực Thi
+
+### Bước 1 — Chạy trên Máy chủ phát hành (`DESKTOP-JBB41QU`)
+
+| Thứ tự | Script | Mô tả |
+|---|---|---|
+| 1 | `01_publisher_create_db.sql` | Tạo CSDL `NGANHANG` nếu chưa tồn tại |
+| 2 | `02_publisher_schema.sql` | Tạo tất cả bảng + sequence + view UNION ALL liên chi nhánh |
+| 3 | `03_publisher_sp_views.sql` | Tạo tất cả stored procedure trên Máy chủ phát hành |
+| 4 | `04_publisher_security.sql` | Tạo SQL login, vai trò, GRANT/DENY theo nhóm vai trò |
+| 5 | `05_replication_setup_merge.sql` | Sao chép hợp nhất: Distributor + 3 publication (PUB_NGANHANG_BT/TD/TRACUU) + article (bảng + 50 SP + view) + bộ lọc hàng/join + 3 push subscription + Tác vụ snapshot. Xem thêm `docs/distributed_banking/replication_manual_steps.md` để biết hướng dẫn dùng SSMS wizard. |
+| 6 | `06_linked_servers.sql` | Linked Server (LINK0/LINK1/LINK2) — xem Bước 1b bên dưới |
+
+### Bước 1b — Linked Server (`06_linked_servers.sql`)
+
+Script này được **chia theo máy chủ** — tự động phát hiện `@@SERVERNAME` và chỉ tạo các liên kết phù hợp với máy chủ đó.
+
+**Chạy trên từng máy chủ riêng biệt:**
+
+```powershell
+# Publisher — creates LINK1→CN1, LINK2→CN2, LINK0→TraCuu
+sqlcmd -S "DESKTOP-JBB41QU" -E -i "sql\distributed_banking\06_linked_servers.sql"
+
+# CN1 — creates LINK1→CN2 (other branch), LINK0→TraCuu
+sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER2" -E -i "sql\distributed_banking\06_linked_servers.sql"
+
+# CN2 — creates LINK1→CN1 (other branch), LINK0→TraCuu
+sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER3" -E -i "sql\distributed_banking\06_linked_servers.sql"
+```
+
+**Quy ước đặt tên — tên giống nhau trên CN1 và CN2:**
+
+| Máy chủ | LINK1 trỏ đến | LINK0 trỏ đến | LINK2 trỏ đến |
+|---|---|---|---|
+| Máy chủ phát hành | SQLSERVER2 (CN1) | SQLSERVER4 (TraCuu) | SQLSERVER3 (CN2) |
+| CN1 (SQLSERVER2) | SQLSERVER3 (CN2) | SQLSERVER4 (TraCuu) | — |
+| CN2 (SQLSERVER3) | SQLSERVER2 (CN1) | SQLSERVER4 (TraCuu) | — |
+
+**Bảo mật:** Sử dụng `sa`/`Password!123` (mặc định trong môi trường lab). Xem ghi chú trong script để nâng cấp cho production với login `svc_linkedserver`.
+
+**Tùy chọn bật cho mỗi liên kết:** `rpc`, `rpc out`, `data access` (tất cả `true`).
+
+### Bước 2 — Shell CSDL Máy chủ đăng ký nhận (chạy trên từng máy chủ đăng ký nhận)
+
+**Mục đích:** Tạo các container CSDL trống trên mỗi máy chủ đăng ký nhận.  
+Tác vụ snapshot (khởi chạy ở Bước 1, script 05) sẽ đẩy schema + dữ liệu ban đầu vào các shell này.
+
+> **KHÔNG tạo bảng, SP hoặc view trên máy chủ đăng ký nhận thủ công.**  
+> Tác vụ snapshot xử lý toàn bộ việc phân phối schema.
+
+| Thứ tự | Script | Mô tả |
+|---|---|---|
+| 7 | `07_subscribers_create_db.sql` | Tạo shell CSDL máy chủ đăng ký nhận + thiết lập recovery model + snapshot isolation |
+
+**Chạy script 07 trên từng máy chủ đăng ký nhận riêng biệt:**
+
+```powershell
+sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER2" -E -i "sql\distributed_banking\07_subscribers_create_db.sql"
+sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER3" -E -i "sql\distributed_banking\07_subscribers_create_db.sql"
+sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER4" -E -i "sql\distributed_banking\07_subscribers_create_db.sql"
+```
+
+Script tự động phát hiện `@@SERVERNAME` và chỉ tạo CSDL phù hợp:
+
+| Máy chủ | CSDL được tạo | Chi nhánh |
+|---|---|---|
+| `SQLSERVER2` | `NGANHANG_BT` | Bến Thành |
+| `SQLSERVER3` | `NGANHANG_TD` | Tân Định |
+| `SQLSERVER4` | `NGANHANG_TRACUU` | Tra cứu (chỉ đọc) |
+
+**Sau script 07:** Chờ Tác vụ snapshot hoàn thành trên Máy chủ phát hành (~1–5 phút với dữ liệu dev). Xác minh bằng:
+
+```sql
+-- On each subscriber, confirm tables arrived:
+USE NGANHANG_BT;  -- or NGANHANG_TD / NGANHANG_TRACUU
+SELECT name FROM sys.tables ORDER BY name;
+-- Expected (CN1/CN2): CHINHANH, GD_CHUYENTIEN, GD_GOIRUT, KHACHHANG, NHANVIEN, TAIKHOAN + MSmerge_* metadata
+-- Expected (TraCuu):  CHINHANH, KHACHHANG + MSmerge_* metadata
+```
+
+### Bước 2b — Hiệu chỉnh bảo mật sau sao chép (chạy SAU KHI Snapshot hoàn thành)
+
+**Mục đích:** Áp dụng lớp bảo mật mà Sao chép hợp nhất KHÔNG mang theo:
+- Vai trò CSDL (NGANHANG, CHINHANH, KHACHHANG)
+- DENY truy cập trực tiếp bảng + GRANT EXECUTE trên các SP được sao chép
+- SP bảo mật (sp_DangNhap, sp_TaoTaiKhoan, v.v.) — theo từng máy chủ
+- Đồng bộ seed login (ADMIN_NH, NV_BT, KH_DEMO)
+- Xóa view liên chi nhánh `_ALL` (không có ý nghĩa trên máy chủ đăng ký nhận)
+- Tăng cường chỉ đọc TraCuu + view `V_KHACHHANG_ALL`
+
+| Thứ tự | Script | Mô tả |
+|---|---|---|
+| 8 | `08_subscribers_post_replication_fixups.sql` | Sau snapshot: vai trò, DENY/GRANT, SP bảo mật, seed login, tăng cường TraCuu |
+
+**Chạy script 08 trên từng máy chủ đăng ký nhận riêng biệt:**
+
+```powershell
+sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER2" -E -i "sql\distributed_banking\08_subscribers_post_replication_fixups.sql"
+sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER3" -E -i "sql\distributed_banking\08_subscribers_post_replication_fixups.sql"
+sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER4" -E -i "sql\distributed_banking\08_subscribers_post_replication_fixups.sql"
+```
+
+Script tự động phát hiện CSDL máy chủ đăng ký nhận trên máy chủ hiện tại và điều chỉnh tự động.
+
+**Xác minh sau script 08:**
+
+```sql
+-- Check role membership:
+EXEC sp_DangNhap;
+
+-- Test CHINHANH role permissions (as NV_BT):
+EXECUTE AS USER = 'NV_BT';
+EXEC SP_GetCustomersByBranch @MACN = 'BENTHANH';    -- should succeed
+-- SELECT * FROM dbo.KHACHHANG;                      -- should fail (DENY)
+REVERT;
+```
+
+### Bước 3 — Script tổng hợp (tự động hóa / CI)
+
+| Thứ tự | Script | Mô tả |
+|---|---|---|
+| – | `99_run_all.sql` | Điều phối các bước 1–8 thông qua `EXEC` hoặc `SQLCMD :r` include |
+
+---
+
+## Tham Chiếu Script Cũ
+
+Các script gốc trong `sql/` được giữ nguyên không thay đổi.  
+Thư mục này chứa các bản tương đương đã được tái cấu trúc.  
+Bảng ánh xạ:
+
+| Bản gốc | Bản mới tương đương |
+|---|---|
+| `sql/01-schema.sql` | `02_publisher_schema.sql` |
+| `sql/02-seed.sql` | Nằm trong `02_publisher_schema.sql` (phần seed) hoặc chạy thủ công |
+| `sql/10-sp-customers.sql` | `03_publisher_sp_views.sql` (phần: Customers) |
+| `sql/11-sp-employees.sql` | `03_publisher_sp_views.sql` (phần: Employees) |
+| `sql/12-sp-accounts.sql` | `03_publisher_sp_views.sql` (phần: Accounts) |
+| `sql/13-sp-transactions.sql` | `03_publisher_sp_views.sql` (phần: Transactions) |
+| `sql/14-sp-reports.sql` | `03_publisher_sp_views.sql` (phần: Reports) |
+| `sql/15-sp-auth.sql` | `03_publisher_sp_views.sql` (phần: Auth) |
+| `sql/16-linked-servers.sql` | `06_linked_servers.sql` |
+| `sql/17-security.sql` (dự kiến) | `04_publisher_security.sql` |
+| `sql/17-replication-distributor.sql` (dự kiến) | `05_replication_setup_merge.sql` (Phần A) |
+| `sql/18-replication-publications.sql` (dự kiến) | `05_replication_setup_merge.sql` (Phần B) |
+| `sql/19-replication-subscriptions.sql` (dự kiến) | `05_replication_setup_merge.sql` (Phần C) |
+| `sql/20-replication-snapshot.sql` (dự kiến) | `05_replication_setup_merge.sql` (Phần D) |
+
+---
+
+## Ghi Chú
+
+- Tất cả script sử dụng kiểm tra `IF OBJECT_ID(…) IS NOT NULL` / `IF DB_ID(…) IS NULL` để đảm bảo idempotent.
+- SP **chỉ được tạo trên Máy chủ phát hành**. Chúng được truyền đến CN1 và CN2 thông qua Sao chép hợp nhất (article `proc schema only`).
+- **Không chạy `03_publisher_sp_views.sql` trực tiếp trên CN1, CN2 hoặc TraCuu.** Các máy chủ đó nhận SP thông qua Tác vụ snapshot.
+- TraCuu (`NGANHANG_TRACUU`) chỉ nhận bảng `KHACHHANG` + `CHINHANH` qua `PUB_TRACUU`. Không có SP nào được sao chép đến TraCuu.
