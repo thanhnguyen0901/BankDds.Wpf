@@ -136,6 +136,10 @@ public class AppBootstrapper : BootstrapperBase
             builder.RegisterType<InMemoryBranchRepository>()
                    .As<IBranchRepository>()
                    .SingleInstance();
+
+            builder.RegisterType<InMemoryCustomerLookupRepository>()
+                   .As<ICustomerLookupRepository>()
+                   .SingleInstance();
         }
         else if (dataMode.Equals("Sql", StringComparison.OrdinalIgnoreCase))
         {
@@ -171,6 +175,10 @@ public class AppBootstrapper : BootstrapperBase
             builder.RegisterType<SqlBranchRepository>()
                    .As<IBranchRepository>()
                    .SingleInstance();
+
+            builder.RegisterType<SqlCustomerLookupRepository>()
+                   .As<ICustomerLookupRepository>()
+                   .InstancePerDependency();
         }
         else
         {
@@ -204,6 +212,10 @@ public class AppBootstrapper : BootstrapperBase
 
         builder.RegisterType<UserService>()
                .As<IUserService>()
+               .SingleInstance();
+
+        builder.RegisterType<CustomerLookupService>()
+               .As<ICustomerLookupService>()
                .SingleInstance();
 
         // Banking authentication: SQL login → sp_DangNhap on Publisher

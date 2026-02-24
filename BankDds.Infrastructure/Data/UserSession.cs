@@ -14,6 +14,9 @@ public class UserSession : IUserSession
     public string? EmployeeId { get; private set; }
     public bool IsAuthenticated { get; private set; }
 
+    /// <inheritdoc />
+    public event Action? SelectedBranchChanged;
+
     public void SetSession(
         string username,
         string displayName,
@@ -31,6 +34,23 @@ public class UserSession : IUserSession
         CustomerCMND = customerCMND;
         EmployeeId = employeeId;
         IsAuthenticated = true;
+    }
+
+    /// <inheritdoc />
+    public void SetSelectedBranch(string branchCode)
+    {
+        if (string.IsNullOrWhiteSpace(branchCode))
+            throw new ArgumentException("Branch code cannot be empty.", nameof(branchCode));
+
+        if (!PermittedBranches.Contains(branchCode))
+            throw new InvalidOperationException(
+                $"Branch '{branchCode}' is not in the permitted list for this session.");
+
+        if (SelectedBranch == branchCode)
+            return; // No change — skip event.
+
+        SelectedBranch = branchCode;
+        SelectedBranchChanged?.Invoke();
     }
 
     public void ClearSession()

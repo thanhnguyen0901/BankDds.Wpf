@@ -80,6 +80,21 @@ public class ConnectionStringProvider : IConnectionStringProvider
         return InjectCredentials(template, _sqlLogin, _sqlPassword);
     }
 
+    // ───────────────────────── Lookup (read-only lookup subscriber) ─────────────────────────
+
+    /// <inheritdoc />
+    public string? GetLookupConnection()
+    {
+        var template = _configuration["ConnectionStrings:LookupDatabase"];
+        if (template is null) return null;
+
+        if (_sqlLogin is null || _sqlPassword is null)
+            throw new InvalidOperationException(
+                "SQL login credentials have not been set. Call SetSqlLoginCredentials first.");
+
+        return InjectCredentials(template, _sqlLogin, _sqlPassword);
+    }
+
     // ───────────────────────── misc ─────────────────────────
 
     public string DefaultBranch =>

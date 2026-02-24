@@ -280,14 +280,22 @@ GO
 
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   PHẦN 4 — sp_DangNhap
+   PHẦN 4 — sp_DangNhap  (Publisher version)
    Xử lý đăng nhập ngân hàng: truy vấn catalog hệ thống SQL Server để xác định
    vai trò cơ sở dữ liệu của đăng nhập SQL hiện tại.
 
    Trả về một tập kết quả:
-     MANV      nvarchar(50)  — tên đăng nhập SQL (System_User)
-     HOTEN     nvarchar(128) — tên hiển thị (tên người dùng DB)
+     MANV      nvarchar(50)  — tên đăng nhập SQL (SYSTEM_USER)
+     HOTEN     nvarchar(128) — tên hiển thị (USER_NAME())
      TENNHOM   nvarchar(128) — tên vai trò (NGANHANG / CHINHANH / KHACHHANG)
+     MACN      nChar(10)     — mã chi nhánh mặc định (NULL cho NGANHANG)
+
+   Giải thuật giải quyết DefaultBranch (MACN):
+     1. NGUOIDUNG.DefaultBranch  (hub-only, maps SQL login → branch)
+     2. NHANVIEN.MACN            (WHERE MANV = SYSTEM_USER)
+     3. KHACHHANG.MACN           (WHERE CMND = SYSTEM_USER)
+
+   Sử dụng ownership chaining: dbo SP đọc dbo table → bỏ qua DENY SELECT.
 
    Sử dụng từ C#:
      var result = await connection.QuerySingleAsync<LoginResult>("EXEC sp_DangNhap");
@@ -298,16 +306,13 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Xác định vai trò của đăng nhập SQL hiện tại qua sysusers/sysmembers.
-    -- sysmembers.memberuid  = uid của người dùng DB
-    -- sysmembers.groupuid   = uid của vai trò DB
-    -- Tìm kiếm thành viên trong NGANHANG, CHINHANH, hoặc KHACHHANG.
-    -- Nếu người dùng thuộc nhiều vai trò, NGANHANG được ưu tiên (quyền cao nhất).
-    DECLARE @MANV     nvarchar(50)  = SYSTEM_USER;   -- tên đăng nhập SQL
-    DECLARE @HOTEN    nvarchar(128) = USER_NAME();    -- tên người dùng DB
+    -- ── Step 1: Resolve role via system catalogs (QLVT pattern) ──
+    -- Priority: NGANHANG > CHINHANH > KHACHHANG.
+    DECLARE @MANV     nvarchar(50)  = SYSTEM_USER;   -- SQL login name
+    DECLARE @HOTEN    nvarchar(128) = USER_NAME();    -- DB user name
     DECLARE @TENNHOM  nvarchar(128) = NULL;
+    DECLARE @MACN     nChar(10)     = NULL;           -- default branch code
 
-    -- Ưu tiên: NGANHANG > CHINHANH > KHACHHANG
     SELECT TOP 1 @TENNHOM = r.name
     FROM   sys.database_role_members rm
     JOIN   sys.database_principals   u ON u.principal_id = rm.member_principal_id
@@ -321,20 +326,42 @@ BEGIN
             WHEN N'KHACHHANG' THEN 3
         END ASC;
 
-    -- Nếu không tìm thấy vai trò, kiểm tra người dùng có phải db_owner hoặc sysadmin (ánh xạ NGANHANG)
+    -- Fallback: db_owner / sysadmin → NGANHANG; otherwise lowest privilege.
     IF @TENNHOM IS NULL
     BEGIN
         IF IS_MEMBER('db_owner') = 1 OR IS_SRVROLEMEMBER('sysadmin') = 1
             SET @TENNHOM = N'NGANHANG';
         ELSE
-            SET @TENNHOM = N'KHACHHANG';   -- dự phòng: quyền thấp nhất
+            SET @TENNHOM = N'KHACHHANG';
     END
 
-    SELECT @MANV AS MANV, @HOTEN AS HOTEN, @TENNHOM AS TENNHOM;
+    -- ── Step 2: Resolve DefaultBranch (MACN) for CHINHANH / KHACHHANG ──
+    -- Ownership chaining: dbo SP → dbo tables, DENY SELECT on caller is bypassed.
+    IF @TENNHOM IN (N'CHINHANH', N'KHACHHANG')
+    BEGIN
+        -- 1st: NGUOIDUNG table (hub-only, maps SQL login → branch directly)
+        --      NULLIF handles empty-string DefaultBranch rows (e.g. NGANHANG users).
+        IF OBJECT_ID(N'dbo.NGUOIDUNG', N'U') IS NOT NULL
+            SELECT @MACN = NULLIF(RTRIM(DefaultBranch), N'')
+            FROM   dbo.NGUOIDUNG
+            WHERE  Username = SYSTEM_USER AND TrangThaiXoa = 0;
+
+        -- 2nd: NHANVIEN (employee login whose MANV = SQL login name)
+        IF @MACN IS NULL
+            SELECT @MACN = MACN FROM dbo.NHANVIEN
+            WHERE  MANV = SYSTEM_USER AND TrangThaiXoa = 0;
+
+        -- 3rd: KHACHHANG (customer login whose CMND = SQL login name)
+        IF @MACN IS NULL
+            SELECT TOP 1 @MACN = MACN FROM dbo.KHACHHANG
+            WHERE  CMND = SYSTEM_USER AND TrangThaiXoa = 0;
+    END
+
+    SELECT @MANV AS MANV, @HOTEN AS HOTEN, @TENNHOM AS TENNHOM, @MACN AS MACN;
 END
 GO
 
--- sp_DangNhap phải được gọi bởi bất kỳ ai có thể kết nối (trước xác thực)
+-- sp_DangNhap must be callable by any login (pre-authentication resolver)
 GRANT EXECUTE ON dbo.sp_DangNhap TO PUBLIC;
 GO
 

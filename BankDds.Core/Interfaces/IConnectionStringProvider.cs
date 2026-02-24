@@ -44,5 +44,12 @@ public interface IConnectionStringProvider
     /// <summary>Clears stored SQL login credentials (on logout).</summary>
     void ClearSqlLoginCredentials();
 
+    /// <summary>
+    /// Connection string for the read-only lookup subscriber database
+    /// (NGANHANG_TRACUU on SQLSERVER4). Contains KHACHHANG + CHINHANH replicated
+    /// from all branches. Returns null when the key is not configured.
+    /// </summary>
+    string? GetLookupConnection();
+
     string DefaultBranch { get; }
 }

@@ -1,5 +1,6 @@
 using BankDds.Core.Interfaces;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 
 namespace BankDds.Infrastructure.Security;
 
@@ -11,10 +12,14 @@ namespace BankDds.Infrastructure.Security;
 public class AuthService : IAuthService
 {
     private readonly IConnectionStringProvider _connectionStringProvider;
+    private readonly ILogger<AuthService> _logger;
 
-    public AuthService(IConnectionStringProvider connectionStringProvider)
+    public AuthService(
+        IConnectionStringProvider connectionStringProvider,
+        ILogger<AuthService> logger)
     {
         _connectionStringProvider = connectionStringProvider;
+        _logger = logger;
     }
 
     public async Task<AuthResult> LoginAsync(string userName, string password)
@@ -29,7 +34,7 @@ public class AuthService : IAuthService
             await using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync();
 
-            // sp_DangNhap returns: MANV (SYSTEM_USER), HOTEN (USER_NAME()), TENNHOM
+            // sp_DangNhap returns: MANV, HOTEN, TENNHOM, and (after schema update) MACN.
             await using var cmd = new SqlCommand("sp_DangNhap", connection)
             {
                 CommandType = System.Data.CommandType.StoredProcedure
@@ -50,6 +55,24 @@ public class AuthService : IAuthService
             var hoTen = reader["HOTEN"]?.ToString() ?? manv;
             var tenNhom = reader["TENNHOM"]?.ToString() ?? string.Empty;
 
+            // Read MACN column if present (added by updated sp_DangNhap).
+            // Older SP versions return only 3 columns — handle gracefully.
+            string defaultBranch = string.Empty;
+            try
+            {
+                int macnOrdinal = reader.GetOrdinal("MACN");
+                if (!reader.IsDBNull(macnOrdinal))
+                    defaultBranch = reader.GetString(macnOrdinal).Trim();
+            }
+            catch (IndexOutOfRangeException)
+            {
+                // MACN column not present — old SP version; will use C# fallback.
+                _logger.LogWarning(
+                    "sp_DangNhap did not return MACN column for login '{Login}'. " +
+                    "Consider re-running sql/04_publisher_security.sql to update the SP.",
+                    userName);
+            }
+
             // Map SQL role name to the UserGroup string used by the WPF layer
             string userGroup = tenNhom.ToUpperInvariant() switch
             {
@@ -68,6 +91,16 @@ public class AuthService : IAuthService
                 };
             }
 
+            // Log a warning when branch-dependent roles have no DefaultBranch from SP.
+            // LoginViewModel will apply a C#-side fallback using the login form selection.
+            if (string.IsNullOrEmpty(defaultBranch) && userGroup is "ChiNhanh" or "KhachHang")
+            {
+                _logger.LogWarning(
+                    "sp_DangNhap returned empty MACN for '{Login}' (role={Role}). " +
+                    "Branch will be inferred from the login form selection.",
+                    userName, userGroup);
+            }
+
             // Store the SQL login credentials in the provider so all subsequent
             // DB calls (repositories, services) use the same identity.
             _connectionStringProvider.SetSqlLoginCredentials(userName, password);
@@ -77,7 +110,8 @@ public class AuthService : IAuthService
                 Success = true,
                 UserGroup = userGroup,
                 EmployeeId = manv,
-                DisplayName = hoTen
+                DisplayName = hoTen,
+                DefaultBranch = defaultBranch
             };
         }
         catch (SqlException ex)

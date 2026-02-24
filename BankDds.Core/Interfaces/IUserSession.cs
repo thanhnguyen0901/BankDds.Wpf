@@ -24,4 +24,16 @@ public interface IUserSession
     void ClearSession();
     
     bool IsAuthenticated { get; }
+
+    /// <summary>
+    /// Raised when <see cref="SelectedBranch"/> is changed after login
+    /// (e.g. NGANHANG user switches branch via the UI).
+    /// </summary>
+    event Action? SelectedBranchChanged;
+
+    /// <summary>
+    /// Change the active branch. Only succeeds when <paramref name="branchCode"/>
+    /// is contained in <see cref="PermittedBranches"/>.
+    /// </summary>
+    void SetSelectedBranch(string branchCode);
 }

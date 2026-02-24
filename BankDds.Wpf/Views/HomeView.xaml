@@ -129,6 +129,26 @@
                         FontSize="14"
                         FontWeight="Bold"
                         Foreground="White" />
+
+                    <!--  Branch Selector — visible only for NGANHANG role  -->
+                    <StackPanel
+                        Margin="20,0,0,0"
+                        Orientation="Horizontal"
+                        Visibility="{Binding CanSwitchBranch, Converter={StaticResource BoolToVisConverter}}">
+                        <TextBlock
+                            Margin="0,0,8,0"
+                            VerticalAlignment="Center"
+                            FontSize="14"
+                            Foreground="White"
+                            Text="| Chi nhánh:" />
+                        <ComboBox
+                            x:Name="SelectedBranchCode"
+                            MinWidth="140"
+                            VerticalAlignment="Center"
+                            FontSize="13"
+                            ItemsSource="{Binding Branches}"
+                            SelectedItem="{Binding SelectedBranchCode, Mode=TwoWay}" />
+                    </StackPanel>
                 </StackPanel>
 
                 <!--  Logout Button  -->
@@ -236,6 +256,18 @@
                         <MultiBinding Converter="{StaticResource ActiveItemConverter}">
                             <Binding Path="ActiveItem" />
                             <Binding Source="Branches" />
+                        </MultiBinding>
+                    </Button.Tag>
+                </Button>
+                <Button
+                    x:Name="ShowCustomerLookup"
+                    Content="Tra cứu KH"
+                    Style="{StaticResource MenuButtonStyle}"
+                    Visibility="{Binding CanViewCustomerLookup, Converter={StaticResource BoolToVisConverter}}">
+                    <Button.Tag>
+                        <MultiBinding Converter="{StaticResource ActiveItemConverter}">
+                            <Binding Path="ActiveItem" />
+                            <Binding Source="CustomerLookup" />
                         </MultiBinding>
                     </Button.Tag>
                 </Button>

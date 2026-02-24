@@ -182,16 +182,25 @@ public class LoginViewModel : Screen
                 case "ChiNhanh":
                     userGroup = UserGroup.ChiNhanh;
                     // ChiNhanh is locked to their own branch, full CRUD.
-                    // DefaultBranch comes from sp_DangNhap context (subscriber DB name).
-                    permittedBranches = new List<string> { result.DefaultBranch };
-                    SelectedBranch = result.DefaultBranch;
+                    // DefaultBranch comes from sp_DangNhap (MACN column).
+                    // Fallback: use the branch the user selected in the login dropdown
+                    // when the SP could not resolve it (e.g. no NHANVIEN row yet).
+                    var chiNhanhBranch = !string.IsNullOrEmpty(result.DefaultBranch)
+                        ? result.DefaultBranch
+                        : SelectedBranch;
+                    permittedBranches = new List<string> { chiNhanhBranch };
+                    SelectedBranch = chiNhanhBranch;
                     break;
 
                 case "KhachHang":
                     userGroup = UserGroup.KhachHang;
                     // KhachHang can only view own statement/report.
-                    permittedBranches = new List<string> { result.DefaultBranch };
-                    SelectedBranch = result.DefaultBranch;
+                    // Same fallback strategy as ChiNhanh.
+                    var khachHangBranch = !string.IsNullOrEmpty(result.DefaultBranch)
+                        ? result.DefaultBranch
+                        : SelectedBranch;
+                    permittedBranches = new List<string> { khachHangBranch };
+                    SelectedBranch = khachHangBranch;
                     break;
 
                 default:

@@ -31,6 +31,7 @@ Mỗi script đều **idempotent** — an toàn khi chạy lại mà không xóa
 | 2 | `02_publisher_schema.sql` | Tạo tất cả bảng + sequence + view UNION ALL liên chi nhánh |
 | 3 | `03_publisher_sp_views.sql` | Tạo tất cả stored procedure trên Máy chủ phát hành |
 | 4 | `04_publisher_security.sql` | Tạo SQL login, vai trò, GRANT/DENY theo nhóm vai trò |
+| 4b | `04b_publisher_seed_data.sql` | Dữ liệu mẫu demo: chi nhánh, nhân viên, khách hàng, tài khoản, giao dịch, NGUOIDUNG. Idempotent. |
 | 5 | `05_replication_setup_merge.sql` | Sao chép hợp nhất: Distributor + 3 publication (PUB_NGANHANG_BT/TD/TRACUU) + article (bảng + 50 SP + view) + bộ lọc hàng/join + 3 push subscription + Tác vụ snapshot. Xem thêm `docs/distributed_banking/replication_manual_steps.md` để biết hướng dẫn dùng SSMS wizard. |
 | 6 | `06_linked_servers.sql` | Linked Server (LINK0/LINK1/LINK2) — xem Bước 1b bên dưới |
 

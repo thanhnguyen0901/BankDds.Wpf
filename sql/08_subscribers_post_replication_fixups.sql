@@ -285,6 +285,14 @@ GO
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 -- ── sp_DangNhap ──────────────────────────────────────────────────────────────
+-- Subscriber version: returns MACN derived from DB_NAME().
+--
+-- CHINHANH is replicated WITHOUT row filter (all branches on every subscriber),
+-- so SELECT TOP 1 MACN FROM CHINHANH is NON-DETERMINISTIC.
+-- Instead, DB_NAME() gives a 1-to-1 mapping:
+--   NGANHANG_BT     → BENTHANH
+--   NGANHANG_TD     → TANDINH
+--   NGANHANG_TRACUU → NULL (read-only, no branch context)
 CREATE OR ALTER PROCEDURE dbo.sp_DangNhap
 AS
 BEGIN
@@ -293,8 +301,10 @@ BEGIN
     DECLARE @MANV     nvarchar(50)  = SYSTEM_USER;
     DECLARE @HOTEN    nvarchar(128) = USER_NAME();
     DECLARE @TENNHOM  nvarchar(128) = NULL;
+    DECLARE @MACN     nChar(10)     = NULL;
 
-    -- Ưu tiên: NGANHANG > CHINHANH > KHACHHANG
+    -- ── Step 1: Resolve role via system catalogs (QLVT pattern) ──
+    -- Priority: NGANHANG > CHINHANH > KHACHHANG
     SELECT TOP 1 @TENNHOM = r.name
     FROM   sys.database_role_members rm
     JOIN   sys.database_principals   u ON u.principal_id = rm.member_principal_id
@@ -316,7 +326,19 @@ BEGIN
             SET @TENNHOM = N'KHACHHANG';
     END
 
-    SELECT @MANV AS MANV, @HOTEN AS HOTEN, @TENNHOM AS TENNHOM;
+    -- ── Step 2: Derive DefaultBranch from DB_NAME() constant ──
+    -- Each subscriber DB has a fixed 1:1 mapping to a branch code.
+    -- No table lookup needed — deterministic and cannot break.
+    IF @TENNHOM IN (N'CHINHANH', N'KHACHHANG')
+    BEGIN
+        SET @MACN = CASE DB_NAME()
+            WHEN N'NGANHANG_BT' THEN N'BENTHANH'
+            WHEN N'NGANHANG_TD' THEN N'TANDINH'
+            ELSE NULL       -- NGANHANG_TRACUU or unknown
+        END;
+    END
+
+    SELECT @MANV AS MANV, @HOTEN AS HOTEN, @TENNHOM AS TENNHOM, @MACN AS MACN;
 END
 GO
 
