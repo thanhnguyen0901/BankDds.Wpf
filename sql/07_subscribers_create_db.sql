@@ -3,9 +3,9 @@
   Vai trò   : Các máy chủ đăng ký nhận (CN1, CN2, TraCuu)
   Chạy trên : Từng máy chủ đăng ký nhận riêng lẻ qua sqlcmd:
 
-    sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER2" -E -i "sql\distributed_banking\07_subscribers_create_db.sql"
-    sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER3" -E -i "sql\distributed_banking\07_subscribers_create_db.sql"
-    sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER4" -E -i "sql\distributed_banking\07_subscribers_create_db.sql"
+    sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER2" -E -i "sql\07_subscribers_create_db.sql"
+    sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER3" -E -i "sql\07_subscribers_create_db.sql"
+    sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER4" -E -i "sql\07_subscribers_create_db.sql"
 
   Mục đích: Tạo các cơ sở dữ liệu rỗng trên máy chủ đăng ký nhận và các điều kiện
             tiên quyết tối thiểu cho Sao chép hợp nhất.

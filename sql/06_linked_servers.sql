@@ -29,20 +29,20 @@
                       Trên CN2, LINK1 → "chi nhánh kia" (CN1).
                       Cùng tên, đích đối xứng = tính di động mã.
 
-  KIẾN TRÚC MẠNG
+    KIẾN TRÚC MẠNG (MẪU)
   ────────
-    Máy chủ phát hành (thể hiện mặc định)  : DESKTOP-JBB41QU            → NGANHANG_PUB
-    CN1  (LINK1 từ Máy chủ phát hành)    : DESKTOP-JBB41QU\SQLSERVER2 → NGANHANG_BT
-    CN2  (LINK2 từ Máy chủ phát hành)    : DESKTOP-JBB41QU\SQLSERVER3 → NGANHANG_TD
-    TraCuu (LINK0 ở mọi nơi)             : DESKTOP-JBB41QU\SQLSERVER4 → NGANHANG_TRACUU
+    Máy chủ phát hành (thể hiện mặc định)  : <MAY_CHU>            → NGANHANG_PUB
+    CN1  (LINK1 từ Máy chủ phát hành)      : <MAY_CHU>\SQLSERVER2 → NGANHANG_BT
+    CN2  (LINK2 từ Máy chủ phát hành)      : <MAY_CHU>\SQLSERVER3 → NGANHANG_TD
+    TraCuu (LINK0 ở mọi nơi)               : <MAY_CHU>\SQLSERVER4 → NGANHANG_TRACUU
 
   THỰC THI
   ─────────
     Script này có 3 phần. Mỗi phần phải được chạy trên thể hiện tương ứng:
 
-      Phần A → sqlcmd -S "DESKTOP-JBB41QU"            -E -i "06_linked_servers.sql"
-      Phần B → sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER2" -E -i "06_linked_servers.sql"
-      Phần C → sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER3" -E -i "06_linked_servers.sql"
+    Phần A → sqlcmd -S "<MAY_CHU>"            -E -i "sql\06_linked_servers.sql"
+    Phần B → sqlcmd -S "<MAY_CHU>\SQLSERVER2" -E -i "sql\06_linked_servers.sql"
+    Phần C → sqlcmd -S "<MAY_CHU>\SQLSERVER3" -E -i "sql\06_linked_servers.sql"
 
     Mỗi phần tự phát hiện thể hiện đang chạy (thông qua @@SERVERNAME)
     và chỉ tạo các liên kết phù hợp cho thể hiện đó.
@@ -93,8 +93,14 @@ GO
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 -- Bảo vệ: chỉ chạy phần này trên Máy chủ phát hành (thể hiện mặc định)
-IF @@SERVERNAME = N'DESKTOP-JBB41QU'
+-- Theo mặc định lab: instance không có hậu tố "\..." là Publisher.
+IF CHARINDEX(N'\\', @@SERVERNAME) = 0
 BEGIN
+    DECLARE @HostA nvarchar(128) = CAST(SERVERPROPERTY('MachineName') AS nvarchar(128));
+    DECLARE @Cn1A sysname = N'SQLSERVER2'; -- TODO-TEAM: đổi nếu CN1 dùng tên instance khác
+    DECLARE @Cn2A sysname = N'SQLSERVER3'; -- TODO-TEAM: đổi nếu CN2 dùng tên instance khác
+    DECLARE @TcA  sysname = N'SQLSERVER4'; -- TODO-TEAM: đổi nếu TraCuu dùng tên instance khác
+
     PRINT '';
     PRINT '══════════════════════════════════════════════════════';
     PRINT ' Section A: Publisher linked servers';
@@ -112,7 +118,7 @@ BEGIN
         @server     = N'LINK1',
         @srvproduct = N'',
         @provider   = N'MSOLEDBSQL',
-        @datasrc    = N'DESKTOP-JBB41QU\SQLSERVER2';
+        @datasrc    = @HostA + N'\\' + @Cn1A;
 
     EXEC sp_addlinkedsrvlogin
         @rmtsrvname  = N'LINK1',
@@ -137,7 +143,7 @@ BEGIN
         @server     = N'LINK2',
         @srvproduct = N'',
         @provider   = N'MSOLEDBSQL',
-        @datasrc    = N'DESKTOP-JBB41QU\SQLSERVER3';
+        @datasrc    = @HostA + N'\\' + @Cn2A;
 
     EXEC sp_addlinkedsrvlogin
         @rmtsrvname  = N'LINK2',
@@ -162,7 +168,7 @@ BEGIN
         @server     = N'LINK0',
         @srvproduct = N'',
         @provider   = N'MSOLEDBSQL',
-        @datasrc    = N'DESKTOP-JBB41QU\SQLSERVER4';
+        @datasrc    = @HostA + N'\\' + @TcA;
 
     EXEC sp_addlinkedsrvlogin
         @rmtsrvname  = N'LINK0',
@@ -194,8 +200,12 @@ GO
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 -- Bảo vệ: chỉ chạy phần này trên CN1
-IF @@SERVERNAME = N'DESKTOP-JBB41QU\SQLSERVER2'
+IF RIGHT(@@SERVERNAME, LEN(N'\SQLSERVER2')) = N'\SQLSERVER2'
 BEGIN
+    DECLARE @HostB nvarchar(128) = CAST(SERVERPROPERTY('MachineName') AS nvarchar(128));
+    DECLARE @Cn2B sysname = N'SQLSERVER3'; -- TODO-TEAM: đổi nếu CN2 dùng tên instance khác
+    DECLARE @TcB  sysname = N'SQLSERVER4'; -- TODO-TEAM: đổi nếu TraCuu dùng tên instance khác
+
     PRINT '';
     PRINT '══════════════════════════════════════════════════════';
     PRINT ' Section B: CN1 (BENTHANH) linked servers';
@@ -213,7 +223,7 @@ BEGIN
         @server     = N'LINK1',
         @srvproduct = N'',
         @provider   = N'MSOLEDBSQL',
-        @datasrc    = N'DESKTOP-JBB41QU\SQLSERVER3';
+        @datasrc    = @HostB + N'\\' + @Cn2B;
 
     EXEC sp_addlinkedsrvlogin
         @rmtsrvname  = N'LINK1',
@@ -238,7 +248,7 @@ BEGIN
         @server     = N'LINK0',
         @srvproduct = N'',
         @provider   = N'MSOLEDBSQL',
-        @datasrc    = N'DESKTOP-JBB41QU\SQLSERVER4';
+        @datasrc    = @HostB + N'\\' + @TcB;
 
     EXEC sp_addlinkedsrvlogin
         @rmtsrvname  = N'LINK0',
@@ -269,8 +279,12 @@ GO
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 -- Bảo vệ: chỉ chạy phần này trên CN2
-IF @@SERVERNAME = N'DESKTOP-JBB41QU\SQLSERVER3'
+IF RIGHT(@@SERVERNAME, LEN(N'\SQLSERVER3')) = N'\SQLSERVER3'
 BEGIN
+    DECLARE @HostC nvarchar(128) = CAST(SERVERPROPERTY('MachineName') AS nvarchar(128));
+    DECLARE @Cn1C sysname = N'SQLSERVER2'; -- TODO-TEAM: đổi nếu CN1 dùng tên instance khác
+    DECLARE @TcC  sysname = N'SQLSERVER4'; -- TODO-TEAM: đổi nếu TraCuu dùng tên instance khác
+
     PRINT '';
     PRINT '══════════════════════════════════════════════════════';
     PRINT ' Section C: CN2 (TANDINH) linked servers';
@@ -288,7 +302,7 @@ BEGIN
         @server     = N'LINK1',
         @srvproduct = N'',
         @provider   = N'MSOLEDBSQL',
-        @datasrc    = N'DESKTOP-JBB41QU\SQLSERVER2';
+        @datasrc    = @HostC + N'\\' + @Cn1C;
 
     EXEC sp_addlinkedsrvlogin
         @rmtsrvname  = N'LINK1',
@@ -313,7 +327,7 @@ BEGIN
         @server     = N'LINK0',
         @srvproduct = N'',
         @provider   = N'MSOLEDBSQL',
-        @datasrc    = N'DESKTOP-JBB41QU\SQLSERVER4';
+        @datasrc    = @HostC + N'\\' + @TcC;
 
     EXEC sp_addlinkedsrvlogin
         @rmtsrvname  = N'LINK0',

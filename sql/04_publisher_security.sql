@@ -136,7 +136,7 @@ GO
    │ ── SP XÁC THỰC + CHI NHÁNH ──          │          │          │           │
    │ SP_GetUser                              │    ✓     │    ✓     │           │
    │ SP_GetAllUsers                          │    ✓     │    ✓     │           │
-   │ SP_AddUser                              │    ✓     │    ✓     │           │
+    │ USP_AddUser                             │    ✓     │    ✓     │           │
    │ SP_UpdateUser                           │    ✓     │    ✓     │           │
    │ SP_SoftDeleteUser                       │    ✓     │    ✓     │           │
    │ SP_RestoreUser                          │    ✓     │          │           │
@@ -199,7 +199,7 @@ GRANT EXECUTE ON dbo.SP_GetTransactionSummary    TO NGANHANG;
 -- Xác thực + Chi nhánh (quản trị đầy đủ bao gồm quản lý chi nhánh)
 GRANT EXECUTE ON dbo.SP_GetUser                  TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_GetAllUsers              TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_AddUser                  TO NGANHANG;
+GRANT EXECUTE ON dbo.USP_AddUser                 TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_UpdateUser               TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_SoftDeleteUser           TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_RestoreUser              TO NGANHANG;
@@ -254,7 +254,7 @@ GRANT EXECUTE ON dbo.SP_GetTransactionSummary    TO CHINHANH;
 -- Xác thực (xem + tạo người dùng, không quản trị chi nhánh)
 GRANT EXECUTE ON dbo.SP_GetUser                  TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_GetAllUsers              TO CHINHANH;
-GRANT EXECUTE ON dbo.SP_AddUser                  TO CHINHANH;
+GRANT EXECUTE ON dbo.USP_AddUser                 TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_UpdateUser               TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_SoftDeleteUser           TO CHINHANH;
 -- Chi nhánh (chỉ đọc cho CHINHANH; không Thêm/Sửa/Xóa)

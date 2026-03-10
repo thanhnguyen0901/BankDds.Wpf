@@ -1,11 +1,11 @@
 /*=============================================================================
   08_subscribers_post_replication_fixups.sql
   Vai trò: Các máy chủ đăng ký nhận (CN1, CN2, TraCuu) — chạy SAU KHI Snapshot được áp dụng
-  Chạy trên: Từng máy chủ đăng ký nhận riêng biệt qua sqlcmd:
+    Chạy trên: Từng máy chủ đăng ký nhận riêng biệt qua sqlcmd:
 
-    sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER2" -E -i "sql\distributed_banking\08_subscribers_post_replication_fixups.sql"
-    sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER3" -E -i "sql\distributed_banking\08_subscribers_post_replication_fixups.sql"
-    sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER4" -E -i "sql\distributed_banking\08_subscribers_post_replication_fixups.sql"
+        sqlcmd -S "<PUBLISHER_HOST>\SQLSERVER2" -E -d "NGANHANG_BT"     -i "sql\08_subscribers_post_replication_fixups.sql"
+        sqlcmd -S "<PUBLISHER_HOST>\SQLSERVER3" -E -d "NGANHANG_TD"     -i "sql\08_subscribers_post_replication_fixups.sql"
+        sqlcmd -S "<PUBLISHER_HOST>\SQLSERVER4" -E -d "NGANHANG_TRACUU" -i "sql\08_subscribers_post_replication_fixups.sql"
 
   Mục đích: Các hiệu chỉnh sau snapshot mà Tác vụ snapshot KHÔNG mang theo:
     1. Tạo vai trò cơ sở dữ liệu (NGANHANG, CHINHANH, KHACHHANG) — sao chép
@@ -27,9 +27,9 @@
       • Ánh xạ đăng nhập-đến-người dùng
     Do đó script này phải tạo lại lớp bảo mật trên mỗi máy chủ đăng ký nhận.
 
-  QUAN TRỌNG: Script này tự động phát hiện cơ sở dữ liệu đăng ký nhận đang chạy trên
-  (NGANHANG_BT, NGANHANG_TD, hoặc NGANHANG_TRACUU) bằng cách kiểm tra DB_NAME().
-  Chạy trên TẤT CẢ các máy chủ đăng ký nhận — script tự động thích ứng.
+    QUAN TRỌNG: Chạy script với đúng DB đích bằng tham số -d:
+        -d NGANHANG_BT | -d NGANHANG_TD | -d NGANHANG_TRACUU
+    Script sẽ kiểm tra DB_NAME() hiện tại và dừng nếu chạy nhầm DB.
 
   Bất biến lũy đẳng: CÓ — tất cả đối tượng được bảo vệ bởi IF NOT EXISTS / CREATE OR ALTER.
   THỨ TỰ THỰC THI: Bước 8/8 (cuối cùng; chạy sau khi Tác vụ snapshot hoàn tất).
@@ -37,19 +37,17 @@
 
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   PHẦN 0 — Tự động phát hiện cơ sở dữ liệu đăng ký nhận
-   Đặt ngữ cảnh cơ sở dữ liệu dựa trên cơ sở dữ liệu nào tồn tại trên instance này.
+   PHẦN 0 — Xác minh ngữ cảnh cơ sở dữ liệu
    ═══════════════════════════════════════════════════════════════════════════════ */
 
--- Thử NGANHANG_BT trước (CN1), sau đó NGANHANG_TD (CN2), rồi NGANHANG_TRACUU
-IF DB_ID('NGANHANG_BT') IS NOT NULL
-    USE NGANHANG_BT;
-ELSE IF DB_ID('NGANHANG_TD') IS NOT NULL
-    USE NGANHANG_TD;
-ELSE IF DB_ID('NGANHANG_TRACUU') IS NOT NULL
-    USE NGANHANG_TRACUU;
-ELSE
-    PRINT 'WARNING: No subscriber database found (NGANHANG_BT/TD/TRACUU). Wrong instance?';
+DECLARE @CurrentDb sysname;
+SET @CurrentDb = DB_NAME();
+
+IF @CurrentDb NOT IN (N'NGANHANG_BT', N'NGANHANG_TD', N'NGANHANG_TRACUU')
+BEGIN
+    RAISERROR(N'Run this script with -d NGANHANG_BT | NGANHANG_TD | NGANHANG_TRACUU. Current DB=%s', 16, 1, @CurrentDb);
+    RETURN;
+END
 GO
 
 PRINT '══════════════════════════════════════════════════════';
@@ -199,7 +197,7 @@ EXEC dbo.sp_SafeGrantExec 'dbo.SP_GetTransactionSummary',     'NGANHANG';
 -- Xác thực + Chi nhánh
 EXEC dbo.sp_SafeGrantExec 'dbo.SP_GetUser',                   'NGANHANG';
 EXEC dbo.sp_SafeGrantExec 'dbo.SP_GetAllUsers',               'NGANHANG';
-EXEC dbo.sp_SafeGrantExec 'dbo.SP_AddUser',                   'NGANHANG';
+EXEC dbo.sp_SafeGrantExec 'dbo.USP_AddUser',                  'NGANHANG';
 EXEC dbo.sp_SafeGrantExec 'dbo.SP_UpdateUser',                'NGANHANG';
 EXEC dbo.sp_SafeGrantExec 'dbo.SP_SoftDeleteUser',            'NGANHANG';
 EXEC dbo.sp_SafeGrantExec 'dbo.SP_RestoreUser',               'NGANHANG';
@@ -248,7 +246,7 @@ EXEC dbo.sp_SafeGrantExec 'dbo.SP_GetAccountsOpenedInPeriod', 'CHINHANH';
 EXEC dbo.sp_SafeGrantExec 'dbo.SP_GetTransactionSummary',     'CHINHANH';
 EXEC dbo.sp_SafeGrantExec 'dbo.SP_GetUser',                   'CHINHANH';
 EXEC dbo.sp_SafeGrantExec 'dbo.SP_GetAllUsers',               'CHINHANH';
-EXEC dbo.sp_SafeGrantExec 'dbo.SP_AddUser',                   'CHINHANH';
+EXEC dbo.sp_SafeGrantExec 'dbo.USP_AddUser',                  'CHINHANH';
 EXEC dbo.sp_SafeGrantExec 'dbo.SP_UpdateUser',                'CHINHANH';
 EXEC dbo.sp_SafeGrantExec 'dbo.SP_SoftDeleteUser',            'CHINHANH';
 EXEC dbo.sp_SafeGrantExec 'dbo.SP_GetBranches',               'CHINHANH';
@@ -293,7 +291,10 @@ GO
 --   NGANHANG_BT     → BENTHANH
 --   NGANHANG_TD     → TANDINH
 --   NGANHANG_TRACUU → NULL (read-only, no branch context)
-CREATE OR ALTER PROCEDURE dbo.sp_DangNhap
+IF OBJECT_ID(N'dbo.sp_DangNhap', N'P') IS NOT NULL
+    DROP PROCEDURE dbo.sp_DangNhap;
+GO
+CREATE PROCEDURE dbo.sp_DangNhap
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -342,17 +343,23 @@ BEGIN
 END
 GO
 
-GRANT EXECUTE ON dbo.sp_DangNhap TO PUBLIC;
+IF OBJECT_ID(N'dbo.sp_DangNhap', N'P') IS NOT NULL
+    GRANT EXECUTE ON dbo.sp_DangNhap TO PUBLIC;
 GO
 
 -- ── sp_TaoTaiKhoan ──────────────────────────────────────────────────────────
-CREATE OR ALTER PROCEDURE dbo.sp_TaoTaiKhoan
+IF OBJECT_ID(N'dbo.sp_TaoTaiKhoan', N'P') IS NOT NULL
+    DROP PROCEDURE dbo.sp_TaoTaiKhoan;
+GO
+CREATE PROCEDURE dbo.sp_TaoTaiKhoan
     @LOGIN    nvarchar(50),
     @PASS     nvarchar(128),
     @TENNHOM  nvarchar(128)
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    DECLARE @DefaultDb sysname = DB_NAME();
 
     IF @TENNHOM NOT IN (N'NGANHANG', N'CHINHANH', N'KHACHHANG')
     BEGIN
@@ -393,7 +400,7 @@ BEGIN
 
     -- Tạo đăng nhập
     IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = @LOGIN)
-        EXEC sp_addlogin @loginame = @LOGIN, @passwd = @PASS, @defdb = DB_NAME();
+        EXEC sp_addlogin @loginame = @LOGIN, @passwd = @PASS, @defdb = @DefaultDb;
 
     -- Ánh xạ sang người dùng DB
     IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = @LOGIN AND type IN ('S', 'U'))
@@ -410,12 +417,18 @@ BEGIN
 END
 GO
 
-GRANT EXECUTE ON dbo.sp_TaoTaiKhoan TO NGANHANG;
-GRANT EXECUTE ON dbo.sp_TaoTaiKhoan TO CHINHANH;
+IF OBJECT_ID(N'dbo.sp_TaoTaiKhoan', N'P') IS NOT NULL
+BEGIN
+    GRANT EXECUTE ON dbo.sp_TaoTaiKhoan TO NGANHANG;
+    GRANT EXECUTE ON dbo.sp_TaoTaiKhoan TO CHINHANH;
+END
 GO
 
 -- ── sp_XoaTaiKhoan ──────────────────────────────────────────────────────────
-CREATE OR ALTER PROCEDURE dbo.sp_XoaTaiKhoan
+IF OBJECT_ID(N'dbo.sp_XoaTaiKhoan', N'P') IS NOT NULL
+    DROP PROCEDURE dbo.sp_XoaTaiKhoan;
+GO
+CREATE PROCEDURE dbo.sp_XoaTaiKhoan
     @LOGIN nvarchar(50)
 AS
 BEGIN
@@ -437,11 +450,15 @@ BEGIN
 END
 GO
 
-GRANT EXECUTE ON dbo.sp_XoaTaiKhoan TO NGANHANG;
+IF OBJECT_ID(N'dbo.sp_XoaTaiKhoan', N'P') IS NOT NULL
+    GRANT EXECUTE ON dbo.sp_XoaTaiKhoan TO NGANHANG;
 GO
 
 -- ── sp_DoiMatKhau ────────────────────────────────────────────────────────────
-CREATE OR ALTER PROCEDURE dbo.sp_DoiMatKhau
+IF OBJECT_ID(N'dbo.sp_DoiMatKhau', N'P') IS NOT NULL
+    DROP PROCEDURE dbo.sp_DoiMatKhau;
+GO
+CREATE PROCEDURE dbo.sp_DoiMatKhau
     @LOGIN    nvarchar(50),
     @PASSCU   nvarchar(128),
     @PASSMOI  nvarchar(128)
@@ -467,13 +484,19 @@ BEGIN
 END
 GO
 
-GRANT EXECUTE ON dbo.sp_DoiMatKhau TO NGANHANG;
-GRANT EXECUTE ON dbo.sp_DoiMatKhau TO CHINHANH;
-GRANT EXECUTE ON dbo.sp_DoiMatKhau TO KHACHHANG;
+IF OBJECT_ID(N'dbo.sp_DoiMatKhau', N'P') IS NOT NULL
+BEGIN
+    GRANT EXECUTE ON dbo.sp_DoiMatKhau TO NGANHANG;
+    GRANT EXECUTE ON dbo.sp_DoiMatKhau TO CHINHANH;
+    GRANT EXECUTE ON dbo.sp_DoiMatKhau TO KHACHHANG;
+END
 GO
 
 -- ── sp_DanhSachNhanVien ──────────────────────────────────────────────────────
-CREATE OR ALTER PROCEDURE dbo.sp_DanhSachNhanVien
+IF OBJECT_ID(N'dbo.sp_DanhSachNhanVien', N'P') IS NOT NULL
+    DROP PROCEDURE dbo.sp_DanhSachNhanVien;
+GO
+CREATE PROCEDURE dbo.sp_DanhSachNhanVien
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -490,8 +513,11 @@ BEGIN
 END
 GO
 
-GRANT EXECUTE ON dbo.sp_DanhSachNhanVien TO NGANHANG;
-GRANT EXECUTE ON dbo.sp_DanhSachNhanVien TO CHINHANH;
+IF OBJECT_ID(N'dbo.sp_DanhSachNhanVien', N'P') IS NOT NULL
+BEGIN
+    GRANT EXECUTE ON dbo.sp_DanhSachNhanVien TO NGANHANG;
+    GRANT EXECUTE ON dbo.sp_DanhSachNhanVien TO CHINHANH;
+END
 GO
 
 PRINT '>>> Section 4: Security SPs created on subscriber.';
@@ -507,9 +533,12 @@ GO
    GHI CHÚ: Mật khẩu phải khớp với dữ liệu mẫu Máy chủ phát hành (04_publisher_security.sql).
    ═══════════════════════════════════════════════════════════════════════════════ */
 
--- ADMIN_NH → NGANHANG
 IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'ADMIN_NH')
-    EXEC sp_addlogin @loginame = N'ADMIN_NH', @passwd = N'Admin@123', @defdb = DB_NAME();
+BEGIN
+    DECLARE @SeedDefaultDb_Admin sysname;
+    SET @SeedDefaultDb_Admin = DB_NAME();
+    EXEC sp_addlogin @loginame = N'ADMIN_NH', @passwd = N'Admin@123', @defdb = @SeedDefaultDb_Admin;
+END
 GO
 IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'ADMIN_NH' AND type IN ('S', 'U'))
     EXEC sp_grantdbaccess @loginame = N'ADMIN_NH', @name_in_db = N'ADMIN_NH';
@@ -525,7 +554,11 @@ GO
 
 -- NV_BT → CHINHANH
 IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'NV_BT')
-    EXEC sp_addlogin @loginame = N'NV_BT', @passwd = N'NhanVien@123', @defdb = DB_NAME();
+BEGIN
+    DECLARE @SeedDefaultDb_NV sysname;
+    SET @SeedDefaultDb_NV = DB_NAME();
+    EXEC sp_addlogin @loginame = N'NV_BT', @passwd = N'NhanVien@123', @defdb = @SeedDefaultDb_NV;
+END
 GO
 IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'NV_BT' AND type IN ('S', 'U'))
     EXEC sp_grantdbaccess @loginame = N'NV_BT', @name_in_db = N'NV_BT';
@@ -541,7 +574,11 @@ GO
 
 -- KH_DEMO → KHACHHANG
 IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'KH_DEMO')
-    EXEC sp_addlogin @loginame = N'KH_DEMO', @passwd = N'KhachHang@123', @defdb = DB_NAME();
+BEGIN
+    DECLARE @SeedDefaultDb_KH sysname;
+    SET @SeedDefaultDb_KH = DB_NAME();
+    EXEC sp_addlogin @loginame = N'KH_DEMO', @passwd = N'KhachHang@123', @defdb = @SeedDefaultDb_KH;
+END
 GO
 IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'KH_DEMO' AND type IN ('S', 'U'))
     EXEC sp_grantdbaccess @loginame = N'KH_DEMO', @name_in_db = N'KH_DEMO';
@@ -567,12 +604,17 @@ GO
    Cũng xóa view_DanhSachPhanManh — chỉ dành cho Máy chủ phát hành.
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-IF OBJECT_ID('dbo.KHACHHANG_ALL',         'V') IS NOT NULL DROP VIEW dbo.KHACHHANG_ALL;
-IF OBJECT_ID('dbo.NHANVIEN_ALL',          'V') IS NOT NULL DROP VIEW dbo.NHANVIEN_ALL;
-IF OBJECT_ID('dbo.TAIKHOAN_ALL',          'V') IS NOT NULL DROP VIEW dbo.TAIKHOAN_ALL;
-IF OBJECT_ID('dbo.GD_GOIRUT_ALL',         'V') IS NOT NULL DROP VIEW dbo.GD_GOIRUT_ALL;
-IF OBJECT_ID('dbo.GD_CHUYENTIEN_ALL',     'V') IS NOT NULL DROP VIEW dbo.GD_CHUYENTIEN_ALL;
-IF OBJECT_ID('dbo.view_DanhSachPhanManh',  'V') IS NOT NULL DROP VIEW dbo.view_DanhSachPhanManh;
+BEGIN TRY
+    IF OBJECT_ID('dbo.KHACHHANG_ALL',         'V') IS NOT NULL DROP VIEW dbo.KHACHHANG_ALL;
+    IF OBJECT_ID('dbo.NHANVIEN_ALL',          'V') IS NOT NULL DROP VIEW dbo.NHANVIEN_ALL;
+    IF OBJECT_ID('dbo.TAIKHOAN_ALL',          'V') IS NOT NULL DROP VIEW dbo.TAIKHOAN_ALL;
+    IF OBJECT_ID('dbo.GD_GOIRUT_ALL',         'V') IS NOT NULL DROP VIEW dbo.GD_GOIRUT_ALL;
+    IF OBJECT_ID('dbo.GD_CHUYENTIEN_ALL',     'V') IS NOT NULL DROP VIEW dbo.GD_CHUYENTIEN_ALL;
+    IF OBJECT_ID('dbo.view_DanhSachPhanManh', 'V') IS NOT NULL DROP VIEW dbo.view_DanhSachPhanManh;
+END TRY
+BEGIN CATCH
+    PRINT '>>> Section 6 warning: some replicated views cannot be dropped on subscriber. Error=' + ERROR_MESSAGE();
+END CATCH
 GO
 
 PRINT '>>> Section 6: Leftover Publisher-only views dropped.';

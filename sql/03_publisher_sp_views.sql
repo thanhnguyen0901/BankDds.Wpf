@@ -960,8 +960,8 @@ BEGIN
     IF @remoteDB IS NULL
     BEGIN
         DECLARE @curDB nvarchar(128) = DB_NAME();
-        RAISERROR(N'RC-7: Cross-branch transfer not supported from database [%s]. '
-                + N'Expected NGANHANG_BT or NGANHANG_TD.', 16, 1, @curDB);
+        RAISERROR(N'RC-7: Cross-branch transfer not supported from database [%s]. Expected NGANHANG_BT or NGANHANG_TD.',
+              16, 1, @curDB);
         RETURN -7;
     END
 
@@ -1039,7 +1039,10 @@ BEGIN
 END
 GO
 
-PRINT '>>> Section D: 8 Transaction SPs created.';
+IF OBJECT_ID(N'dbo.SP_CrossBranchTransfer', N'P') IS NOT NULL
+    PRINT '>>> Section D: 8 Transaction SPs created.';
+ELSE
+    PRINT '>>> WARNING: Section D may be incomplete (SP_CrossBranchTransfer was not created).';
 GO
 
 
@@ -1321,10 +1324,10 @@ END
 GO
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- SP_AddUser
+-- USP_AddUser
 -- Gọi bởi: SqlUserRepository.AddUserAsync
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR ALTER PROCEDURE dbo.SP_AddUser
+CREATE OR ALTER PROCEDURE dbo.USP_AddUser
     @Username      nvarchar(50),
     @PasswordHash  nvarchar(255),
     @UserGroup     int,

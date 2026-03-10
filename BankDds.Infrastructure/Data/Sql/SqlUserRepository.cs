@@ -49,7 +49,7 @@ public class SqlUserRepository : IUserRepository
         {
             using var connection = new SqlConnection(GetConnectionString());
             await connection.OpenAsync();
-            using var command = new SqlCommand("SP_AddUser", connection) { CommandType = CommandType.StoredProcedure };
+            using var command = new SqlCommand("USP_AddUser", connection) { CommandType = CommandType.StoredProcedure };
             command.Parameters.AddWithValue("@Username",      user.Username);
             command.Parameters.AddWithValue("@PasswordHash",  user.PasswordHash);
             command.Parameters.AddWithValue("@UserGroup",     (int)user.UserGroup);

@@ -12,9 +12,13 @@ Mỗi script đều **idempotent** — an toàn khi chạy lại mà không xóa
 
 ## Tham Khảo Nhanh Kiến Trúc Mạng
 
+> Lưu ý cho team: các tên dưới đây là ví dụ theo máy hiện tại.
+> Khi chạy trên máy khác, thay `DESKTOP-JBB41QU` bằng máy cục bộ của bạn
+> (hoặc giá trị `@@SERVERNAME` tương ứng).
+
 | Vai trò | Máy chủ | Cơ sở dữ liệu |
 |---|---|---|
-| **Máy chủ phát hành / Điều phối (server gốc)** | `DESKTOP-JBB41QU` (mặc định) | `NGANHANG` |
+| **Máy chủ phát hành / Điều phối (server gốc)** | `DESKTOP-JBB41QU` (mặc định) | `NGANHANG_PUB` |
 | **Máy chủ đăng ký nhận CN1 — Bến Thành** | `DESKTOP-JBB41QU\SQLSERVER2` | `NGANHANG_BT` |
 | **Máy chủ đăng ký nhận CN2 — Tân Định** | `DESKTOP-JBB41QU\SQLSERVER3` | `NGANHANG_TD` |
 | **Máy chủ đăng ký nhận TraCuu (chỉ đọc)** | `DESKTOP-JBB41QU\SQLSERVER4` | `NGANHANG_TRACUU` |
@@ -23,16 +27,54 @@ Mỗi script đều **idempotent** — an toàn khi chạy lại mà không xóa
 
 ## Thứ Tự Thực Thi
 
+### Luồng khuyến nghị đã kiểm chứng
+
+Thứ tự an toàn để người mới chạy một lần là:
+
+`1 -> 2 -> 3 -> 4 -> 4b -> 7 -> 5 -> 8 -> 6 (optional)`
+
+Lý do:
+- Bước `7` cần chạy trước `5` để Subscriber DB đã tồn tại khi tạo push subscription/snapshot.
+- Bước `8` chỉ chạy sau khi snapshot/merge đã đẩy schema xuống subscriber.
+- Bước `6` (linked servers) độc lập với replication, có thể chạy sau cùng.
+
+### Tiên quyết bắt buộc cho bước 5
+
+Trên máy Publisher, cần có share snapshot `ReplData` (chạy PowerShell bằng quyền Administrator):
+
+```powershell
+New-Item -ItemType Directory -Path C:\ReplData -Force
+New-SmbShare -Name ReplData -Path C:\ReplData -FullAccess "Everyone"
+icacls C:\ReplData /grant "Everyone:(OI)(CI)F" /T
+```
+
+### Cấu hình team (một lần trước khi chạy)
+
+Mỗi thành viên cần xác nhận 4 giá trị sau trên máy của mình:
+
+- `Publisher host`: tên máy chạy instance mặc định (ví dụ: `MYPC`).
+- `CN1 instance`: mặc định `SQLSERVER2`.
+- `CN2 instance`: mặc định `SQLSERVER3`.
+- `TraCuu instance`: mặc định `SQLSERVER4`.
+
+Nếu team dùng tên instance khác chuẩn `SQLSERVER2/3/4`, cập nhật một chỗ trong:
+- `sql/05_replication_setup_merge.sql` (Part D, biến `@SubscriberInst_*`).
+- `sql/06_linked_servers.sql` (Part A/B/C, biến `@Cn1*`, `@Cn2*`, `@Tc*`).
+
+Nếu mật khẩu `sa` khác `Password!123`, cập nhật một chỗ trong:
+- `sql/05_replication_setup_merge.sql` (Part D, biến `@SubPassword*`).
+- `sql/06_linked_servers.sql` (tham số `@rmtpassword` trong `sp_addlinkedsrvlogin`).
+
 ### Bước 1 — Chạy trên Máy chủ phát hành (`DESKTOP-JBB41QU`)
 
 | Thứ tự | Script | Mô tả |
 |---|---|---|
-| 1 | `01_publisher_create_db.sql` | Tạo CSDL `NGANHANG` nếu chưa tồn tại |
+| 1 | `01_publisher_create_db.sql` | Tạo CSDL `NGANHANG_PUB` nếu chưa tồn tại |
 | 2 | `02_publisher_schema.sql` | Tạo tất cả bảng + sequence + view UNION ALL liên chi nhánh |
 | 3 | `03_publisher_sp_views.sql` | Tạo tất cả stored procedure trên Máy chủ phát hành |
 | 4 | `04_publisher_security.sql` | Tạo SQL login, vai trò, GRANT/DENY theo nhóm vai trò |
 | 4b | `04b_publisher_seed_data.sql` | Dữ liệu mẫu demo: chi nhánh, nhân viên, khách hàng, tài khoản, giao dịch, NGUOIDUNG. Idempotent. |
-| 5 | `05_replication_setup_merge.sql` | Sao chép hợp nhất: Distributor + 3 publication (PUB_NGANHANG_BT/TD/TRACUU) + article (bảng + 50 SP + view) + bộ lọc hàng/join + 3 push subscription + Tác vụ snapshot. Xem thêm `docs/distributed_banking/replication_manual_steps.md` để biết hướng dẫn dùng SSMS wizard. |
+| 5 | `05_replication_setup_merge.sql` | Sao chép hợp nhất: Distributor + 3 publication (PUB_NGANHANG_BT/TD/TRACUU) + article (bảng + 50 SP + view) + bộ lọc hàng/join + 3 push subscription + Tác vụ snapshot. Xem thêm `docs/sql/SETUP_MS_SQL_DISTRIBUTED_GUIDE.md` để biết hướng dẫn dùng SSMS wizard. |
 | 6 | `06_linked_servers.sql` | Linked Server (LINK0/LINK1/LINK2) — xem Bước 1b bên dưới |
 
 ### Bước 1b — Linked Server (`06_linked_servers.sql`)
@@ -43,13 +85,13 @@ Script này được **chia theo máy chủ** — tự động phát hiện `@@S
 
 ```powershell
 # Publisher — creates LINK1→CN1, LINK2→CN2, LINK0→TraCuu
-sqlcmd -S "DESKTOP-JBB41QU" -E -i "sql\distributed_banking\06_linked_servers.sql"
+sqlcmd -S "DESKTOP-JBB41QU" -E -i "sql\06_linked_servers.sql"
 
 # CN1 — creates LINK1→CN2 (other branch), LINK0→TraCuu
-sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER2" -E -i "sql\distributed_banking\06_linked_servers.sql"
+sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER2" -E -i "sql\06_linked_servers.sql"
 
 # CN2 — creates LINK1→CN1 (other branch), LINK0→TraCuu
-sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER3" -E -i "sql\distributed_banking\06_linked_servers.sql"
+sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER3" -E -i "sql\06_linked_servers.sql"
 ```
 
 **Quy ước đặt tên — tên giống nhau trên CN1 và CN2:**
@@ -79,9 +121,9 @@ Tác vụ snapshot (khởi chạy ở Bước 1, script 05) sẽ đẩy schema +
 **Chạy script 07 trên từng máy chủ đăng ký nhận riêng biệt:**
 
 ```powershell
-sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER2" -E -i "sql\distributed_banking\07_subscribers_create_db.sql"
-sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER3" -E -i "sql\distributed_banking\07_subscribers_create_db.sql"
-sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER4" -E -i "sql\distributed_banking\07_subscribers_create_db.sql"
+sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER2" -E -i "sql\07_subscribers_create_db.sql"
+sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER3" -E -i "sql\07_subscribers_create_db.sql"
+sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER4" -E -i "sql\07_subscribers_create_db.sql"
 ```
 
 Script tự động phát hiện `@@SERVERNAME` và chỉ tạo CSDL phù hợp:
@@ -119,9 +161,9 @@ SELECT name FROM sys.tables ORDER BY name;
 **Chạy script 08 trên từng máy chủ đăng ký nhận riêng biệt:**
 
 ```powershell
-sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER2" -E -i "sql\distributed_banking\08_subscribers_post_replication_fixups.sql"
-sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER3" -E -i "sql\distributed_banking\08_subscribers_post_replication_fixups.sql"
-sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER4" -E -i "sql\distributed_banking\08_subscribers_post_replication_fixups.sql"
+sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER2" -E -d "NGANHANG_BT" -i "sql\08_subscribers_post_replication_fixups.sql"
+sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER3" -E -d "NGANHANG_TD" -i "sql\08_subscribers_post_replication_fixups.sql"
+sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER4" -E -d "NGANHANG_TRACUU" -i "sql\08_subscribers_post_replication_fixups.sql"
 ```
 
 Script tự động phát hiện CSDL máy chủ đăng ký nhận trên máy chủ hiện tại và điều chỉnh tự động.

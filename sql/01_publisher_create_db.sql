@@ -44,19 +44,41 @@ ELSE
 GO
 
 -- ═══════════════════════════════════════════════════════════════════════════════
--- PHẦN 3. BẬT PHÁT HÀNH HỢP NHẤT
+-- PHẦN 3. BẬT PHÁT HÀNH HỢP NHẤT (NẾU DISTRIBUTOR ĐÃ SẴN SÀNG)
 --    Đánh dấu NGANHANG_PUB để sp_addmergepublication có thể được gọi sau
 --    (trong 05_replication_setup_merge.sql).
+--
+--    Lưu ý: Nếu Distributor chưa được cài (thường đến Phần A của script 05),
+--    bước này sẽ được bỏ qua thay vì ném lỗi Msg 20028.
 -- ═══════════════════════════════════════════════════════════════════════════════
-USE NGANHANG_PUB;
+USE master;
 GO
 
--- sp_replicationdboption là bất biến lũy đẳng; gọi khi đã bật sẽ không có tác dụng gì.
-EXEC sp_replicationdboption
-    @dbname  = N'NGANHANG_PUB',
-    @optname = N'merge publish',
-    @value   = N'true';
-PRINT '>>> Merge publish option enabled on NGANHANG_PUB.';
+IF EXISTS (
+    SELECT 1
+    FROM sys.servers
+    WHERE is_distributor = 1
+)
+AND DB_ID(N'distribution') IS NOT NULL
+BEGIN
+    BEGIN TRY
+        EXEC sp_replicationdboption
+            @dbname  = N'NGANHANG_PUB',
+            @optname = N'merge publish',
+            @value   = N'true';
+
+        PRINT '>>> Merge publish option enabled on NGANHANG_PUB.';
+    END TRY
+    BEGIN CATCH
+        PRINT '>>> WARNING: Could not enable merge publish in step 1. Will retry in step 5.';
+        PRINT '>>> SQL Error: ' + ERROR_MESSAGE();
+    END CATCH
+END
+ELSE
+BEGIN
+    PRINT '>>> Distributor is not configured yet — skip enabling merge publish in step 1.';
+    PRINT '>>> Run 05_replication_setup_merge.sql (Part A/B) to install Distributor and enable publication.';
+END
 GO
 
 -- ═══════════════════════════════════════════════════════════════════════════════
