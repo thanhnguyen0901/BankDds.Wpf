@@ -419,13 +419,29 @@ EXEC sp_DangNhap;
 
 ### Giai đoạn 3 — Xác minh tổng thể
 
-#### Script tự động (chạy tất cả giai đoạn 1 từ Publisher)
+Chạy tuần tự các script bằng `sqlcmd` theo đúng thứ tự đã chuẩn hóa:
 
 ```powershell
-sqlcmd -S "DESKTOP-JBB41QU" -E -i "sql\99_run_all.sql"
-```
+sqlcmd -S "DESKTOP-JBB41QU" -E -i "sql\01_publisher_create_db.sql"
+sqlcmd -S "DESKTOP-JBB41QU" -E -i "sql\02_publisher_schema.sql"
+sqlcmd -S "DESKTOP-JBB41QU" -E -i "sql\03_publisher_sp_views.sql"
+sqlcmd -S "DESKTOP-JBB41QU" -E -i "sql\04_publisher_security.sql"
+sqlcmd -S "DESKTOP-JBB41QU" -E -i "sql\04b_publisher_seed_data.sql"
 
-> Script `99_run_all.sql` chỉ chạy được giai đoạn 1 (Publisher). Giai đoạn 2 (subscriber) phải chạy thủ công trên từng instance.
+sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER2" -E -i "sql\07_subscribers_create_db.sql"
+sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER3" -E -i "sql\07_subscribers_create_db.sql"
+sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER4" -E -i "sql\07_subscribers_create_db.sql"
+
+sqlcmd -S "DESKTOP-JBB41QU" -E -i "sql\05_replication_setup_merge.sql"
+
+sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER2" -E -d "NGANHANG_BT" -i "sql\08_subscribers_post_replication_fixups.sql"
+sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER3" -E -d "NGANHANG_TD" -i "sql\08_subscribers_post_replication_fixups.sql"
+sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER4" -E -d "NGANHANG_TRACUU" -i "sql\08_subscribers_post_replication_fixups.sql"
+
+sqlcmd -S "DESKTOP-JBB41QU" -E -i "sql\06_linked_servers.sql"
+sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER2" -E -i "sql\06_linked_servers.sql"
+sqlcmd -S "DESKTOP-JBB41QU\SQLSERVER3" -E -i "sql\06_linked_servers.sql"
+```
 
 ---
 
@@ -693,7 +709,6 @@ Mở ứng dụng → đăng nhập với:
 | Tài liệu | Đường dẫn |
 |---|---|
 | Thứ tự thực thi SQL | `sql/00_readme_execution_order.md` |
-| Script tổng hợp | `sql/99_run_all.sql` |
 | Test sp_DangNhap | `docs/tests/sp_dangnhap_test.sql` |
 | Test seed data | `docs/tests/seed_data_verification.sql` |
 | Test login branch resolution | `docs/tests/login_branch_resolution.md` |
