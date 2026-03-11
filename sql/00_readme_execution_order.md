@@ -17,15 +17,19 @@ Chỉ dùng script cho phần schema/SP runtime dữ liệu nghiệp vụ:
 ```powershell
 sqlcmd -S "<PUBLISHER_HOST>" -E -i "sql\01_publisher_create_db.sql"
 sqlcmd -S "<PUBLISHER_HOST>" -E -i "sql\02_publisher_schema.sql"
-sqlcmd -S "<PUBLISHER_HOST>" -E -i "sql\03_publisher_sp_views.sql"
-sqlcmd -S "<PUBLISHER_HOST>" -E -i "sql\04_publisher_security.sql"
+sqlcmd -S "<PUBLISHER_HOST>" -E -i "sql\runtime\01_runtime_business_report_branch_sp.sql"
+sqlcmd -S "<PUBLISHER_HOST>" -E -i "sql\runtime\02_runtime_auth_account_sp.sql"
+sqlcmd -S "<PUBLISHER_HOST>" -E -i "sql\runtime\03_transitional_user_crud_sp.sql"
 sqlcmd -S "<PUBLISHER_HOST>" -E -i "sql\04b_publisher_seed_data.sql"
+sqlcmd -S "<PUBLISHER_HOST>" -E -i "sql\runtime\90_cleanup_unused_nonruntime_sp.sql"
 sqlcmd -S "<PUBLISHER_HOST>\SQLSERVER2" -E -i "sql\07_subscribers_create_db.sql"
 sqlcmd -S "<PUBLISHER_HOST>\SQLSERVER3" -E -i "sql\07_subscribers_create_db.sql"
 sqlcmd -S "<PUBLISHER_HOST>\SQLSERVER4" -E -i "sql\07_subscribers_create_db.sql"
 ```
 
-Lưu ý: phần role/login/user nền sẽ chuyển dần sang thao tác UI theo kế hoạch migration.
+Lưu ý:
+- `03_transitional_user_crud_sp.sql` chỉ là tạm thời trước khi hoàn tất Phase D.
+- Role/login/user nền thao tác bằng SSMS UI theo kế hoạch migration.
 
 ---
 

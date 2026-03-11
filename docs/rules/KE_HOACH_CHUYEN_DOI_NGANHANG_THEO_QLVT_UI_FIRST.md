@@ -16,6 +16,10 @@ Trạng thái triển khai:
   - Runbook UI-first: `docs/sql/SETUP_SSMS_UI_FIRST_RUNBOOK.md`
   - Checklist thực thi: `docs/sql/CHECKLIST_THUC_THI_SSMS_UI_FIRST_GIAI_DOAN_B.md`
   - `sql/00_readme_execution_order.md` đã chuyển sang UI-first, script infra đánh dấu legacy
+- `Giai đoạn C`: **DONE (repo scope)** (2026-03-11)
+  - Runtime SP package tách riêng: `sql/runtime/`
+  - Audit tham số SP vs code: `docs/rules/GIAI_DOAN_C_RASOAT_THAMSO_SP_VS_CODE.md`
+  - Transitional SP cũ được tách riêng để chờ remove ở Phase D
 
 ---
 
@@ -79,18 +83,25 @@ Trạng thái:
 - Chờ thực thi thủ công trên SSMS môi trường thật để đóng B2/B3/B4.
 
 ## Giai đoạn C - Chuẩn hóa SP runtime
-- [ ] C1. Tách file SP runtime khỏi file setup hạ tầng.
-- [ ] C2. Chuẩn hóa SP auth/account theo hướng QLVT:
-  - [ ] `sp_DangNhap`
-  - [ ] `sp_TaoTaiKhoan`
-  - [ ] `sp_XoaTaiKhoan`
-  - [ ] `sp_DoiMatKhau`
-  - [ ] `sp_DanhSachNhanVien` (nếu UI cấp account theo nhân viên)
-- [ ] C3. Giữ nhóm SP nghiệp vụ ngân hàng (khách hàng/tài khoản/giao dịch/báo cáo/chuyển liên CN).
-- [ ] C4. Rà soát tham số SP để khớp code (tránh lệch tên tham số giữa repo và SQL).
+- [x] C1. Tách file SP runtime khỏi file setup hạ tầng.
+- [x] C2. Chuẩn hóa SP auth/account theo hướng QLVT:
+  - [x] `sp_DangNhap`
+  - [x] `sp_TaoTaiKhoan`
+  - [x] `sp_XoaTaiKhoan`
+  - [x] `sp_DoiMatKhau`
+  - [x] `sp_DanhSachNhanVien` (nếu UI cấp account theo nhân viên)
+- [x] C3. Giữ nhóm SP nghiệp vụ ngân hàng (khách hàng/tài khoản/giao dịch/báo cáo/chuyển liên CN).
+- [x] C4. Rà soát tham số SP để khớp code (tránh lệch tên tham số giữa repo và SQL).
 
 Kết quả cần có:
 - Bộ script SQL runtime-only rõ ràng, không chứa lệnh tạo replication/linked server.
+
+Artifact:
+- `sql/runtime/00_readme_runtime_execution_order.md`
+- `sql/runtime/01_runtime_business_report_branch_sp.sql`
+- `sql/runtime/02_runtime_auth_account_sp.sql`
+- `sql/runtime/03_transitional_user_crud_sp.sql`
+- `sql/runtime/90_cleanup_unused_nonruntime_sp.sql`
 
 ## Giai đoạn D - Refactor ứng dụng theo runtime SP mới
 - [ ] D1. Refactor `UserRepository`:
@@ -140,8 +151,12 @@ Các SP dưới đây có trong SQL nhưng app không gọi trực tiếp:
 - `sp_SafeGrantExec` (helper setup grant hậu replication)
 
 Hành động:
-- [ ] Xóa khỏi runtime package.
+- [x] Xóa khỏi runtime package.
 - [ ] Nếu cần lưu lịch sử, chuyển vào `sql/archive`.
+
+Ghi chú:
+- Đã tách runtime package mới ở `sql/runtime/`.
+- Đã thêm script cleanup: `sql/runtime/90_cleanup_unused_nonruntime_sp.sql`.
 
 ## 4.2 SP đang có nhưng sẽ chuyển thành tuyến chính (hiện chưa được app gọi)
 - `sp_TaoTaiKhoan`
