@@ -10,10 +10,9 @@ public class User
     public string? EmployeeId { get; set; }
 
     /// <summary>
-    /// Soft-delete flag. 0 = Active, 1 = Deleted.
-    /// Deleted users cannot log in and are hidden from active lists but retained in the database.
-    /// SQL: corresponds to TRANGTHAIXED tinyint column with CHECK (TRANGTHAIXED IN (0,1)).
-    /// SP contract: SP_SoftDeleteUser @Username → SET TRANGTHAIXED=1; SP_RestoreUser @Username → SET TRANGTHAIXED=0.
+    /// Legacy soft-delete flag from NGUOIDUNG transitional model.
+    /// In SQL-login mode, account deletion is hard delete (drop login/user),
+    /// so this flag is typically 0 for listed accounts.
     /// </summary>
     public int TrangThaiXoa { get; set; } = 0;
 

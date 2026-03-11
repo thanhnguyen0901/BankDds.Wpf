@@ -123,8 +123,7 @@ public class AdminViewModel : BaseViewModel
         }
     }
 
-    public bool IsPasswordValid => string.IsNullOrEmpty(NewPassword) || 
-                                   PasswordValidationMessage.StartsWith("?");
+    public bool IsPasswordValid => PasswordValidationMessage.StartsWith("?");
 
     public ObservableCollection<UserGroup> AvailableUserGroups { get; } = new();
     /// <summary>
@@ -135,22 +134,22 @@ public class AdminViewModel : BaseViewModel
 
     // CanExecute properties - Standard CRUD pattern
     public bool CanAdd => !IsEditing;
-    public bool CanEdit => SelectedUser != null && !IsEditing;
-    /// <summary>Only allow deleting active (non-deleted) users.</summary>
-    public bool CanDelete  => SelectedUser != null && !IsEditing && SelectedUser.TrangThaiXoa == 0;
-    /// <summary>Only allow restoring soft-deleted users.</summary>
-    public bool CanRestore => SelectedUser != null && !IsEditing && SelectedUser.TrangThaiXoa == 1;
-    public bool CanSave => IsEditing && 
+    // In SQL-login mode, password reset and login deletion are NGANHANG-only actions.
+    public bool CanEdit => SelectedUser != null && !IsEditing && _userSession.UserGroup == UserGroup.NganHang;
+    public bool CanDelete  => SelectedUser != null && !IsEditing && _userSession.UserGroup == UserGroup.NganHang;
+    public bool CanRestore => false; // Soft-restore is not supported after moving to SQL login lifecycle.
+    public bool CanSave => IsEditing &&
                            !string.IsNullOrWhiteSpace(EditingUser.Username) &&
-                           (SelectedUser != null || !string.IsNullOrWhiteSpace(NewPassword)) && // Password required for new users
-                           (string.IsNullOrWhiteSpace(NewPassword) || (NewPassword == ConfirmPassword && IsPasswordValid));
+                           !string.IsNullOrWhiteSpace(NewPassword) &&
+                           NewPassword == ConfirmPassword &&
+                           IsPasswordValid;
     public bool CanCancel => IsEditing;
 
     private void ValidatePassword()
     {
         if (string.IsNullOrEmpty(NewPassword))
         {
-            PasswordValidationMessage = SelectedUser != null ? "Leave blank to keep current password" : string.Empty;
+            PasswordValidationMessage = "Password is required";
             return;
         }
         
@@ -274,6 +273,12 @@ public class AdminViewModel : BaseViewModel
     {
         if (SelectedUser == null) return;
 
+        if (_userSession.UserGroup != UserGroup.NganHang)
+        {
+            ErrorMessage = "Only Bank administrators can reset passwords in this module.";
+            return;
+        }
+
         EditingUser = new User
         {
             Username      = SelectedUser.Username,
@@ -289,7 +294,7 @@ public class AdminViewModel : BaseViewModel
         SuccessMessage = string.Empty;
         NewPassword = string.Empty;
         ConfirmPassword = string.Empty;
-        PasswordValidationMessage = "Leave blank to keep current password";
+        PasswordValidationMessage = "Enter new password for reset.";
     }
 
     public async Task Save()
@@ -309,7 +314,8 @@ public class AdminViewModel : BaseViewModel
             return;
         }
 
-        if (EditingUser.UserGroup == UserGroup.KhachHang && 
+        if (SelectedUser == null &&
+            EditingUser.UserGroup == UserGroup.KhachHang && 
             string.IsNullOrWhiteSpace(EditingUser.CustomerCMND))
         {
             ErrorMessage = "CustomerCMND is required for customer users.";
@@ -318,19 +324,11 @@ public class AdminViewModel : BaseViewModel
 
         await ExecuteWithLoadingAsync(async () =>
         {
-            // Hash password if provided
-            if (!string.IsNullOrWhiteSpace(NewPassword))
-            {
-                EditingUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(NewPassword);
-            }
+            // In SQL-login mode PasswordHash carries plain password input for SP calls.
+            EditingUser.PasswordHash = NewPassword;
 
-            // Validate user object (skip password hash validation if updating existing user without password change)
+            // Validate input model.
             var validationContext = new FluentValidation.ValidationContext<User>(EditingUser);
-            if (SelectedUser != null && string.IsNullOrWhiteSpace(NewPassword))
-            {
-                // When updating and not changing password, don't validate PasswordHash
-                validationContext.RootContextData["SkipPasswordValidation"] = true;
-            }
 
             var validationResult = await _validator.ValidateAsync(validationContext);
             if (!validationResult.IsValid)
@@ -348,15 +346,20 @@ public class AdminViewModel : BaseViewModel
                 result = await _userService.AddUserAsync(EditingUser);
                 if (result)
                 {
-                    SuccessMessage = $"User '{EditingUser.Username}' created successfully.";
+                    SuccessMessage = $"Login '{EditingUser.Username}' created successfully.";
                 }
             }
             else
             {
+                if (_userSession.UserGroup != UserGroup.NganHang)
+                {
+                    ErrorMessage = "Only Bank administrators can reset passwords.";
+                    return;
+                }
                 result = await _userService.UpdateUserAsync(EditingUser);
                 if (result)
                 {
-                    SuccessMessage = $"User '{EditingUser.Username}' updated successfully.";
+                    SuccessMessage = $"Password for '{EditingUser.Username}' has been reset.";
                 }
             }
 
@@ -367,7 +370,7 @@ public class AdminViewModel : BaseViewModel
             }
             else
             {
-                ErrorMessage = "Failed to save user. Username may already exist.";
+                ErrorMessage = "Failed to save login changes.";
             }
         });
     }
@@ -382,10 +385,16 @@ public class AdminViewModel : BaseViewModel
             return;
         }
 
-        // Show confirmation dialog — operation is a soft-delete (account deactivation)
+        if (_userSession.UserGroup != UserGroup.NganHang)
+        {
+            await _dialogService.ShowWarningAsync("Only Bank administrators can delete logins.", "Delete Login");
+            return;
+        }
+
+        // Hard delete SQL login/user via sp_XoaTaiKhoan
         var confirmed = await _dialogService.ShowConfirmationAsync(
-            $"Bạn có chắc chắn muốn vô hiệu hóa tài khoản '{SelectedUser.Username}'?\nTài khoản sẽ bị khóa nhưng dữ liệu vẫn được giữ lại.",
-            "Xác nhận vô hiệu hóa"
+            $"Bạn có chắc chắn muốn xóa login '{SelectedUser.Username}'?\nThao tác này sẽ xóa DB user và SQL login.",
+            "Xác nhận xóa login"
         );
 
         if (!confirmed) return;
@@ -397,40 +406,20 @@ public class AdminViewModel : BaseViewModel
             {
                 await LoadUsersAsync();
                 SelectedUser = null;
-                SuccessMessage = "Tài khoản đã được vô hiệu hóa.";
+                SuccessMessage = "Login đã được xóa.";
             }
             else
             {
-                ErrorMessage = "Không thể vô hiệu hóa tài khoản.";
+                ErrorMessage = "Không thể xóa login.";
             }
         });
     }
 
     public async Task Restore()
     {
-        if (SelectedUser == null) return;
-
-        var confirmed = await _dialogService.ShowConfirmationAsync(
-            $"Bạn có chắc chắn muốn khôi phục tài khoản '{SelectedUser.Username}'?",
-            "Xác nhận khôi phục"
-        );
-
-        if (!confirmed) return;
-
-        await ExecuteWithLoadingAsync(async () =>
-        {
-            var result = await _userService.RestoreUserAsync(SelectedUser.Username);
-            if (result)
-            {
-                await LoadUsersAsync();
-                SelectedUser = null;
-                SuccessMessage = "Tài khoản đã được khôi phục.";
-            }
-            else
-            {
-                ErrorMessage = "Không thể khôi phục tài khoản.";
-            }
-        });
+        await _dialogService.ShowWarningAsync(
+            "Restore is not supported in SQL-login mode. Please recreate the login if needed.",
+            "Restore Not Supported");
     }
 
     public void Cancel()

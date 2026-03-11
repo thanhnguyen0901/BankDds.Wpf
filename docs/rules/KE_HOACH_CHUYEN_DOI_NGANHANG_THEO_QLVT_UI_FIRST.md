@@ -20,6 +20,10 @@ Trạng thái triển khai:
   - Runtime SP package tách riêng: `sql/runtime/`
   - Audit tham số SP vs code: `docs/rules/GIAI_DOAN_C_RASOAT_THAMSO_SP_VS_CODE.md`
   - Transitional SP cũ được tách riêng để chờ remove ở Phase D
+- `Giai đoạn D`: **DONE (repo scope)** (2026-03-11)
+  - `UserRepository` chuyển sang `sp_TaoTaiKhoan/sp_XoaTaiKhoan/sp_DoiMatKhau/sp_DanhSachNhanVien`
+  - `AdminViewModel`/UI chuyển flow soft-delete -> SQL login lifecycle
+  - Còn lại: test tích hợp SQL thật + remove transitional SP ở phase cleanup
 
 ---
 
@@ -104,12 +108,12 @@ Artifact:
 - `sql/runtime/90_cleanup_unused_nonruntime_sp.sql`
 
 ## Giai đoạn D - Refactor ứng dụng theo runtime SP mới
-- [ ] D1. Refactor `UserRepository`:
-  - [ ] Bỏ luồng `USP_AddUser`/`SP_UpdateUser` kiểu CRUD bảng.
-  - [ ] Chuyển sang gọi `sp_TaoTaiKhoan`/`sp_XoaTaiKhoan`/`sp_DoiMatKhau`.
-- [ ] D2. Refactor `AdminViewModel` theo luồng tài khoản SQL login/runtime SP.
-- [ ] D3. Đồng bộ matrix quyền UI với quyền SQL thực tế.
-- [ ] D4. Chuẩn hóa hành vi theo đề DE3:
+- [x] D1. Refactor `UserRepository`:
+  - [x] Bỏ luồng `USP_AddUser`/`SP_UpdateUser` kiểu CRUD bảng.
+  - [x] Chuyển sang gọi `sp_TaoTaiKhoan`/`sp_XoaTaiKhoan`/`sp_DoiMatKhau`.
+- [x] D2. Refactor `AdminViewModel` theo luồng tài khoản SQL login/runtime SP.
+- [x] D3. Đồng bộ matrix quyền UI với quyền SQL thực tế.
+- [x] D4. Chuẩn hóa hành vi theo đề DE3:
   - `NGANHANG`: xem + báo cáo + tạo tài khoản đúng quyền.
   - `CHINHANH`: CRUD trong CN mình + tạo tài khoản đúng quyền.
   - `KHACHHANG`: chỉ xem sao kê của chính mình, không tạo account.
@@ -117,6 +121,14 @@ Artifact:
 Kết quả cần có:
 - UI và SQL permissions không mâu thuẫn.
 - Không còn lỗi kiểu "EXECUTE permission denied" do thiết kế lệch.
+
+Artifact:
+- `BankDds.Infrastructure/Data/Repositories/UserRepository.cs`
+- `BankDds.Infrastructure/Data/UserService.cs`
+- `BankDds.Wpf/ViewModels/AdminViewModel.cs`
+- `BankDds.Wpf/Views/AdminView.xaml`
+- `BankDds.Core/Validators/UserValidator.cs`
+- `docs/rules/GIAI_DOAN_D_REFACTOR_ADMIN_AUTH.md`
 
 ## Giai đoạn E - Cleanup script/document cũ
 - [ ] E1. Chuyển `sql/05_replication_setup_merge.sql`, `sql/06_linked_servers.sql` sang thư mục `sql/archive` hoặc đánh dấu deprecated.
@@ -165,7 +177,7 @@ Ghi chú:
 - `sp_DanhSachNhanVien`
 
 Hành động:
-- [ ] Refactor code Admin/UserRepository để gọi các SP này.
+- [x] Refactor code Admin/UserRepository để gọi các SP này.
 
 ## 4.3 SP đang được app gọi nhưng dự kiến xóa sau khi refactor Admin
 - `USP_AddUser`

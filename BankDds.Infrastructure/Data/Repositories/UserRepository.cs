@@ -7,9 +7,13 @@ using System.Data;
 namespace BankDds.Infrastructure.Data;
 
 /// <summary>
-/// SQL Server implementation of IUserRepository using ADO.NET.
-/// Users are stored in the main bank database (not per-branch).
-/// All SqlExceptions are wrapped in InvalidOperationException with a user-friendly message.
+/// SQL Server implementation of IUserRepository using runtime auth/account SPs.
+/// UI-first topology:
+///   - Create account:      sp_TaoTaiKhoan
+///   - Delete account:      sp_XoaTaiKhoan
+///   - Reset password:      sp_DoiMatKhau
+///   - List accounts/roles: sp_DanhSachNhanVien
+/// Transitional CRUD SPs on NGUOIDUNG are intentionally not used here.
 /// </summary>
 public class UserRepository : IUserRepository
 {
@@ -28,19 +32,8 @@ public class UserRepository : IUserRepository
 
     public async Task<User?> GetUserAsync(string username)
     {
-        // Logging: record attempt with username only — password is NEVER logged.
-        _logger.LogInformation("Auth lookup: user={Username}", username);
-        try
-        {
-            using var connection = new SqlConnection(GetConnectionString());
-            await connection.OpenAsync();
-            using var command = new SqlCommand("SP_GetUser", connection) { CommandType = CommandType.StoredProcedure };
-            command.Parameters.AddWithValue("@Username", username);
-            using var reader = await command.ExecuteReaderAsync();
-            if (await reader.ReadAsync()) return MapFromReader(reader);
-        }
-        catch (SqlException ex) { throw new InvalidOperationException($"Database error retrieving user '{username}': {ex.Message}", ex); }
-        return null;
+        var users = await GetAllUsersAsync();
+        return users.FirstOrDefault(u => u.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
     }
 
     public async Task<bool> AddUserAsync(User user)
@@ -49,16 +42,18 @@ public class UserRepository : IUserRepository
         {
             using var connection = new SqlConnection(GetConnectionString());
             await connection.OpenAsync();
-            using var command = new SqlCommand("USP_AddUser", connection) { CommandType = CommandType.StoredProcedure };
-            command.Parameters.AddWithValue("@Username",      user.Username);
-            command.Parameters.AddWithValue("@PasswordHash",  user.PasswordHash);
-            command.Parameters.AddWithValue("@UserGroup",     (int)user.UserGroup);
-            command.Parameters.AddWithValue("@DefaultBranch", user.DefaultBranch);
-            command.Parameters.AddWithValue("@CustomerCMND",  (object?)user.CustomerCMND ?? DBNull.Value);
-            command.Parameters.AddWithValue("@EmployeeId",    (object?)user.EmployeeId   ?? DBNull.Value);
-            return await command.ExecuteNonQueryAsync() > 0;
+            using var command = new SqlCommand("sp_TaoTaiKhoan", connection) { CommandType = CommandType.StoredProcedure };
+            command.Parameters.AddWithValue("@LOGIN", user.Username);
+            command.Parameters.AddWithValue("@PASS", user.PasswordHash);
+            command.Parameters.AddWithValue("@TENNHOM", ToSqlRoleName(user.UserGroup));
+
+            await command.ExecuteNonQueryAsync();
+            return true;
         }
-        catch (SqlException ex) { throw new InvalidOperationException($"Database error adding user: {ex.Message}", ex); }
+        catch (SqlException ex)
+        {
+            throw new InvalidOperationException($"Database error creating login '{user.Username}': {ex.Message}", ex);
+        }
     }
 
     public async Task<bool> UpdateUserAsync(User user)
@@ -67,52 +62,43 @@ public class UserRepository : IUserRepository
         {
             using var connection = new SqlConnection(GetConnectionString());
             await connection.OpenAsync();
-            using var command = new SqlCommand("SP_UpdateUser", connection) { CommandType = CommandType.StoredProcedure };
-            command.Parameters.AddWithValue("@Username",      user.Username);
-            command.Parameters.AddWithValue("@PasswordHash",  user.PasswordHash);
-            command.Parameters.AddWithValue("@UserGroup",     (int)user.UserGroup);
-            command.Parameters.AddWithValue("@DefaultBranch", user.DefaultBranch);
-            command.Parameters.AddWithValue("@CustomerCMND",  (object?)user.CustomerCMND ?? DBNull.Value);
-            command.Parameters.AddWithValue("@EmployeeId",    (object?)user.EmployeeId   ?? DBNull.Value);
-            return await command.ExecuteNonQueryAsync() > 0;
+            using var command = new SqlCommand("sp_DoiMatKhau", connection) { CommandType = CommandType.StoredProcedure };
+            command.Parameters.AddWithValue("@LOGIN", user.Username);
+            // Password reset path (NGANHANG role). Caller self-change with old password
+            // is not modeled in this admin repository.
+            command.Parameters.AddWithValue("@PASSCU", DBNull.Value);
+            command.Parameters.AddWithValue("@PASSMOI", user.PasswordHash);
+
+            await command.ExecuteNonQueryAsync();
+            return true;
         }
-        catch (SqlException ex) { throw new InvalidOperationException($"Database error updating user: {ex.Message}", ex); }
+        catch (SqlException ex)
+        {
+            throw new InvalidOperationException($"Database error resetting password for '{user.Username}': {ex.Message}", ex);
+        }
     }
 
-    /// <summary>
-    /// Soft-deletes a user by setting TRANGTHAIXED = 1.
-    /// SP contract: SP_SoftDeleteUser @Username nvarchar(50)
-    ///   UPDATE NGUOIDUNG SET TRANGTHAIXED = 1 WHERE Username = @Username
-    /// </summary>
     public async Task<bool> DeleteUserAsync(string username)
     {
         try
         {
             using var connection = new SqlConnection(GetConnectionString());
             await connection.OpenAsync();
-            using var command = new SqlCommand("SP_SoftDeleteUser", connection) { CommandType = CommandType.StoredProcedure };
-            command.Parameters.AddWithValue("@Username", username);
-            return await command.ExecuteNonQueryAsync() > 0;
+            using var command = new SqlCommand("sp_XoaTaiKhoan", connection) { CommandType = CommandType.StoredProcedure };
+            command.Parameters.AddWithValue("@LOGIN", username);
+            await command.ExecuteNonQueryAsync();
+            return true;
         }
-        catch (SqlException ex) { throw new InvalidOperationException($"Database error soft-deleting user '{username}': {ex.Message}", ex); }
+        catch (SqlException ex)
+        {
+            throw new InvalidOperationException($"Database error deleting login '{username}': {ex.Message}", ex);
+        }
     }
 
-    /// <summary>
-    /// Restores a soft-deleted user by setting TRANGTHAIXED = 0.
-    /// SP contract: SP_RestoreUser @Username nvarchar(50)
-    ///   UPDATE NGUOIDUNG SET TRANGTHAIXED = 0 WHERE Username = @Username
-    /// </summary>
     public async Task<bool> RestoreUserAsync(string username)
     {
-        try
-        {
-            using var connection = new SqlConnection(GetConnectionString());
-            await connection.OpenAsync();
-            using var command = new SqlCommand("SP_RestoreUser", connection) { CommandType = CommandType.StoredProcedure };
-            command.Parameters.AddWithValue("@Username", username);
-            return await command.ExecuteNonQueryAsync() > 0;
-        }
-        catch (SqlException ex) { throw new InvalidOperationException($"Database error restoring user '{username}': {ex.Message}", ex); }
+        _logger.LogWarning("RestoreUserAsync is not supported in SQL-login mode. Username={Username}", username);
+        return false;
     }
 
     public async Task<List<User>> GetAllUsersAsync()
@@ -122,28 +108,65 @@ public class UserRepository : IUserRepository
         {
             using var connection = new SqlConnection(GetConnectionString());
             await connection.OpenAsync();
-            using var command = new SqlCommand("SP_GetAllUsers", connection) { CommandType = CommandType.StoredProcedure };
+            using var command = new SqlCommand("sp_DanhSachNhanVien", connection) { CommandType = CommandType.StoredProcedure };
             using var reader = await command.ExecuteReaderAsync();
-            while (await reader.ReadAsync()) users.Add(MapFromReader(reader));
+            while (await reader.ReadAsync())
+            {
+                users.Add(MapFromRoleReader(reader));
+            }
         }
-        catch (SqlException ex) { throw new InvalidOperationException($"Database error retrieving users: {ex.Message}", ex); }
+        catch (SqlException ex)
+        {
+            throw new InvalidOperationException($"Database error retrieving logins: {ex.Message}", ex);
+        }
         return users;
     }
 
-    private static User MapFromReader(SqlDataReader reader)
+    private static string ToSqlRoleName(UserGroup group)
     {
-        var trangThaiOrdinal = reader.GetOrdinal("TrangThaiXoa");
-        return new User
+        return group switch
         {
-            // nChar columns are space-padded — Trim() normalises for model comparisons.
-            Username      = reader.GetString(reader.GetOrdinal("Username")),         // nvarchar — no Trim needed
-            PasswordHash  = reader.GetString(reader.GetOrdinal("PasswordHash")),     // nvarchar
-            UserGroup     = (UserGroup)reader.GetInt32(reader.GetOrdinal("UserGroup")),
-            DefaultBranch = reader.GetString(reader.GetOrdinal("DefaultBranch")).Trim(),
-            CustomerCMND  = reader.IsDBNull(reader.GetOrdinal("CustomerCMND")) ? null : reader.GetString(reader.GetOrdinal("CustomerCMND")).Trim(),
-            EmployeeId    = reader.IsDBNull(reader.GetOrdinal("EmployeeId"))   ? null : reader.GetString(reader.GetOrdinal("EmployeeId")).Trim(),
-            TrangThaiXoa  = reader.IsDBNull(trangThaiOrdinal) ? 0 : reader.GetByte(trangThaiOrdinal)
+            UserGroup.NganHang => "NGANHANG",
+            UserGroup.ChiNhanh => "CHINHANH",
+            UserGroup.KhachHang => "KHACHHANG",
+            _ => throw new InvalidOperationException($"Unsupported user group: {group}")
         };
+    }
+
+    private static UserGroup FromSqlRoleName(string roleName)
+    {
+        return roleName.Trim().ToUpperInvariant() switch
+        {
+            "NGANHANG" => UserGroup.NganHang,
+            "CHINHANH" => UserGroup.ChiNhanh,
+            "KHACHHANG" => UserGroup.KhachHang,
+            _ => throw new InvalidOperationException($"Unknown SQL role '{roleName}'.")
+        };
+    }
+
+    private static User MapFromRoleReader(SqlDataReader reader)
+    {
+        var login = reader.GetString(reader.GetOrdinal("LOGINNAME"));
+        var role = reader.GetString(reader.GetOrdinal("TENNHOM"));
+        var userGroup = FromSqlRoleName(role);
+
+        // In SQL-login mode we no longer keep soft-delete state in NGUOIDUNG.
+        // Deleted logins simply disappear from the listing.
+        var model = new User
+        {
+            Username = login,
+            UserGroup = userGroup,
+            DefaultBranch = string.Empty,
+            TrangThaiXoa = 0
+        };
+
+        // Heuristic display fields to keep existing grid columns meaningful.
+        if (userGroup == UserGroup.KhachHang)
+            model.CustomerCMND = login;
+        else
+            model.EmployeeId = login;
+
+        return model;
     }
 }
 
