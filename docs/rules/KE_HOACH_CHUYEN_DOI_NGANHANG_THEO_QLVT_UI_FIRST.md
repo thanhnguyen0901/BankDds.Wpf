@@ -24,6 +24,9 @@ Trạng thái triển khai:
   - `UserRepository` chuyển sang `sp_TaoTaiKhoan/sp_XoaTaiKhoan/sp_DoiMatKhau/sp_DanhSachNhanVien`
   - `AdminViewModel`/UI chuyển flow soft-delete -> SQL login lifecycle
   - Còn lại: test tích hợp SQL thật + remove transitional SP ở phase cleanup
+- `Giai đoạn E`: **DONE (repo scope)** (2026-03-11)
+  - Đã archive script infra 05/06/08 và chuyển guide setup sang UI-first.
+  - Đã cập nhật docs test/demo và các tham chiếu legacy.
 
 ---
 
@@ -43,9 +46,9 @@ Trạng thái triển khai:
 ## 2) Hiện trạng cần đổi
 
 1. Repo đang có script setup hạ tầng tự động:
-- `sql/05_replication_setup_merge.sql`
-- `sql/06_linked_servers.sql`
-- `sql/08_subscribers_post_replication_fixups.sql` (phần helper grant/fixup)
+- `sql/archive/05_replication_setup_merge.sql`
+- `sql/archive/06_linked_servers.sql`
+- `sql/archive/08_subscribers_post_replication_fixups.sql` (phần helper grant/fixup)
 
 2. Module Admin hiện đi theo CRUD bảng `NGUOIDUNG` (`USP_AddUser`, `SP_UpdateUser`, `SP_SoftDeleteUser`, `SP_RestoreUser`) thay vì luồng QLVT `sp_TaoTaiKhoan`/`sp_XoaTaiKhoan`/`sp_DoiMatKhau`.
 
@@ -131,10 +134,10 @@ Artifact:
 - `docs/rules/GIAI_DOAN_D_REFACTOR_ADMIN_AUTH.md`
 
 ## Giai đoạn E - Cleanup script/document cũ
-- [ ] E1. Chuyển `sql/05_replication_setup_merge.sql`, `sql/06_linked_servers.sql` sang thư mục `sql/archive` hoặc đánh dấu deprecated.
-- [ ] E2. Cập nhật `sql/00_readme_execution_order.md` thành luồng UI-first.
-- [ ] E3. Cập nhật `docs/sql/SETUP_MS_SQL_DISTRIBUTED_GUIDE.md` để dùng Wizard/UI làm đường chính.
-- [ ] E4. Cập nhật docs test để phản ánh quy trình mới.
+- [x] E1. Chuyển `sql/05_replication_setup_merge.sql`, `sql/06_linked_servers.sql` sang thư mục `sql/archive` hoặc đánh dấu deprecated.
+- [x] E2. Cập nhật `sql/00_readme_execution_order.md` thành luồng UI-first.
+- [x] E3. Cập nhật `docs/sql/SETUP_MS_SQL_DISTRIBUTED_GUIDE.md` để dùng Wizard/UI làm đường chính.
+- [x] E4. Cập nhật docs test để phản ánh quy trình mới.
 
 Kết quả cần có:
 - Người mới clone repo làm theo docs mà không cần chạy script infra tự động.

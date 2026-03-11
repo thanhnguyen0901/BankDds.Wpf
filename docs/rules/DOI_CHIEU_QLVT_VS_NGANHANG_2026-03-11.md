@@ -45,7 +45,7 @@ Lệch quan trọng:
 - UI cho phép `CHINHANH` vào Admin và thực hiện một số thao tác, nhưng SQL không cấp `SP_RestoreUser` cho `CHINHANH`.
   - UI: `BankDds.Wpf/ViewModels/HomeViewModel.cs`, `BankDds.Wpf/ViewModels/AdminViewModel.cs`
   - SQL: `sql/04_publisher_security.sql` (có `GRANT SP_RestoreUser TO NGANHANG`, không có cho `CHINHANH`)
-  - SQL subscriber fixup: `sql/08_subscribers_post_replication_fixups.sql`
+  - SQL subscriber fixup (legacy): `sql/archive/08_subscribers_post_replication_fixups.sql`
 
 ---
 
@@ -71,8 +71,8 @@ Chi tiết:
 ### 3.4 Nhóm DIST/LINK (hạ tầng phân tán + linked server)
 | ID | Trạng thái | Nhận xét | Bằng chứng |
 |---|---|---|---|
-| DIST-01..06 | PARTIAL | Có đầy đủ script setup Distributor/Publication/Subscription/Linked Server; chưa xác nhận PASS runtime vì chưa chạy test DB thực tế trong phiên này | `sql/05_replication_setup_merge.sql`, `sql/06_linked_servers.sql`, `docs/sql/SETUP_MS_SQL_DISTRIBUTED_GUIDE.md` |
-| LINK-01..04 | PARTIAL | Có thiết kế LINK0/LINK1/LINK2 và SP dùng linked server; chưa chạy test SQL live để chấm pass/fail cuối | `sql/06_linked_servers.sql`, `sql/03_publisher_sp_views.sql` (`SP_CrossBranchTransfer`) |
+| DIST-01..06 | PARTIAL | Có đầy đủ script setup Distributor/Publication/Subscription/Linked Server; chưa xác nhận PASS runtime vì chưa chạy test DB thực tế trong phiên này | `sql/archive/05_replication_setup_merge.sql`, `sql/archive/06_linked_servers.sql`, `docs/sql/SETUP_MS_SQL_DISTRIBUTED_GUIDE.md` |
+| LINK-01..04 | PARTIAL | Có thiết kế LINK0/LINK1/LINK2 và SP dùng linked server; chưa chạy test SQL live để chấm pass/fail cuối | `sql/archive/06_linked_servers.sql`, `sql/03_publisher_sp_views.sql` (`SP_CrossBranchTransfer`) |
 
 ---
 
@@ -149,7 +149,7 @@ Thông tin QLVT bổ sung:
   - Việc này không sai về kỹ thuật nếu nghiệp vụ runtime không cần truy vấn ngược từ CN về Publisher qua LINK2.
 
 Bằng chứng:
-- `sql/06_linked_servers.sql`
+- `sql/archive/06_linked_servers.sql`
 - `docs/sql/SETUP_MS_SQL_DISTRIBUTED_GUIDE.md`
 
 ### 8.2 Cách đẩy Stored Procedure qua Replication
@@ -162,7 +162,7 @@ Thông tin QLVT bổ sung:
   - Sau đó chạy snapshot/sync theo quy trình đã tài liệu hóa.
 
 Bằng chứng:
-- `sql/05_replication_setup_merge.sql`
+- `sql/archive/05_replication_setup_merge.sql`
 - `docs/sql/SETUP_MS_SQL_DISTRIBUTED_GUIDE.md`
 
 ### 8.3 Authorization matrix QLVT vs NGANHANG

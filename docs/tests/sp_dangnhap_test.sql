@@ -7,7 +7,7 @@
     - 04_publisher_security.sql đã chạy trên Publisher
     - 04b_publisher_seed_data.sql đã chạy trên Publisher (NGUOIDUNG rows)
     - Snapshot đã đồng bộ xong
-    - 08_subscribers_post_replication_fixups.sql đã chạy trên mỗi Subscriber
+    - Setup subscriber đã hoàn tất theo UI-first runbook (legacy tham chiếu: sql/archive/08_subscribers_post_replication_fixups.sql)
 
   Cách dùng:
     PHẦN 1 → chạy trên Publisher (DESKTOP-JBB41QU)

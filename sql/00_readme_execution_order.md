@@ -36,9 +36,9 @@ Lưu ý:
 ## 2) Script legacy (không dùng mặc định)
 
 Các script dưới đây giữ để tham chiếu/migration, không dùng làm đường chính:
-- `sql/05_replication_setup_merge.sql`
-- `sql/06_linked_servers.sql`
-- `sql/08_subscribers_post_replication_fixups.sql`
+- `sql/archive/05_replication_setup_merge.sql`
+- `sql/archive/06_linked_servers.sql`
+- `sql/archive/08_subscribers_post_replication_fixups.sql`
 
 Mọi thao tác tương ứng phải thực hiện bằng SSMS UI theo runbook.
 

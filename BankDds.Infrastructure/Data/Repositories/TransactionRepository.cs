@@ -261,7 +261,7 @@ public class TransactionRepository : ITransactionRepository
             _logger.LogError(ex, "Linked Server (LINK1) error during cross-branch transfer");
             throw new InvalidOperationException(
                 "Linked Server LINK1 is not configured. " +
-                "Run sql/distributed_banking/06_linked_servers.sql on the subscriber instance.",
+                "Configure Linked Server LINK1 via SSMS UI runbook (docs/sql/SETUP_SSMS_UI_FIRST_RUNBOOK.md) or refer to sql/archive/06_linked_servers.sql (legacy).",
                 ex);
         }
         catch (SqlException ex) when (ex.Number >= 50000)

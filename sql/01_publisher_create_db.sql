@@ -1,4 +1,4 @@
-﻿USE master;
+USE master;
 GO
 -- Tạo database Publisher nếu chưa tồn tại.
 IF DB_ID(N'NGANHANG_PUB') IS NULL
@@ -46,7 +46,7 @@ END
 ELSE
 BEGIN
     PRINT N'>>> Distributor chưa được cấu hình, bỏ qua bật merge publish ở bước 1.';
-    PRINT N'>>> Chạy 05_replication_setup_merge.sql (Part A/B) để cấu hình Distributor và publication.';
+    PRINT N'>>> Tiếp theo: cấu hình Replication/Publication bằng SSMS UI theo docs/sql/SETUP_SSMS_UI_FIRST_RUNBOOK.md.';
 END
 GO
 USE master;

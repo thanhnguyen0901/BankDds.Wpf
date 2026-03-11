@@ -1,4 +1,4 @@
-﻿USE master;
+USE master;
 GO
 
 -- Tạo database subscriber theo đúng instance đang chạy.
@@ -134,10 +134,10 @@ PRINT N'--- Hoàn tất 07_subscribers_create_db.sql ---';
 PRINT N'Server: ' + @@SERVERNAME;
 PRINT N'';
 PRINT N'Bước tiếp theo:';
-PRINT N'  1. Quay lại Publisher để kiểm tra subscription đã tạo (Phần D của 05_replication_setup_merge.sql).';
+PRINT N'  1. Quay lại Publisher để kiểm tra subscription đã tạo theo SSMS UI runbook.';
 PRINT N'  2. Chờ Snapshot Agent hoàn tất (~1-5 phút).';
 PRINT N'  3. Kiểm tra bảng đã được đẩy xuống subscriber:';
 PRINT N'       USE <subscriber_db> ;';
 PRINT N'       SELECT name FROM sys.tables ORDER BY name;';
-PRINT N'  4. Chạy 08_subscribers_post_replication_fixups.sql trên instance này.';
+PRINT N'  4. (Legacy optional) nếu cần tham chiếu fixup cũ: sql/archive/08_subscribers_post_replication_fixups.sql';
 GO

@@ -17,7 +17,7 @@ CHINHANH and KHACHHANG logins. This caused connection routing to fail.
 | Layer | Change |
 |---|---|
 | **SQL (Publisher)** `04_publisher_security.sql` | `sp_DangNhap` now returns a 4th column `MACN` by querying `NHANVIEN` (employee) or `KHACHHANG` (customer) table to match `SYSTEM_USER` to a branch code. |
-| **SQL (Subscriber)** `08_subscribers_post_replication_fixups.sql` | `sp_DangNhap` returns `MACN` by reading `TOP 1 MACN FROM CHINHANH` — on a row-filtered subscriber this reliably returns the single local branch. |
+| **SQL (Subscriber)** UI-first runbook / legacy `sql/archive/08_subscribers_post_replication_fixups.sql` | `sp_DangNhap` and role/login propagation are verified per subscriber after publication sync; follow UI-first setup checklist. |
 | **C# AuthService** | Reads `MACN` column when present; catches `IndexOutOfRangeException` for backward-compat with old SP. Logs warning when branch is empty. |
 | **C# LoginViewModel** | If `result.DefaultBranch` is empty for CHINHANH/KHACHHANG, falls back to the branch the user selected in the login dropdown (loaded from `view_DanhSachPhanManh`). |
 
@@ -96,14 +96,14 @@ USE NGANHANG_BT;
 
 EXEC sp_DangNhap;
 -- Expected for any CHINHANH/KHACHHANG: MACN = BENTHANH
--- (derived from TOP 1 MACN FROM CHINHANH which is row-filtered to BENTHANH)
+-- (branch value must match local subscriber setup after UI-first replication sync)
 ```
 
 ## 5. C# Verification (Manual App Test)
 
 ### Scenario A — CHINHANH login with SP-resolved branch
 
-1. Run all SQL scripts (01–08) including updated `sp_DangNhap`.
+1. Hoàn tất setup theo UI-first runbook + chạy script runtime (`01,02,runtime/01,runtime/02,04b,07`).
 2. Insert a NHANVIEN row for `NV_BT` with `MACN = 'BENTHANH'`.
 3. Start the app: `dotnet run --project BankDds.Wpf`.
 4. Login: `NV_BT` / `NhanVien@123`, select any branch in dropdown.
