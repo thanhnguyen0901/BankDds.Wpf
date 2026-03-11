@@ -6,26 +6,24 @@ public class UserValidator : AbstractValidator<Models.User>
 {
     public UserValidator()
     {
-        // Username validation: Required, 3-50 chars, alphanumeric and underscores
+        // SQL login name validation
         RuleFor(x => x.Username)
             .NotEmpty().WithMessage("Username is required")
             .Length(3, 50).WithMessage("Username must be between 3 and 50 characters")
             .Matches(@"^[a-zA-Z0-9_]+$").WithMessage("Username can only contain letters, numbers, and underscores");
 
-        // PasswordHash validation (only validate that it exists for new users)
-        // Skip this validation when updating existing users without password change
-        // The caller sets RootContextData["SkipPasswordValidation"] = true for edit-without-password-change.
+        // In SQL-login mode this field carries the plain password input for SP calls.
         RuleFor(x => x.PasswordHash)
             .NotEmpty().WithMessage("Password is required")
             .Unless((user, ctx) => ctx.RootContextData.ContainsKey("SkipPasswordValidation"));
 
-        // Default branch validation
+        // Default branch is used by service-layer branch checks.
+        // Optional for listing rows loaded from sp_DanhSachNhanVien.
         RuleFor(x => x.DefaultBranch)
-            .NotEmpty().WithMessage("Default branch is required")
-            .Must(x => x == "BENTHANH" || x == "TANDINH" || x == "ALL")
-            .WithMessage("Default branch must be 'BENTHANH', 'TANDINH', or 'ALL'");
+            .Must(x => string.IsNullOrWhiteSpace(x) || x == "BENTHANH" || x == "TANDINH")
+            .WithMessage("Default branch must be empty, 'BENTHANH', or 'TANDINH'");
 
-        // CustomerCMND validation: Required if UserGroup is KhachHang
+        // CustomerCMND is only mandatory for KHACHHANG creation flows.
         RuleFor(x => x.CustomerCMND)
             .NotEmpty().WithMessage("Customer CMND is required for customer users")
             .When(x => x.UserGroup == Models.UserGroup.KhachHang);
@@ -35,10 +33,9 @@ public class UserValidator : AbstractValidator<Models.User>
             .Matches(@"^\d+$").WithMessage("Customer CMND must contain only numeric digits")
             .When(x => x.UserGroup == Models.UserGroup.KhachHang && !string.IsNullOrEmpty(x.CustomerCMND));
 
-        // EmployeeId validation: Should be provided for non-customer users - exactly 10 characters
+        // EmployeeId is optional in SQL-login mode; validate format only when provided.
         RuleFor(x => x.EmployeeId)
-            .NotNull().WithMessage("Employee ID is required for bank and branch users")
             .Length(10).WithMessage("Employee ID must be exactly 10 characters")
-            .When(x => x.UserGroup == Models.UserGroup.NganHang || x.UserGroup == Models.UserGroup.ChiNhanh);
+            .When(x => !string.IsNullOrWhiteSpace(x.EmployeeId));
     }
 }

@@ -11,11 +11,16 @@ public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
     private readonly IAuthorizationService _authorizationService;
+    private readonly IUserSession _userSession;
 
-    public UserService(IUserRepository userRepository, IAuthorizationService authorizationService)
+    public UserService(
+        IUserRepository userRepository,
+        IAuthorizationService authorizationService,
+        IUserSession userSession)
     {
         _userRepository = userRepository;
         _authorizationService = authorizationService;
+        _userSession = userSession;
     }
 
     public Task<User?> GetUserAsync(string username)
@@ -44,6 +49,13 @@ public class UserService : IUserService
         // Admin access required
         _authorizationService.RequireAdminAccess();
 
+        // In SQL-login mode, password reset in admin flow is NGANHANG-only.
+        if (_userSession.UserGroup != UserGroup.NganHang)
+        {
+            throw new UnauthorizedAccessException(
+                "Only Bank administrators can reset other users' passwords.");
+        }
+
         // Check if user can modify this type of user
         _authorizationService.RequireCanCreateUser(user.UserGroup);
 
@@ -57,13 +69,19 @@ public class UserService : IUserService
     {
         // Admin access required
         _authorizationService.RequireAdminAccess();
+
+        if (_userSession.UserGroup != UserGroup.NganHang)
+        {
+            throw new UnauthorizedAccessException(
+                "Only Bank administrators can delete SQL logins.");
+        }
         
         return _userRepository.DeleteUserAsync(username);
     }
 
     public Task<bool> RestoreUserAsync(string username)
     {
-        // Admin access required to restore soft-deleted users
+        // Legacy operation retained for compatibility.
         _authorizationService.RequireAdminAccess();
         return _userRepository.RestoreUserAsync(username);
     }

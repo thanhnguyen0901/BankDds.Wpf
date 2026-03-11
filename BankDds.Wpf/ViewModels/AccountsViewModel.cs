@@ -118,12 +118,14 @@ public class AccountsViewModel : BaseViewModel
 
     public new bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
 
+    private bool CanModifyAccountData => _userSession.UserGroup == UserGroup.ChiNhanh;
+
     // CanExecute properties - Standard CRUD pattern
-    public bool CanAdd => SelectedCustomer != null && !IsEditing;
-    public bool CanEdit => SelectedAccount != null && !IsEditing;
-    public bool CanDelete => SelectedAccount != null && !IsEditing;
-    public bool CanClose => SelectedAccount != null && SelectedAccount.Status == "Active" && !IsEditing;
-    public bool CanReopen => SelectedAccount != null && SelectedAccount.Status == "Closed" && !IsEditing;
+    public bool CanAdd => CanModifyAccountData && SelectedCustomer != null && !IsEditing;
+    public bool CanEdit => CanModifyAccountData && SelectedAccount != null && !IsEditing;
+    public bool CanDelete => CanModifyAccountData && SelectedAccount != null && !IsEditing;
+    public bool CanClose => CanModifyAccountData && SelectedAccount != null && SelectedAccount.Status == "Active" && !IsEditing;
+    public bool CanReopen => CanModifyAccountData && SelectedAccount != null && SelectedAccount.Status == "Closed" && !IsEditing;
     public bool CanSave => IsEditing && !string.IsNullOrWhiteSpace(EditingAccount.SOTK) && SelectedCustomer != null;
     public bool CanCancel => IsEditing;
 

@@ -1,4 +1,4 @@
-﻿USE NGANHANG_PUB;
+USE NGANHANG_PUB;
 GO
 -- Tạo các role nghiệp vụ nếu chưa tồn tại.
 IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'NGANHANG' AND type = 'R')
@@ -143,6 +143,7 @@ GRANT EXECUTE ON dbo.SP_GetAllUsers              TO CHINHANH;
 GRANT EXECUTE ON dbo.USP_AddUser                 TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_UpdateUser               TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_SoftDeleteUser           TO CHINHANH;
+GRANT EXECUTE ON dbo.SP_RestoreUser              TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_GetBranches              TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_GetBranch                TO CHINHANH;
 GO
@@ -248,9 +249,15 @@ BEGIN
         RETURN;
     END
 
-    IF @CallerRole = N'CHINHANH' AND @TENNHOM = N'NGANHANG'
+    IF @CallerRole = N'NGANHANG' AND @TENNHOM <> N'NGANHANG'
     BEGIN
-        RAISERROR(N'Tài khoản CHINHANH không được tạo login thuộc role NGANHANG.', 16, 1);
+        RAISERROR(N'Tài khoản NGANHANG chỉ được tạo login thuộc role NGANHANG.', 16, 1);
+        RETURN;
+    END
+
+    IF @CallerRole = N'CHINHANH' AND @TENNHOM <> N'CHINHANH'
+    BEGIN
+        RAISERROR(N'Tài khoản CHINHANH chỉ được tạo login thuộc role CHINHANH.', 16, 1);
         RETURN;
     END
 
@@ -530,5 +537,5 @@ PRINT N'    Role: NGANHANG, CHINHANH, KHACHHANG';
 PRINT N'    SP bảo mật: sp_DangNhap, sp_TaoTaiKhoan, sp_XoaTaiKhoan,';
 PRINT N'               sp_DoiMatKhau, sp_DanhSachNhanVien';
 PRINT N'    Login mẫu: ADMIN_NH (NGANHANG), NV_BT (CHINHANH), KH_DEMO (KHACHHANG)';
-PRINT N'    Bước tiếp theo: 05_replication_setup_merge.sql (bước 5/8)';
+PRINT N'    Bước tiếp theo: setup hạ tầng theo SSMS UI runbook (không dùng script 05/06/08 làm flow chính).';
 GO

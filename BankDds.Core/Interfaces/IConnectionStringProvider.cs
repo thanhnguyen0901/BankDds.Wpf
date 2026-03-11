@@ -51,5 +51,11 @@ public interface IConnectionStringProvider
     /// </summary>
     string? GetLookupConnection();
 
+    /// <summary>
+    /// Returns branch codes configured via ConnectionStrings:Branch_&lt;MACN&gt; keys.
+    /// Used pre-login to populate branch selection without opening a DB connection.
+    /// </summary>
+    IReadOnlyList<string> GetConfiguredBranchCodes();
+
     string DefaultBranch { get; }
 }

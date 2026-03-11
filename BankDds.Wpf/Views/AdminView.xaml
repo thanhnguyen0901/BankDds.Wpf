@@ -43,12 +43,13 @@
                 Style="{StaticResource WarningButtonStyle}" />
             <Button
                 x:Name="Delete"
-                Content="Vô hiệu hóa"
+                Content="Xóa login"
                 Style="{StaticResource DangerButtonStyle}" />
             <Button
                 x:Name="Restore"
                 Content="Phục hồi"
-                Style="{StaticResource SuccessButtonStyle}" />
+                Style="{StaticResource SuccessButtonStyle}"
+                Visibility="{Binding CanRestore, Converter={StaticResource BoolToVisConverter}}" />
         </StackPanel>
 
         <!--  User List  -->
