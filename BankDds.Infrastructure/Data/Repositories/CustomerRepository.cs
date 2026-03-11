@@ -4,23 +4,23 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using System.Data;
 
-namespace BankDds.Infrastructure.Data.Sql;
+namespace BankDds.Infrastructure.Data;
 
 /// <summary>
 /// SQL Server implementation of ICustomerRepository using ADO.NET.
 /// Branch-scoped reads use the branch connection; cross-branch reads use the main bank connection.
 /// All SqlExceptions are wrapped in InvalidOperationException with a user-friendly message.
 /// </summary>
-public class SqlCustomerRepository : ICustomerRepository
+public class CustomerRepository : ICustomerRepository
 {
     private readonly IConnectionStringProvider _connectionStringProvider;
     private readonly IUserSession _userSession;
-    private readonly ILogger<SqlCustomerRepository> _logger;
+    private readonly ILogger<CustomerRepository> _logger;
 
-    public SqlCustomerRepository(
+    public CustomerRepository(
         IConnectionStringProvider connectionStringProvider,
         IUserSession userSession,
-        ILogger<SqlCustomerRepository> logger)
+        ILogger<CustomerRepository> logger)
     {
         _connectionStringProvider = connectionStringProvider;
         _userSession = userSession;
@@ -161,6 +161,7 @@ public class SqlCustomerRepository : ICustomerRepository
         SODT         = reader.IsDBNull(reader.GetOrdinal("SODT"))      ? ""   : reader.GetString(reader.GetOrdinal("SODT")),
         Phai        = reader.GetString(reader.GetOrdinal("PHAI")).Trim(),
         MaCN        = reader.GetString(reader.GetOrdinal("MACN")).Trim(),
-        TrangThaiXoa = reader.IsDBNull(reader.GetOrdinal("TrangThaiXoa")) ? 0 : reader.GetInt32(reader.GetOrdinal("TrangThaiXoa"))
+        TrangThaiXoa = reader.IsDBNull(reader.GetOrdinal("TrangThaiXoa")) ? 0 : Convert.ToInt32(reader.GetValue(reader.GetOrdinal("TrangThaiXoa")))
     };
 }
+

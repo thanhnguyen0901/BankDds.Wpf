@@ -128,7 +128,7 @@ public class LoginViewModel : Screen
 
             while (await reader.ReadAsync())
             {
-                var macn = reader["MACN"]?.ToString() ?? string.Empty;
+                var macn = (reader["MACN"]?.ToString() ?? string.Empty).Trim().ToUpperInvariant();
                 if (!string.IsNullOrWhiteSpace(macn))
                 {
                     _realBranchCodes.Add(macn);

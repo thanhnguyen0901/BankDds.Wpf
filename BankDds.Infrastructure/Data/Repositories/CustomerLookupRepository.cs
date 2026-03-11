@@ -4,7 +4,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using System.Data;
 
-namespace BankDds.Infrastructure.Data.Sql;
+namespace BankDds.Infrastructure.Data;
 
 /// <summary>
 /// Read-only customer lookup against the lookup subscriber (NGANHANG_TRACUU).
@@ -12,22 +12,22 @@ namespace BankDds.Infrastructure.Data.Sql;
 /// security script (08_subscribers_post_replication_fixups.sql §7) grants
 /// SELECT to all three roles on that database.
 /// </summary>
-public class SqlCustomerLookupRepository : ICustomerLookupRepository
+public class CustomerLookupRepository : ICustomerLookupRepository
 {
     private readonly IConnectionStringProvider _connectionStringProvider;
-    private readonly ILogger<SqlCustomerLookupRepository> _logger;
+    private readonly ILogger<CustomerLookupRepository> _logger;
 
-    public SqlCustomerLookupRepository(
+    public CustomerLookupRepository(
         IConnectionStringProvider connectionStringProvider,
-        ILogger<SqlCustomerLookupRepository> logger)
+        ILogger<CustomerLookupRepository> logger)
     {
         _connectionStringProvider = connectionStringProvider;
         _logger = logger;
     }
 
     /// <summary>
-    /// Returns the lookup connection string.  Falls back to Publisher when
-    /// the LookupDatabase key is not configured (so dev/InMemory scenarios still work).
+    /// Returns the lookup connection string. Falls back to Publisher when
+    /// the LookupDatabase key is not configured.
     /// </summary>
     private string GetConnectionString()
     {
@@ -122,6 +122,7 @@ public class SqlCustomerLookupRepository : ICustomerLookupRepository
         SODT         = reader.IsDBNull(reader.GetOrdinal("SODT"))     ? ""   : reader.GetString(reader.GetOrdinal("SODT")),
         Phai         = reader.GetString(reader.GetOrdinal("PHAI")).Trim(),
         MaCN         = reader.GetString(reader.GetOrdinal("MACN")).Trim(),
-        TrangThaiXoa = reader.IsDBNull(reader.GetOrdinal("TrangThaiXoa")) ? 0 : reader.GetInt32(reader.GetOrdinal("TrangThaiXoa"))
+        TrangThaiXoa = reader.IsDBNull(reader.GetOrdinal("TrangThaiXoa")) ? 0 : Convert.ToInt32(reader.GetValue(reader.GetOrdinal("TrangThaiXoa")))
     };
 }
+

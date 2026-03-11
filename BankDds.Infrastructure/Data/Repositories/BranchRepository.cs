@@ -4,7 +4,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using System.Data;
 
-namespace BankDds.Infrastructure.Data.Sql;
+namespace BankDds.Infrastructure.Data;
 
 /// <summary>
 /// SQL Server implementation of IBranchRepository.
@@ -28,14 +28,14 @@ namespace BankDds.Infrastructure.Data.Sql;
 ///   SP_DeleteBranch  @MACN nChar(10)
 ///     Returns: rows affected (0 if branch has linked accounts/customers)
 /// </summary>
-public class SqlBranchRepository : IBranchRepository
+public class BranchRepository : IBranchRepository
 {
     private readonly IConnectionStringProvider _connectionStringProvider;
-    private readonly ILogger<SqlBranchRepository> _logger;
+    private readonly ILogger<BranchRepository> _logger;
 
-    public SqlBranchRepository(
+    public BranchRepository(
         IConnectionStringProvider connectionStringProvider,
-        ILogger<SqlBranchRepository> logger)
+        ILogger<BranchRepository> logger)
     {
         _connectionStringProvider = connectionStringProvider;
         _logger = logger;
@@ -167,3 +167,4 @@ public class SqlBranchRepository : IBranchRepository
         SODT   = reader.IsDBNull(reader.GetOrdinal("SODT"))   ? string.Empty : reader.GetString(reader.GetOrdinal("SODT"))
     };
 }
+

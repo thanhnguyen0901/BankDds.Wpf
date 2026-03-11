@@ -4,21 +4,21 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using System.Data;
 
-namespace BankDds.Infrastructure.Data.Sql;
+namespace BankDds.Infrastructure.Data;
 
 /// <summary>
 /// SQL Server implementation of IUserRepository using ADO.NET.
 /// Users are stored in the main bank database (not per-branch).
 /// All SqlExceptions are wrapped in InvalidOperationException with a user-friendly message.
 /// </summary>
-public class SqlUserRepository : IUserRepository
+public class UserRepository : IUserRepository
 {
     private readonly IConnectionStringProvider _connectionStringProvider;
-    private readonly ILogger<SqlUserRepository> _logger;
+    private readonly ILogger<UserRepository> _logger;
 
-    public SqlUserRepository(
+    public UserRepository(
         IConnectionStringProvider connectionStringProvider,
-        ILogger<SqlUserRepository> logger)
+        ILogger<UserRepository> logger)
     {
         _connectionStringProvider = connectionStringProvider;
         _logger = logger;
@@ -146,3 +146,4 @@ public class SqlUserRepository : IUserRepository
         };
     }
 }
+

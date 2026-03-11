@@ -4,23 +4,23 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using System.Data;
 
-namespace BankDds.Infrastructure.Data.Sql;
+namespace BankDds.Infrastructure.Data;
 
 /// <summary>
 /// SQL Server implementation of IEmployeeRepository using ADO.NET.
 /// Branch-scoped reads use the branch connection; cross-branch reads use the main bank connection.
 /// All SqlExceptions are wrapped in InvalidOperationException with a user-friendly message.
 /// </summary>
-public class SqlEmployeeRepository : IEmployeeRepository
+public class EmployeeRepository : IEmployeeRepository
 {
     private readonly IConnectionStringProvider _connectionStringProvider;
     private readonly IUserSession _userSession;
-    private readonly ILogger<SqlEmployeeRepository> _logger;
+    private readonly ILogger<EmployeeRepository> _logger;
 
-    public SqlEmployeeRepository(
+    public EmployeeRepository(
         IConnectionStringProvider connectionStringProvider,
         IUserSession userSession,
-        ILogger<SqlEmployeeRepository> logger)
+        ILogger<EmployeeRepository> logger)
     {
         _connectionStringProvider = connectionStringProvider;
         _userSession = userSession;
@@ -169,7 +169,7 @@ public class SqlEmployeeRepository : IEmployeeRepository
         PHAI         = reader.GetString(reader.GetOrdinal("PHAI")).Trim(),
         SODT          = reader.IsDBNull(reader.GetOrdinal("SODT"))    ? "" : reader.GetString(reader.GetOrdinal("SODT")),
         MACN         = reader.GetString(reader.GetOrdinal("MACN")).Trim(),
-        TrangThaiXoa = reader.IsDBNull(reader.GetOrdinal("TrangThaiXoa")) ? 0 : reader.GetInt32(reader.GetOrdinal("TrangThaiXoa"))
+        TrangThaiXoa = reader.IsDBNull(reader.GetOrdinal("TrangThaiXoa")) ? 0 : Convert.ToInt32(reader.GetValue(reader.GetOrdinal("TrangThaiXoa")))
     };
 
     /// <summary>
@@ -208,3 +208,4 @@ public class SqlEmployeeRepository : IEmployeeRepository
         catch (SqlException ex) { throw new InvalidOperationException($"Database error checking employee existence: {ex.Message}", ex); }
     }
 }
+

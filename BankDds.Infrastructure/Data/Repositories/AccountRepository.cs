@@ -4,21 +4,21 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using System.Data;
 
-namespace BankDds.Infrastructure.Data.Sql;
+namespace BankDds.Infrastructure.Data;
 
 /// <summary>
 /// SQL Server implementation of IAccountRepository using ADO.NET transactions
 /// </summary>
-public class SqlAccountRepository : IAccountRepository
+public class AccountRepository : IAccountRepository
 {
     private readonly IConnectionStringProvider _connectionStringProvider;
     private readonly IUserSession _userSession;
-    private readonly ILogger<SqlAccountRepository> _logger;
+    private readonly ILogger<AccountRepository> _logger;
 
-    public SqlAccountRepository(
+    public AccountRepository(
         IConnectionStringProvider connectionStringProvider,
         IUserSession userSession,
-        ILogger<SqlAccountRepository> logger)
+        ILogger<AccountRepository> logger)
     {
         _connectionStringProvider = connectionStringProvider;
         _userSession = userSession;
@@ -352,3 +352,4 @@ public class SqlAccountRepository : IAccountRepository
         };
     }
 }
+

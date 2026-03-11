@@ -4,21 +4,21 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using System.Data;
 
-namespace BankDds.Infrastructure.Data.Sql;
+namespace BankDds.Infrastructure.Data;
 
 /// <summary>
 /// SQL Server implementation of IReportRepository
 /// </summary>
-public class SqlReportRepository : IReportRepository
+public class ReportRepository : IReportRepository
 {
     private readonly IConnectionStringProvider _connectionStringProvider;
     private readonly IUserSession _userSession;
-    private readonly ILogger<SqlReportRepository> _logger;
+    private readonly ILogger<ReportRepository> _logger;
 
-    public SqlReportRepository(
+    public ReportRepository(
         IConnectionStringProvider connectionStringProvider,
         IUserSession userSession,
-        ILogger<SqlReportRepository> logger)
+        ILogger<ReportRepository> logger)
     {
         _connectionStringProvider = connectionStringProvider;
         _userSession = userSession;
@@ -181,8 +181,7 @@ public class SqlReportRepository : IReportRepository
     {
         _logger.LogInformation("Report: CustomersByBranch branch={Branch}", branchCode ?? "ALL");
         // GAP-06: SP_GetCustomersByBranch MUST include ORDER BY HO ASC, TEN ASC
-        // so that the result set matches the two-column sort semantics enforced by
-        // InMemoryReportRepository (OrderBy Ho, ThenBy Ten).
+        // so that the result set remains deterministically sorted by Ho then Ten.
         // Expected SP signature:
         //   CREATE PROCEDURE SP_GetCustomersByBranch @BranchCode NVARCHAR(10) = NULL
         //   AS
@@ -311,7 +310,7 @@ public class SqlReportRepository : IReportRepository
             SODT = reader.IsDBNull(reader.GetOrdinal("SODT")) ? "" : reader.GetString(reader.GetOrdinal("SODT")),
             Phai = reader.GetString(reader.GetOrdinal("PHAI")).Trim(),
             MaCN = reader.GetString(reader.GetOrdinal("MACN")).Trim(),
-            TrangThaiXoa = reader.GetInt32(reader.GetOrdinal("TrangThaiXoa"))
+            TrangThaiXoa = Convert.ToInt32(reader.GetValue(reader.GetOrdinal("TrangThaiXoa")))
         };
     }
 
@@ -332,3 +331,4 @@ public class SqlReportRepository : IReportRepository
         };
     }
 }
+

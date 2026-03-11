@@ -9,8 +9,6 @@ using BankDds.Core.Interfaces;
 using BankDds.Core.Validators;
 using BankDds.Infrastructure.Configuration;
 using BankDds.Infrastructure.Data;
-using BankDds.Infrastructure.Data.InMemory;
-using BankDds.Infrastructure.Data.Sql;
 using BankDds.Infrastructure.Security;
 using BankDds.Wpf.ViewModels;
 using BankDds.Wpf.Services;
@@ -34,10 +32,10 @@ public class AppBootstrapper : BootstrapperBase
         var builder = new ContainerBuilder();
 
         // Configuration
-        // Priority (highest → lowest):
+        // Priority (highest -> lowest):
         //   1. Environment variables (BANKDDS_CONNSTR_* or standard ConnectionStrings__* style)
-        //   2. appsettings.Development.json  (git-ignored — local dev secrets)
-        //   3. appsettings.json              (committed — placeholders only, no real passwords)
+        //   2. appsettings.Development.json  (git-ignored - local dev secrets)
+        //   3. appsettings.json              (committed - placeholders only, no real passwords)
         var configuration = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
@@ -47,7 +45,7 @@ public class AppBootstrapper : BootstrapperBase
 
         builder.RegisterInstance(configuration).As<IConfiguration>().SingleInstance();
 
-        // Logging — routes to Visual Studio Debug Output (no-op in Release unless AddConsole() is wired)
+        // Logging - routes to Visual Studio Debug Output (no-op in Release unless AddConsole() is wired)
         var loggerFactory = LoggerFactory.Create(lb =>
         {
             lb.SetMinimumLevel(LogLevel.Debug);
@@ -100,90 +98,40 @@ public class AppBootstrapper : BootstrapperBase
         builder.RegisterType<UserValidator>().AsSelf().SingleInstance();
         builder.RegisterType<BranchValidator>().AsSelf().SingleInstance();
 
-        // Read DataMode from configuration
-        var dataMode = configuration["DataMode"] ?? "InMemory";
-        loggerFactory.CreateLogger<AppBootstrapper>()
-                     .LogInformation("AppBootstrapper: DataMode = {DataMode}", dataMode);
+        // Data access repositories (SQL Server distributed setup only).
+        builder.RegisterType<CustomerRepository>()
+               .As<ICustomerRepository>()
+               .InstancePerDependency();
 
-        // Register repositories based on DataMode
-        if (dataMode.Equals("InMemory", StringComparison.OrdinalIgnoreCase))
-        {
-            // InMemory repositories for development and testing
-            builder.RegisterType<InMemoryCustomerRepository>()
-                   .As<ICustomerRepository>()
-                   .SingleInstance();
+        builder.RegisterType<AccountRepository>()
+               .As<IAccountRepository>()
+               .InstancePerDependency();
 
-            builder.RegisterType<InMemoryAccountRepository>()
-                   .As<IAccountRepository>()
-                   .SingleInstance();
+        builder.RegisterType<EmployeeRepository>()
+               .As<IEmployeeRepository>()
+               .InstancePerDependency();
 
-            builder.RegisterType<InMemoryEmployeeRepository>()
-                   .As<IEmployeeRepository>()
-                   .SingleInstance();
+        builder.RegisterType<TransactionRepository>()
+               .As<ITransactionRepository>()
+               .InstancePerDependency();
 
-            builder.RegisterType<InMemoryTransactionRepository>()
-                   .As<ITransactionRepository>()
-                   .SingleInstance();
+        builder.RegisterType<UserRepository>()
+               .As<IUserRepository>()
+               .InstancePerDependency();
 
-            builder.RegisterType<InMemoryUserRepository>()
-                   .As<IUserRepository>()
-                   .SingleInstance();
+        builder.RegisterType<ReportRepository>()
+               .As<IReportRepository>()
+               .InstancePerDependency();
 
-            builder.RegisterType<InMemoryReportRepository>()
-                   .As<IReportRepository>()
-                   .SingleInstance();
+        // BranchRepository only holds IConnectionStringProvider (singleton),
+        // so SingleInstance is safe and avoids captive-dependency issues in validators.
+        builder.RegisterType<BranchRepository>()
+               .As<IBranchRepository>()
+               .SingleInstance();
 
-            builder.RegisterType<InMemoryBranchRepository>()
-                   .As<IBranchRepository>()
-                   .SingleInstance();
-
-            builder.RegisterType<InMemoryCustomerLookupRepository>()
-                   .As<ICustomerLookupRepository>()
-                   .SingleInstance();
-        }
-        else if (dataMode.Equals("Sql", StringComparison.OrdinalIgnoreCase))
-        {
-            // SQL repositories for production — each operation throws InvalidOperationException
-            // with a user-friendly message if the database is unreachable, so the app starts
-            // cleanly even when no DB is available yet.
-            builder.RegisterType<SqlCustomerRepository>()
-                   .As<ICustomerRepository>()
-                   .InstancePerDependency();
-
-            builder.RegisterType<SqlAccountRepository>()
-                   .As<IAccountRepository>()
-                   .InstancePerDependency();
-
-            builder.RegisterType<SqlEmployeeRepository>()
-                   .As<IEmployeeRepository>()
-                   .InstancePerDependency();
-
-            builder.RegisterType<SqlTransactionRepository>()
-                   .As<ITransactionRepository>()
-                   .InstancePerDependency();
-
-            builder.RegisterType<SqlUserRepository>()
-                   .As<IUserRepository>()
-                   .InstancePerDependency();
-
-            builder.RegisterType<SqlReportRepository>()
-                   .As<IReportRepository>()
-                   .InstancePerDependency();
-
-            // SqlBranchRepository only holds IConnectionStringProvider (singleton),
-            // so SingleInstance is safe and avoids captive-dependency issues in validators.
-            builder.RegisterType<SqlBranchRepository>()
-                   .As<IBranchRepository>()
-                   .SingleInstance();
-
-            builder.RegisterType<SqlCustomerLookupRepository>()
-                   .As<ICustomerLookupRepository>()
-                   .InstancePerDependency();
-        }
-        else
-        {
-            throw new InvalidOperationException($"Invalid DataMode '{dataMode}'. Must be 'InMemory' or 'Sql'.");
-        }
+        builder.RegisterType<CustomerLookupRepository>()
+               .As<ICustomerLookupRepository>()
+               .InstancePerDependency();
 
         // Business services layer - these wrap repositories with additional logic
         builder.RegisterType<CustomerService>()
@@ -218,7 +166,7 @@ public class AppBootstrapper : BootstrapperBase
                .As<ICustomerLookupService>()
                .SingleInstance();
 
-        // Banking authentication: SQL login → sp_DangNhap on Publisher
+        // Banking authentication: SQL login -> sp_DangNhap on Publisher
         builder.RegisterType<AuthService>()
                .As<IAuthService>()
                .SingleInstance();
@@ -252,7 +200,7 @@ public class AppBootstrapper : BootstrapperBase
                 var viewType = Assembly.GetExecutingAssembly()
                     .GetTypes()
                     .FirstOrDefault(t => t.Name == "MainShellView" && t.Namespace == "BankDds.Wpf.Shell");
-                
+
                 if (viewType != null)
                     return viewType;
             }

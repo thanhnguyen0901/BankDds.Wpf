@@ -103,7 +103,6 @@ Server=DESKTOP-JBB41QU\SQLSERVER4;Database=NGANHANG_TRACUU;TrustServerCertificat
 
 | Key trong `appsettings.json` | Giá trị mẫu | Mục đích |
 |---|---|---|
-| `DataMode` | `Sql` | Chuyển sang chế độ SQL Server (bắt buộc, thay vì `InMemory`) |
 | `ConnectionStrings:Publisher` | `Server=DESKTOP-JBB41QU;Database=NGANHANG_PUB;TrustServerCertificate=True;` | Kết nối Publisher — dùng cho đăng nhập (`sp_DangNhap`), báo cáo tổng hợp, danh sách chi nhánh |
 | `ConnectionStrings:Branch_BENTHANH` | `Server=DESKTOP-JBB41QU\SQLSERVER2;Database=NGANHANG_BT;TrustServerCertificate=True;` | CN1 Bến Thành — giao dịch gửi/rút/chuyển tiền |
 | `ConnectionStrings:Branch_TANDINH` | `Server=DESKTOP-JBB41QU\SQLSERVER3;Database=NGANHANG_TD;TrustServerCertificate=True;` | CN2 Tân Định — giao dịch gửi/rút/chuyển tiền |
@@ -118,7 +117,6 @@ Ví dụ file `appsettings.json` tối thiểu:
 
 ```json
 {
-  "DataMode": "Sql",
   "ConnectionStrings": {
     "Publisher": "Server=DESKTOP-JBB41QU;Database=NGANHANG_PUB;TrustServerCertificate=True;",
     "Branch_BENTHANH": "Server=DESKTOP-JBB41QU\\SQLSERVER2;Database=NGANHANG_BT;TrustServerCertificate=True;",
@@ -673,13 +671,7 @@ SELECT COUNT(*) FROM dbo.CHINHANH;
 
 ### 5. Kiểm tra ứng dụng WPF
 
-Xác minh `appsettings.json`:
-
-```json
-{
-  "DataMode": "Sql"
-}
-```
+Xác minh `appsettings.json` đã có đủ `ConnectionStrings` cho Publisher/2 chi nhánh/Lookup.
 
 Mở ứng dụng → đăng nhập với:
 - `ADMIN_NH / Admin@123` — vai trò NGANHANG (quản trị, xem tất cả)
@@ -697,7 +689,7 @@ Mở ứng dụng → đăng nhập với:
 - [ ] Chi nhánh có thể query chéo qua LINK1 (phục vụ chuyển tiền liên CN)
 - [ ] TraCuu đọc được KH từ cả 2 CN (KHACHHANG có cả BENTHANH + TANDINH)
 - [ ] `sp_DangNhap` trả về đúng MACN trên cả Publisher và Subscriber
-- [ ] App chạy với `DataMode=Sql`
+- [ ] App đọc đúng các `ConnectionStrings` SQL phân tán trong `appsettings.json`
 - [ ] Demo: Mở TK → Gửi tiền → Rút tiền → Chuyển tiền liên chi nhánh
 - [ ] Quay lại SSMS: query bảng giao dịch trên CN1 + CN2 để chứng minh dữ liệu phân mảnh đúng
 - [ ] Demo TraCuu: query KHACHHANG trên SQLSERVER4 thấy KH từ cả 2 chi nhánh

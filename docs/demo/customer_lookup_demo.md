@@ -17,7 +17,7 @@ Tân Định.
 | 1 | Đã chạy đủ 8 script SQL (bao gồm 08_subscribers_post_replication_fixups.sql) | SSMS: 4 DB tồn tại |
 | 2 | Snapshot Agent cho PUB_TRACUU đã hoàn thành | Replication Monitor: status OK |
 | 3 | `appsettings.json` có key `ConnectionStrings:LookupDatabase` | Xem file |
-| 4 | App chạy với `DataMode=Sql` | appsettings.json |
+| 4 | App cấu hình đủ các `ConnectionStrings` SQL phân tán | appsettings.json |
 
 ## Các bước demo
 
@@ -79,7 +79,7 @@ So sánh kết quả với dữ liệu hiển thị trên app — phải khớp.
    │
    ├─ CustomerLookupViewModel
    │     └─ ICustomerLookupService (CustomerLookupService)
-   │           └─ ICustomerLookupRepository (SqlCustomerLookupRepository)
+   │           └─ ICustomerLookupRepository (CustomerLookupRepository)
    │                 └─ ConnectionStringProvider.GetLookupConnection()
    │                       └─ appsettings → "ConnectionStrings:LookupDatabase"
    │                             └─ SQLSERVER4 / NGANHANG_TRACUU

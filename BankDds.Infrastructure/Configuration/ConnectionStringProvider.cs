@@ -68,10 +68,14 @@ public class ConnectionStringProvider : IConnectionStringProvider
     /// <inheritdoc />
     public string GetConnectionStringForBranch(string branch)
     {
-        var key = $"ConnectionStrings:Branch_{branch}";
+        var normalizedBranch = (branch ?? string.Empty).Trim().ToUpperInvariant();
+        if (string.IsNullOrWhiteSpace(normalizedBranch))
+            throw new InvalidOperationException("Branch code cannot be empty when resolving connection string.");
+
+        var key = $"ConnectionStrings:Branch_{normalizedBranch}";
         var template = _configuration[key]
             ?? throw new InvalidOperationException(
-                $"Connection string not found for branch: {branch}");
+                $"Connection string not found for branch: {normalizedBranch}");
 
         if (_sqlLogin is null || _sqlPassword is null)
             throw new InvalidOperationException(

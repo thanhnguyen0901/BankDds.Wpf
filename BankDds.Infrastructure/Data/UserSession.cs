@@ -26,11 +26,18 @@ public class UserSession : IUserSession
         string? customerCMND = null,
         string? employeeId = null)
     {
+        var normalizedSelectedBranch = NormalizeBranchCode(selectedBranch);
+        var normalizedPermittedBranches = (permittedBranches ?? new List<string>())
+            .Where(static b => !string.IsNullOrWhiteSpace(b))
+            .Select(NormalizeBranchCode)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
         Username = username;
         DisplayName = displayName;
         UserGroup = userGroup;
-        SelectedBranch = selectedBranch;
-        PermittedBranches = permittedBranches ?? new List<string>();
+        SelectedBranch = normalizedSelectedBranch;
+        PermittedBranches = normalizedPermittedBranches;
         CustomerCMND = customerCMND;
         EmployeeId = employeeId;
         IsAuthenticated = true;
@@ -39,17 +46,16 @@ public class UserSession : IUserSession
     /// <inheritdoc />
     public void SetSelectedBranch(string branchCode)
     {
-        if (string.IsNullOrWhiteSpace(branchCode))
-            throw new ArgumentException("Branch code cannot be empty.", nameof(branchCode));
+        var normalizedBranchCode = NormalizeBranchCode(branchCode);
 
-        if (!PermittedBranches.Contains(branchCode))
+        if (!PermittedBranches.Contains(normalizedBranchCode, StringComparer.OrdinalIgnoreCase))
             throw new InvalidOperationException(
-                $"Branch '{branchCode}' is not in the permitted list for this session.");
+                $"Branch '{normalizedBranchCode}' is not in the permitted list for this session.");
 
-        if (SelectedBranch == branchCode)
-            return; // No change — skip event.
+        if (string.Equals(SelectedBranch, normalizedBranchCode, StringComparison.OrdinalIgnoreCase))
+            return;
 
-        SelectedBranch = branchCode;
+        SelectedBranch = normalizedBranchCode;
         SelectedBranchChanged?.Invoke();
     }
 
@@ -63,5 +69,13 @@ public class UserSession : IUserSession
         CustomerCMND = null;
         EmployeeId = null;
         IsAuthenticated = false;
+    }
+
+    private static string NormalizeBranchCode(string branchCode)
+    {
+        if (string.IsNullOrWhiteSpace(branchCode))
+            throw new ArgumentException("Branch code cannot be empty.", nameof(branchCode));
+
+        return branchCode.Trim().ToUpperInvariant();
     }
 }

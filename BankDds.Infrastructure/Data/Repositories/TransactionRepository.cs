@@ -4,21 +4,21 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using System.Data;
 
-namespace BankDds.Infrastructure.Data.Sql;
+namespace BankDds.Infrastructure.Data;
 
 /// <summary>
 /// SQL Server implementation of ITransactionRepository using ADO.NET transactions
 /// </summary>
-public class SqlTransactionRepository : ITransactionRepository
+public class TransactionRepository : ITransactionRepository
 {
     private readonly IConnectionStringProvider _connectionStringProvider;
     private readonly IUserSession _userSession;
-    private readonly ILogger<SqlTransactionRepository> _logger;
+    private readonly ILogger<TransactionRepository> _logger;
 
-    public SqlTransactionRepository(
+    public TransactionRepository(
         IConnectionStringProvider connectionStringProvider,
         IUserSession userSession,
-        ILogger<SqlTransactionRepository> logger)
+        ILogger<TransactionRepository> logger)
     {
         _connectionStringProvider = connectionStringProvider;
         _userSession = userSession;
@@ -295,3 +295,4 @@ public class SqlTransactionRepository : ITransactionRepository
         };
     }
 }
+

@@ -22,7 +22,7 @@ The solution follows a **clean 3-layer architecture** with clear separation of c
 │   (Domain Layer)     │  ←───────│   (Data Access Layer)    │
 │                      │          │                          │
 │ • Domain Models      │          │ • Service Implementations│
-│ • Service Interfaces │          │ • In-Memory Data         │
+│ • Service Interfaces │          │ • SQL-backed Data         │
 │ • Business Rules     │          │ • Authentication         │
 │                      │          │ • Configuration          │
 │ Dependencies: None   │          │ Dependencies: → Core     │
@@ -42,8 +42,8 @@ The solution follows a **clean 3-layer architecture** with clear separation of c
 #### 2. **BankDds.Infrastructure** (Data Access & External Concerns)
 - **Purpose**: Implements the interfaces defined in Core; handles data access, authentication, configuration
 - **Contents**:
-  - `Data/`: In-memory service implementations (CustomerService, AccountService, etc., UserSession)
-  - `Security/`: AuthResult, IAuthService, SqlAuthService (authentication logic)
+  - `Data/`: Service implementations, repositories, and UserSession
+  - `Security/`: AuthResult, IAuthService, AuthService (authentication logic)
   - `Configuration/`: ConnectionStringProvider (reads from appsettings.json)
 - **Dependencies**: → `BankDds.Core` (implements Core interfaces)
 - **Namespace**: `BankDds.Infrastructure.Data`, `BankDds.Infrastructure.Security`, `BankDds.Infrastructure.Configuration`
@@ -75,8 +75,8 @@ BankDds.Core → (NO DEPENDENCIES - pure domain logic)
 
 1. **Separation of Concerns**: Each layer has a clear, single responsibility
 2. **Testability**: Core business logic is isolated and can be unit tested without UI or database
-3. **Maintainability**: Changes in one layer don't ripple through others (e.g., swap in-memory data with SQL Server without touching UI)
-4. **Flexibility**: Easy to replace implementations (e.g., in-memory → Dapper → EF Core) without changing Core or UI
+3. **Maintainability**: Changes in one layer don't ripple through others (e.g., swap SQL-backed data with SQL Server without touching UI)
+4. **Flexibility**: Easy to replace implementations (e.g., SQL-backed → Dapper → EF Core) without changing Core or UI
 5. **Clean Dependency Direction**: Dependencies point inward toward Core, following the Dependency Inversion Principle
 
 ## Project Structure
@@ -105,7 +105,7 @@ BankDds.Wpf/
 │       └── IConnectionStringProvider.cs
 ├── BankDds.Infrastructure/            # Data Access & Infrastructure
 │   ├── BankDds.Infrastructure.csproj
-│   ├── Data/                          # In-memory service implementations
+│   ├── Data/                          # Services + SQL repositories
 │   │   ├── UserSession.cs             # Singleton session state
 │   │   ├── CustomerService.cs
 │   │   ├── AccountService.cs
@@ -116,7 +116,7 @@ BankDds.Wpf/
 │   ├── Security/                      # Authentication
 │   │   ├── AuthResult.cs
 │   │   ├── IAuthService.cs
-│   │   └── SqlAuthService.cs          # Hard-coded test users
+│   │   └── AuthService.cs          # SQL login + sp_DangNhap
 │   └── Configuration/                 # Configuration services
 │       └── ConnectionStringProvider.cs
 └── BankDds.Wpf/                       # Presentation/UI Layer
@@ -183,18 +183,18 @@ BankDds.Wpf/
 ### 3. Dependency Injection with Autofac
 - **Interface-based Programming**: All services accessed through interfaces from Core
 - **Lifetime Management**:
-  - `SingleInstance`: In-memory data services, UserSession, IAuthService (shared state)
+  - `SingleInstance`: UserSession and shared application services
   - `InstancePerDependency`: ViewModels (new instance per navigation)
 - **Composition Root**: `AppBootstrapper.cs` registers all dependencies
 
 ### 4. Repository Pattern (Ready for Database)
-- **In-Memory Implementation**: Current implementation uses `List<T>` for rapid prototyping
+- **SQL-backed Implementation**: Current repositories use ADO.NET + stored procedures on Publisher/Subscribers
 - **Interface Abstraction**: All data access through `ICustomerService`, `IAccountService`, etc.
-- **Easy Migration**: Swap in-memory implementations with Dapper/EF Core without changing UI or Core
+- **Easy Migration**: Swap SQL-backed implementations with Dapper/EF Core without changing UI or Core
 
-## How to Replace In-Memory Data with Database
+## Data Access Implementation Notes
 
-The architecture makes database integration straightforward:
+The architecture keeps data access isolated and maintainable:
 
 **Step 1**: Create new implementations in `BankDds.Infrastructure/Data`:
 ```csharp
@@ -227,7 +227,7 @@ public class DapperCustomerService : ICustomerService
 
 **Step 2**: Update DI registration in `AppBootstrapper.cs`:
 ```csharp
-// OLD: In-memory implementation
+// OLD: previous repository registration
 // builder.RegisterType<CustomerService>()
 //        .As<ICustomerService>()
 //        .SingleInstance();
@@ -358,7 +358,7 @@ This demonstrates the **Open/Closed Principle**: The system is open for extensio
 All services and ViewModels are registered in `AppBootstrapper.Configure()`:
 - **Core Interfaces**: From `BankDds.Core.Interfaces` (ICustomerService, IAccountService, etc.)
 - **Infrastructure Implementations**: From `BankDds.Infrastructure.Data` and `BankDds.Infrastructure.Security`
-- **Services**: `SingleInstance` for in-memory data and session state (shared across app)
+- **Services**: `SingleInstance` for SQL-backed data and session state (shared across app)
 - **ViewModels**: `InstancePerDependency` (new instance for each navigation)
 
 ### Namespaces
@@ -381,7 +381,7 @@ All services and ViewModels are registered in `AppBootstrapper.Configure()`:
 - [x] **User administration (Full CRUD with role-based rules)**
 - [x] All entity models (Customer, Account, Employee, Transaction, User, AccountStatement)
 - [x] Business services (7 services with full interfaces and implementations)
-- [x] In-memory data layer with business logic enforcement
+- [x] SQL repository layer with business logic enforcement
 - [x] Configuration system (appsettings.json)
 - [x] UI converters and helpers
 
@@ -394,7 +394,7 @@ All services and ViewModels are registered in `AppBootstrapper.Configure()`:
 - [x] Role-based data filtering
 - [x] Branch-specific access control
 
-### 🔄 Ready for Database Integration
+### 🔄 SQL Distributed Setup Status
 The application architecture is designed for easy database migration:
 - [ ] Create Dapper implementations of service interfaces in `BankDds.Infrastructure/Data`
 - [ ] Use distributed queries for cross-branch operations
@@ -427,8 +427,8 @@ The application uses **one window** (`MainShellView`) that contains all screens:
 - `LoginAsync(serverName, userName, password)` - Validates credentials
 - `LogoutAsync()` - Cleanup
 - Returns `AuthResult` with UserGroup and DefaultBranch
-- Currently uses hard-coded users in `SqlAuthService` (4 test accounts)
-- Ready for SQL Server authentication integration
+- Uses SQL login + `sp_DangNhap` on Publisher to resolve role and branch
+- Authentication flow is aligned with the distributed SQL setup
 
 ### Service Layer
 Seven business service interfaces (defined in `BankDds.Core.Interfaces`) manage data operations:
@@ -440,7 +440,7 @@ Seven business service interfaces (defined in `BankDds.Core.Interfaces`) manage 
 - `IUserService` - User administration
 - `IUserSession` - Session state management
 
-**Current implementations** (in `BankDds.Infrastructure.Data`) use in-memory `List<T>` with hard-coded data.  
+**Current implementations** (in `BankDds.Infrastructure.Data`) use SQL repositories that execute stored procedures.  
 **Easy to replace** with Dapper/EF Core implementations without touching Core or UI layers.
 
 ### Role-Based Filtering
@@ -474,7 +474,7 @@ public bool CanViewAdmin => _userSession.UserGroup == UserGroup.NganHang;
 - **Navigation System**: Conductor pattern for screen management
 - **Caliburn.Micro Conventions**: Automatic view-viewmodel binding by name
 - **Interface-Based Design**: All services accessed through Core interfaces
-- **In-Memory Data**: Current implementation uses `List<T>` (ready for DB swap)
+- **SQL-backed Data**: Repositories execute distributed SQL stored procedures
 
 ## How to Build and Run
 
@@ -499,3 +499,6 @@ Or open `BankDds.Wpf.sln` in Visual Studio and press F5.
 ## License
 
 This is a course project for distributed database systems.
+
+
+
