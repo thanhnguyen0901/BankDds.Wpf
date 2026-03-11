@@ -1,5 +1,10 @@
 # HƯỚNG DẪN SETUP MS SQL SERVER — ĐỒ ÁN CSDL PHÂN TÁN (DE3 — NGÂN HÀNG)
 
+> Cập nhật migration QLVT UI-first (2026-03-11):
+> - Tài liệu thao tác chính hiện tại: `docs/sql/SETUP_SSMS_UI_FIRST_RUNBOOK.md`
+> - Checklist thực thi môi trường: `docs/sql/CHECKLIST_THUC_THI_SSMS_UI_FIRST_GIAI_DOAN_B.md`
+> - Nội dung trong file này giữ để tham chiếu legacy/script-first trong giai đoạn chuyển đổi.
+
 Tài liệu hướng dẫn setup SQL Server để chạy đồ án **CSDL phân tán — Đề 3 (Ngân hàng)** theo đúng:
 
 - Kiến trúc phân tán: **2 chi nhánh + 1 server tra cứu**

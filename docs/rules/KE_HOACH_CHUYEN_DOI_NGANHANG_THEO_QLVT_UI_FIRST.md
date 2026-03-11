@@ -12,6 +12,10 @@ Trạng thái triển khai:
   - Baseline tag: `baseline-qlvt-ui-first-20260311`
   - Nhánh migration: `migration/qlvt-ui-first`
   - Role mapping: `docs/rules/ROLE_MAPPING_DE3_VS_QLVT.md`
+- `Giai đoạn B`: **READY FOR EXECUTION** (2026-03-11)
+  - Runbook UI-first: `docs/sql/SETUP_SSMS_UI_FIRST_RUNBOOK.md`
+  - Checklist thực thi: `docs/sql/CHECKLIST_THUC_THI_SSMS_UI_FIRST_GIAI_DOAN_B.md`
+  - `sql/00_readme_execution_order.md` đã chuyển sang UI-first, script infra đánh dấu legacy
 
 ---
 
@@ -53,7 +57,7 @@ Kết quả cần có:
 - Biên bản role mapping DE3 vs QLVT.
 
 ## Giai đoạn B - Chuyển setup hạ tầng sang SSMS UI (không chạy script infra)
-- [ ] B1. Viết tài liệu thao tác UI cho Distributor/Publication/Subscription (step-by-step, có ảnh).
+- [x] B1. Viết tài liệu thao tác UI cho Distributor/Publication/Subscription (step-by-step, có ảnh).
 - [ ] B2. Thực hiện replication bằng SSMS Wizard:
   - [ ] Tạo Distributor.
   - [ ] Tạo publication cho Publisher.
@@ -69,6 +73,10 @@ Kết quả cần có:
 Kết quả cần có:
 - Runbook UI đầy đủ trong docs.
 - Không phụ thuộc script `05/06` để dựng infra.
+
+Trạng thái:
+- Đã hoàn tất phần tài liệu/chuyển hướng quy trình trong repo.
+- Chờ thực thi thủ công trên SSMS môi trường thật để đóng B2/B3/B4.
 
 ## Giai đoạn C - Chuẩn hóa SP runtime
 - [ ] C1. Tách file SP runtime khỏi file setup hạ tầng.
