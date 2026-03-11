@@ -2,6 +2,12 @@
 
 A .NET 8 WPF application built with **clean 3-layer architecture** using MVVM pattern, Caliburn.Micro, and Autofac for dependency injection. This is a comprehensive banking system with role-based access control, designed for a distributed banking database course project.
 
+## Core Documents
+
+- [Project Requirements](docs/requirements/DE3-NGANHANG.md)
+- [SSMS 21 Setup Guide (Distributed Database)](docs/sql/HUONG_DAN_SSMS21_THIET_LAP_CSDL_PHAN_TAN_NGANHANG.md)
+- [SSMS 21 Stored Procedure Run Guide](docs/sql/HUONG_DAN_SSMS21_CHAY_SP_NGANHANG.md)
+
 ## Architecture Overview
 
 The solution follows a **clean 3-layer architecture** with clear separation of concerns:
