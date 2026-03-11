@@ -143,6 +143,7 @@ GRANT EXECUTE ON dbo.SP_GetAllUsers              TO CHINHANH;
 GRANT EXECUTE ON dbo.USP_AddUser                 TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_UpdateUser               TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_SoftDeleteUser           TO CHINHANH;
+GRANT EXECUTE ON dbo.SP_RestoreUser              TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_GetBranches              TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_GetBranch                TO CHINHANH;
 GO
