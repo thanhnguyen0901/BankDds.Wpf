@@ -27,6 +27,9 @@ Trạng thái triển khai:
 - `Giai đoạn E`: **DONE (repo scope)** (2026-03-11)
   - Đã archive script infra 05/06/08 và chuyển guide setup sang UI-first.
   - Đã cập nhật docs test/demo và các tham chiếu legacy.
+- `Giai đoạn F`: **READY FOR EXECUTION** (2026-03-11)
+  - Đã tạo biên bản test acceptance F1..F7: `docs/tests/GIAI_DOAN_F_ACCEPTANCE_PASS_FAIL.md`
+  - Chờ chạy test live trên SQL instances để chốt PASS/FAIL cuối.
 
 ---
 
@@ -153,6 +156,7 @@ Kết quả cần có:
 
 Kết quả cần có:
 - Biên bản PASS/FAIL theo checklist.
+- Artifact: `docs/tests/GIAI_DOAN_F_ACCEPTANCE_PASS_FAIL.md`
 
 ---
 

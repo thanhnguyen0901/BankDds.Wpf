@@ -69,8 +69,8 @@ Cột Bằng chứng: ghi file, ảnh chụp màn hình, log, câu lệnh SQL đ
 | AUTH-02 | Công ty | Kiểm tra quyền trên UI | Chỉ có quyền xem/báo cáo/chức năng được phép theo thiết kế |  |  |  |
 | AUTH-03 | Chi nhánh | Đăng nhập tài khoản vai trò Chi nhánh | Đăng nhập thành công, role đúng |  |  |  |
 | AUTH-04 | Chi nhánh | Kiểm tra thao tác dữ liệu | Có thể thêm/sửa/xóa trong phạm vi cho phép |  |  |  |
-| AUTH-05 | User | Đăng nhập tài khoản User | Đăng nhập thành công, role đúng |  |  |  |
-| AUTH-06 | User | Kiểm tra hạn chế tạo tài khoản | Không thể vào/chạy chức năng tạo tài khoản nếu không được phép |  |  |  |
+| AUTH-05 | KhachHang | Đăng nhập tài khoản KhachHang | Đăng nhập thành công, role đúng |  |  |  |
+| AUTH-06 | KhachHang | Kiểm tra hạn chế tạo tài khoản | Không thể vào/chạy chức năng tạo tài khoản nếu không được phép |  |  |  |
 | AUTH-07 | Sai mật khẩu | Đăng nhập sai password | Bị từ chối, thông báo lỗi rõ ràng |  |  |  |
 | AUTH-08 | Sai chi nhánh | Chọn chi nhánh không hợp lệ rồi đăng nhập | Bị chặn theo đúng rule nghiệp vụ |  |  |  |
 
