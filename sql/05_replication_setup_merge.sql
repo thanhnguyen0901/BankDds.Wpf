@@ -1,82 +1,23 @@
-﻿/*=============================================================================
-  05_replication_setup_merge.sql
-  Vai trò: Máy chủ phát hành / Máy chủ phân phối (server gốc — DESKTOP-JBB41QU)
-  Chạy trên: DESKTOP-JBB41QU  (default instance) — SSMS hoặc sqlcmd
-  Mục đích: Cấu hình Sao chép hợp nhất Ngân hàng từ đầu đến cuối.
+﻿/*
+    05_replication_setup_merge.sql
+    Mục đích: cấu hình merge replication cho NGANHANG_PUB.
 
-  ┌────────────────────────────────────────────────────────────────────────────┐
-  │                      TÓM TẮT THỨ TỰ CHẠY                                │
-  │                                                                           │
-  │  Script này có 5 phần. Chạy theo THỨ TỰ trên Máy chủ phát hành:        │
-  │                                                                           │
-  │  Phần A — Cài đặt Máy chủ phân phối    (USE master)                      │
-  │  Phần B — Bật phát hành hợp nhất        (USE master)                      │
-  │  Phần C — Tạo 3 Ấn phẩm                (USE NGANHANG_PUB)               │
-  │           + Thêm đối tượng phát hành (bảng, SP, view)                     │
-  │           + Thêm bộ lọc hàng/kết hợp hợp nhất                            │
-  │  Phần D — Tạo 3 Đăng ký nhận đẩy       (USE NGANHANG_PUB)               │
-  │  Phần E — Khởi chạy Tác vụ snapshot     (USE NGANHANG_PUB)               │
-  │                                                                           │
-  │  ĐIỀU KIỆN TIÊN QUYẾT:                                                   │
-  │   1. SQL Server Agent đang CHẠY trên máy chủ phát hành                   │
-  │   2. Tính năng Sao chép SQL Server đã CÀI ĐẶT (kiểm tra SSMS)          │
-  │   3. Các script 01–04 đã chạy (DB + schema + SP + bảo mật tồn tại)      │
-  │   4. DB Thuê bao đã tạo qua 07_subscribers_create_db.sql                 │
-  │      trên SQLSERVER2, SQLSERVER3, SQLSERVER4                              │
-    │   5. Share snapshot tồn tại: \\DESKTOP-JBB41QU\ReplData                  │
-  │                                                                           │
-  │  SQL SERVER AGENT — BẮT BUỘC:                                             │
-  │   Sao chép hợp nhất phụ thuộc vào SQL Server Agent cho:                  │
-  │     • Công việc Tác vụ snapshot (đồng bộ ban đầu)                        │
-  │     • Công việc Tác nhân hợp nhất (đồng bộ liên tục)                     │
-  │   Để xác minh:                                                            │
-  │     PowerShell: Get-Service SQLSERVERAGENT | Select Status                │
-  │     SSMS: Object Explorer → SQL Server Agent → (nhấp phải) → Start      │
-  └────────────────────────────────────────────────────────────────────────────┘
+    Thứ tự chạy trong file:
+    - Phần A: cài Distributor và distribution database.
+    - Phần B: bật merge publish cho NGANHANG_PUB.
+    - Phần C: tạo publication, article và filter.
+    - Phần D: tạo push subscription cho 3 subscriber.
+    - Phần E: khởi động Snapshot Agent.
+    - Phần F: kiểm tra publication/article/subscription.
 
-  Các ấn phẩm:
-    ┌─────────────────────┬────────────────────────┬───────────────────────────┐
-    │ Ấn phẩm              │ Thuê bao               │ Bộ lọc hàng              │
-    ├─────────────────────┼────────────────────────┼───────────────────────────┤
-    │ PUB_NGANHANG_BT     │ SQLSERVER2/NGANHANG_BT │ MACN = N'BENTHANH'       │
-    │ PUB_NGANHANG_TD     │ SQLSERVER3/NGANHANG_TD │ MACN = N'TANDINH'        │
-    │ PUB_TRACUU          │ SQLSERVER4/TRACUU       │ Không lọc (KHACHHANG     │
-    │                     │                        │  + chỉ CHINHANH)          │
-    └─────────────────────┴────────────────────────┴───────────────────────────┘
+    Điều kiện trước khi chạy:
+    - SQL Server Agent đang chạy trên Publisher.
+    - Đã chạy xong script 01 -> 04b.
+    - Subscriber DB đã tạo bằng 07_subscribers_create_db.sql.
+    - Snapshot share đã sẵn sàng (ví dụ: \\PUBLISHER\ReplData).
 
-  Đối tượng phát hành theo ấn phẩm:
-    ┌─────────────────────┬──────────────┬──────────────────────────────────────┐
-    │ Loại đối tượng       │ PUB_CN1/CN2  │ PUB_TRACUU                          │
-    ├─────────────────────┼──────────────┼──────────────────────────────────────┤
-    │ Bảng (dữ liệu)     │ CHINHANH     │ CHINHANH                            │
-    │                     │ KHACHHANG    │ KHACHHANG                           │
-    │                     │ NHANVIEN     │                                     │
-    │                     │ TAIKHOAN     │                                     │
-    │                     │ GD_GOIRUT    │                                     │
-    │                     │ GD_CHUYENTIEN│                                     │
-    ├─────────────────────┼──────────────┼──────────────────────────────────────┤
-    │ SP (chỉ schema)     │ 50 SP        │ (không — DB tra cứu chỉ đọc)       │
-    ├─────────────────────┼──────────────┼──────────────────────────────────────┤
-    │ View (chỉ schema)   │ view_DanhSachPhanManh │ (không)                    │
-    └─────────────────────┴──────────────┴──────────────────────────────────────┘
-
-  Chiến lược bộ lọc hàng:
-    • CHINHANH: không lọc (cần tất cả chi nhánh để giải quyết FK)
-    • KHACHHANG, NHANVIEN, TAIKHOAN: bộ lọc trực tiếp  MACN = N'<branch>'
-    • GD_GOIRUT: bộ lọc kết hợp trên TAIKHOAN.SOTK (kế thừa phân vùng MACN)
-    • GD_CHUYENTIEN: bộ lọc kết hợp trên TAIKHOAN.SOTK_CHUYEN (tài khoản nguồn)
-    • PUB_TRACUU: KHACHHANG không lọc (tất cả khách hàng), CHINHANH không lọc
-
-  Bất biến lũy đẳng: CÓ — tất cả đối tượng được bảo vệ bằng IF NOT EXISTS trên catalog sao chép.
-  THỨ TỰ THỰC THI: Bước 5/8 (chỉ Máy chủ phát hành, sau 04_publisher_security.sql).
-
-  Nguồn: Tổng hợp các script đã lên kế hoạch:
-    sql/17-replication-distributor.sql  → Phần A
-    sql/18-replication-publications.sql → Phần B + C
-    sql/19-replication-subscriptions.sql → Phần D
-    sql/20-replication-snapshot.sql      → Phần E
-=============================================================================*/
-
+    Script có tính idempotent, có thể chạy lại.
+*/
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    PHẦN A — Cài đặt Máy chủ phân phối
@@ -96,9 +37,10 @@
 USE master;
 GO
 
+-- Phần A: Cài Distributor và distribution database.
 PRINT '';
 PRINT '══════════════════════════════════════════════════════';
-PRINT ' Part A: Install Distributor on ' + @@SERVERNAME;
+PRINT N' Phần A: Cài Distributor trên ' + @@SERVERNAME;
 PRINT '══════════════════════════════════════════════════════';
 
 -- A1. Kiểm tra xem đã là Máy chủ phân phối chưa
@@ -182,7 +124,6 @@ GO
 PRINT '>>> Part A complete: Distributor installed.';
 GO
 
-
 /* ═══════════════════════════════════════════════════════════════════════════════
    PHẦN B — Bật phát hành hợp nhất cho NGANHANG_PUB
    ═══════════════════════════════════════════════════════════════════════════════
@@ -196,9 +137,10 @@ GO
 USE master;
 GO
 
+-- Phần B: Bật merge publish cho NGANHANG_PUB.
 PRINT '';
 PRINT '══════════════════════════════════════════════════════';
-PRINT ' Part B: Enable merge publish on NGANHANG_PUB';
+PRINT N' Phần B: Bật merge publish cho NGANHANG_PUB';
 PRINT '══════════════════════════════════════════════════════';
 
 EXEC sp_replicationdboption
@@ -217,7 +159,6 @@ BEGIN
     RAISERROR(N'Part B failed: NGANHANG_PUB is not merge-published. Resolve Distributor setup and rerun from Part A.', 16, 1);
 END
 GO
-
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    PHẦN C — Tạo Ấn phẩm + Đối tượng phát hành + Bộ lọc hàng/Bộ lọc kết hợp
@@ -240,12 +181,12 @@ GO
 USE NGANHANG_PUB;
 GO
 
+-- Phần C: Tạo publication, article và filter cho từng đích đồng bộ.
 PRINT '';
 PRINT '══════════════════════════════════════════════════════';
-PRINT ' Part C: Create Publications + Articles';
+PRINT N' Phần C: Tạo publication và article';
 PRINT '══════════════════════════════════════════════════════';
 GO
-
 
 /* ─────────────────────────────────────────────────────────────────────────────
    C1. PUB_NGANHANG_BT — Chi nhánh Bến Thành (MACN = 'BENTHANH')
@@ -573,7 +514,6 @@ GO
 PRINT '>>> PUB_NGANHANG_BT: all articles + filters added.';
 GO
 
-
 /* ─────────────────────────────────────────────────────────────────────────────
    C2. PUB_NGANHANG_TD — Chi nhánh Tân Định (MACN = 'TANDINH')
        Bản sao của C1 với giá trị bộ lọc TANDINH.
@@ -799,7 +739,6 @@ GO
 PRINT '>>> PUB_NGANHANG_TD: all articles + filters added.';
 GO
 
-
 /* ─────────────────────────────────────────────────────────────────────────────
    C3. PUB_TRACUU — Tra cứu chỉ đọc (chỉ KHACHHANG + CHINHANH)
        Không có SP, không có view — TraCuu là CSDL tra cứu nhẹ.
@@ -889,7 +828,6 @@ GO
 PRINT '>>> Part C complete: 3 publications with all articles and filters.';
 GO
 
-
 /* ═══════════════════════════════════════════════════════════════════════════════
    PHẦN D — Tạo đăng ký nhận đẩy (Push Subscriptions)
    ═══════════════════════════════════════════════════════════════════════════════
@@ -905,9 +843,10 @@ GO
 USE NGANHANG_PUB;
 GO
 
+-- Phần D: Tạo push subscription cho 3 subscriber.
 PRINT '';
 PRINT '══════════════════════════════════════════════════════';
-PRINT ' Part D: Create Push Subscriptions';
+PRINT N' Phần D: Tạo push subscription';
 PRINT '══════════════════════════════════════════════════════';
 GO
 
@@ -1031,7 +970,6 @@ GO
 PRINT '>>> Part D complete: 3 push subscriptions created.';
 GO
 
-
 /* ═══════════════════════════════════════════════════════════════════════════════
    PHẦN E — Khởi động tác vụ Snapshot
    ═══════════════════════════════════════════════════════════════════════════════
@@ -1050,9 +988,10 @@ GO
 USE NGANHANG_PUB;
 GO
 
+-- Phần E: Khởi động Snapshot Agent cho các publication.
 PRINT '';
 PRINT '══════════════════════════════════════════════════════';
-PRINT ' Part E: Start Snapshot Agents';
+PRINT N' Phần E: Khởi động Snapshot Agent';
 PRINT '══════════════════════════════════════════════════════';
 
 -- Khởi động snapshot cho PUB_NGANHANG_BT
@@ -1074,14 +1013,14 @@ PRINT '>>> Part E complete: All Snapshot Agents started.';
 PRINT '    Monitor progress in SSMS: Replication → Replication Monitor';
 GO
 
-
 /* ═══════════════════════════════════════════════════════════════════════════════
    PHẦN F — Truy vấn xác minh (chạy sau khi snapshot hoàn tất)
    ═══════════════════════════════════════════════════════════════════════════════ */
 
+-- Phần F: Kiểm tra publication, article và subscription.
 PRINT '';
 PRINT '══════════════════════════════════════════════════════';
-PRINT ' Part F: Verification (run after snapshots complete)';
+PRINT N' Phần F: Kiểm tra (chạy sau khi snapshot hoàn tất)';
 PRINT '══════════════════════════════════════════════════════';
 PRINT '';
 

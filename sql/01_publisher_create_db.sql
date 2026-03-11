@@ -1,59 +1,29 @@
-/*=============================================================================
-  01_publisher_create_db.sql
-  Vai trò   : Máy chủ phát hành / Điều phối (server gốc)
-  Chạy trên : DESKTOP-JBB41QU  (phiên bản SQL Server mặc định)
-  Mục đích: Tạo cơ sở dữ liệu Máy chủ phát hành NGANHANG_PUB nếu chưa tồn tại,
-           đặt mô hình phục hồi thành FULL (bắt buộc bởi Sao chép hợp nhất (Merge Replication)), và
-           bật khả năng phát hành hợp nhất cho cơ sở dữ liệu.
-
-  Bất biến lũy đẳng: CÓ — tất cả thao tác được bảo vệ bởi kiểm tra IF.
-
-  THỨ TỰ THỰC THI: Bước 1/8 (chạy ĐẦU TIÊN trên Máy chủ phát hành).
-=============================================================================*/
-
-USE master;
+﻿USE master;
 GO
-
--- ═══════════════════════════════════════════════════════════════════════════════
--- PHẦN 1. TẠO CƠ SỞ DỮ LIỆU
--- ═══════════════════════════════════════════════════════════════════════════════
+-- Tạo database Publisher nếu chưa tồn tại.
 IF DB_ID(N'NGANHANG_PUB') IS NULL
 BEGIN
     CREATE DATABASE NGANHANG_PUB;
-    PRINT '>>> Database NGANHANG_PUB created.';
+    PRINT N'>>> Đã tạo database NGANHANG_PUB.';
 END
 ELSE
-    PRINT '>>> Database NGANHANG_PUB already exists — skipped.';
+    PRINT N'>>> Database NGANHANG_PUB đã tồn tại, bỏ qua.';
 GO
-
--- ═══════════════════════════════════════════════════════════════════════════════
--- PHẦN 2. MÔ HÌNH PHỤC HỒI = FULL
---    Sao chép hợp nhất (Merge Replication) yêu cầu cơ sở dữ liệu ấn phẩm sử dụng phục hồi FULL
---    để Log Reader Agent có thể theo dõi thay đổi một cách đáng tin cậy.
--- ═══════════════════════════════════════════════════════════════════════════════
+-- Đảm bảo recovery model là FULL để phục vụ replication.
 IF EXISTS (
     SELECT 1 FROM sys.databases
     WHERE name = N'NGANHANG_PUB' AND recovery_model_desc <> N'FULL'
 )
 BEGIN
     ALTER DATABASE NGANHANG_PUB SET RECOVERY FULL;
-    PRINT '>>> Recovery model set to FULL.';
+    PRINT N'>>> Đã chuyển recovery model sang FULL.';
 END
 ELSE
-    PRINT '>>> Recovery model is already FULL — skipped.';
+    PRINT N'>>> Recovery model đã là FULL, bỏ qua.';
 GO
-
--- ═══════════════════════════════════════════════════════════════════════════════
--- PHẦN 3. BẬT PHÁT HÀNH HỢP NHẤT (NẾU DISTRIBUTOR ĐÃ SẴN SÀNG)
---    Đánh dấu NGANHANG_PUB để sp_addmergepublication có thể được gọi sau
---    (trong 05_replication_setup_merge.sql).
---
---    Lưu ý: Nếu Distributor chưa được cài (thường đến Phần A của script 05),
---    bước này sẽ được bỏ qua thay vì ném lỗi Msg 20028.
--- ═══════════════════════════════════════════════════════════════════════════════
 USE master;
 GO
-
+-- Chỉ bật merge publish khi Distributor đã được cấu hình.
 IF EXISTS (
     SELECT 1
     FROM sys.servers
@@ -66,27 +36,22 @@ BEGIN
             @dbname  = N'NGANHANG_PUB',
             @optname = N'merge publish',
             @value   = N'true';
-
-        PRINT '>>> Merge publish option enabled on NGANHANG_PUB.';
+        PRINT N'>>> Đã bật tùy chọn merge publish cho NGANHANG_PUB.';
     END TRY
     BEGIN CATCH
-        PRINT '>>> WARNING: Could not enable merge publish in step 1. Will retry in step 5.';
-        PRINT '>>> SQL Error: ' + ERROR_MESSAGE();
+        PRINT N'>>> Cảnh báo: Không bật được merge publish ở bước 1, sẽ thử lại ở bước 5.';
+        PRINT N'>>> Lỗi SQL: ' + ERROR_MESSAGE();
     END CATCH
 END
 ELSE
 BEGIN
-    PRINT '>>> Distributor is not configured yet — skip enabling merge publish in step 1.';
-    PRINT '>>> Run 05_replication_setup_merge.sql (Part A/B) to install Distributor and enable publication.';
+    PRINT N'>>> Distributor chưa được cấu hình, bỏ qua bật merge publish ở bước 1.';
+    PRINT N'>>> Chạy 05_replication_setup_merge.sql (Part A/B) để cấu hình Distributor và publication.';
 END
 GO
-
--- ═══════════════════════════════════════════════════════════════════════════════
--- PHẦN 4. XÁC MINH
--- ═══════════════════════════════════════════════════════════════════════════════
 USE master;
 GO
-
+-- Kiểm tra nhanh trạng thái database sau khi chạy script.
 SELECT
     name                    AS DatabaseName,
     state_desc              AS [State],
@@ -96,6 +61,5 @@ SELECT
 FROM sys.databases
 WHERE name = N'NGANHANG_PUB';
 GO
-
-PRINT '=== 01_publisher_create_db.sql completed successfully ===';
+PRINT N'=== Hoàn tất 01_publisher_create_db.sql ===';
 GO

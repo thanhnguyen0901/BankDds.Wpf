@@ -1,70 +1,35 @@
-/*=============================================================================
-  04_publisher_security.sql
-  Vai trò : Máy chủ phát hành / Coordinator (server gốc)
-  Chạy trên : DESKTOP-JBB41QU / NGANHANG_PUB
-  Mục đích: Bảo mật SQL theo yêu cầu môn học Ngân hàng:
-             1. Vai trò cơ sở dữ liệu:  NGANHANG, CHINHANH, KHACHHANG
-             2. sp_DangNhap     — xác định đăng nhập SQL hiện tại → vai trò qua sysusers
-             3. sp_TaoTaiKhoan  — tạo đăng nhập SQL + người dùng DB + thành viên vai trò
-             4. DENY truy cập bảng trực tiếp; GRANT EXECUTE trên SP theo vai trò
-             5. Dữ liệu mẫu đăng nhập quản trị (thay thế sa cho demo)
-
-  Ánh xạ vai trò (SQL role → C# UserGroup):
-    NGANHANG  → UserGroup.NganHang  (0) — đọc tất cả chi nhánh, quản trị đầy đủ, tạo đăng nhập
-    CHINHANH  → UserGroup.ChiNhanh  (1) — CRUD dữ liệu chi nhánh, tạo đăng nhập CHINHANH/KHACHHANG
-    KHACHHANG → UserGroup.KhachHang (2) — chỉ đọc: sao kê tài khoản/báo cáo cá nhân
-
-  Bất biến lũy đẳng: CÓ — tất cả đối tượng được bảo vệ bởi IF NOT EXISTS / CREATE OR ALTER.
-  THỨ TỰ THỰC THI: Bước 4/8  (Chỉ máy chủ phát hành, sau 03_publisher_sp_views.sql).
-=============================================================================*/
-
-USE NGANHANG_PUB;
+﻿USE NGANHANG_PUB;
 GO
-
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   PHẦN 1 — Vai trò cơ sở dữ liệu
-   Ba vai trò khớp với mẫu Ngân hàng và enum C# UserGroup.
-   ═══════════════════════════════════════════════════════════════════════════════ */
-
+-- Tạo các role nghiệp vụ nếu chưa tồn tại.
 IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'NGANHANG' AND type = 'R')
 BEGIN
     CREATE ROLE NGANHANG;
-    PRINT '>>> Role NGANHANG created.';
+    PRINT N'>>> Đã tạo role NGANHANG.';
 END
 ELSE
-    PRINT '>>> Role NGANHANG already exists — skipped.';
+    PRINT N'>>> Role NGANHANG đã tồn tại, bỏ qua.';
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'CHINHANH' AND type = 'R')
 BEGIN
     CREATE ROLE CHINHANH;
-    PRINT '>>> Role CHINHANH created.';
+    PRINT N'>>> Đã tạo role CHINHANH.';
 END
 ELSE
-    PRINT '>>> Role CHINHANH already exists — skipped.';
+    PRINT N'>>> Role CHINHANH đã tồn tại, bỏ qua.';
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'KHACHHANG' AND type = 'R')
 BEGIN
     CREATE ROLE KHACHHANG;
-    PRINT '>>> Role KHACHHANG created.';
+    PRINT N'>>> Đã tạo role KHACHHANG.';
 END
 ELSE
-    PRINT '>>> Role KHACHHANG already exists — skipped.';
+    PRINT N'>>> Role KHACHHANG đã tồn tại, bỏ qua.';
 GO
-
-PRINT '>>> Section 1: Database roles verified.';
+PRINT N'>>> Đã kiểm tra xong nhóm role trong database.';
 GO
-
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   PHẦN 2 — DENY truy cập trực tiếp bảng/view cho cả ba vai trò
-   Mọi truy cập dữ liệu phải thông qua stored procedure.
-   ═══════════════════════════════════════════════════════════════════════════════ */
-
--- DENY trực tiếp DML trên tất cả bảng gốc cho cả ba vai trò.
--- SP thực thi dưới quyền dbo (ownership chaining), nên truy cập qua SP vẫn hoạt động.
+-- Chặn truy cập trực tiếp vào bảng, chỉ cho phép qua stored procedure.
 DENY SELECT, INSERT, UPDATE, DELETE ON dbo.CHINHANH       TO NGANHANG, CHINHANH, KHACHHANG;
 DENY SELECT, INSERT, UPDATE, DELETE ON dbo.NGUOIDUNG      TO NGANHANG, CHINHANH, KHACHHANG;
 DENY SELECT, INSERT, UPDATE, DELETE ON dbo.KHACHHANG      TO NGANHANG, CHINHANH, KHACHHANG;
@@ -73,86 +38,9 @@ DENY SELECT, INSERT, UPDATE, DELETE ON dbo.TAIKHOAN       TO NGANHANG, CHINHANH,
 DENY SELECT, INSERT, UPDATE, DELETE ON dbo.GD_GOIRUT      TO NGANHANG, CHINHANH, KHACHHANG;
 DENY SELECT, INSERT, UPDATE, DELETE ON dbo.GD_CHUYENTIEN  TO NGANHANG, CHINHANH, KHACHHANG;
 GO
-
--- LƯU Ý: Các view tiện ích _ALL đã bị loại bỏ.
--- Không cần lệnh DENY cho các view không còn tồn tại.
--- Xem 02_publisher_schema.sql Phần 5 để biết chi tiết xóa/dọn dẹp.
-
-PRINT '>>> Section 2: DENY direct table access applied.';
+PRINT N'>>> Đã áp dụng DENY truy cập bảng trực tiếp.';
 GO
-
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   PHẦN 3 — GRANT EXECUTE trên stored procedure theo vai trò
-
-   Ma trận phân quyền:
-   ┌─────────────────────────────────────────┬──────────┬──────────┬───────────┐
-   │ SP                                      │ NGANHANG │ CHINHANH │ KHACHHANG │
-   ├─────────────────────────────────────────┼──────────┼──────────┼───────────┤
-   │ ── SP KHÁCH HÀNG ──                     │          │          │           │
-   │ SP_GetCustomersByBranch                 │    ✓     │    ✓     │           │
-   │ SP_GetCustomerByCMND                    │    ✓     │    ✓     │           │
-   │ SP_AddCustomer                          │    ✓     │    ✓     │           │
-   │ SP_UpdateCustomer                       │    ✓     │    ✓     │           │
-   │ SP_DeleteCustomer                       │    ✓     │    ✓     │           │
-   │ SP_RestoreCustomer                      │    ✓     │    ✓     │           │
-   │ SP_GetAllCustomers                      │    ✓     │          │           │
-   │ ── SP NHÂN VIÊN ──                      │          │          │           │
-   │ SP_GetEmployeesByBranch                 │    ✓     │    ✓     │           │
-   │ SP_GetEmployee                          │    ✓     │    ✓     │           │
-   │ SP_AddEmployee                          │    ✓     │    ✓     │           │
-   │ SP_UpdateEmployee                       │    ✓     │    ✓     │           │
-   │ SP_DeleteEmployee                       │    ✓     │    ✓     │           │
-   │ SP_RestoreEmployee                      │    ✓     │    ✓     │           │
-   │ SP_TransferEmployee                     │    ✓     │          │           │
-   │ SP_EmployeeExists                       │    ✓     │    ✓     │           │
-   │ SP_GetAllEmployees                      │    ✓     │          │           │
-   │ SP_GetNextManv                          │    ✓     │    ✓     │           │
-   │ ── SP TÀI KHOẢN ──                      │          │          │           │
-   │ SP_GetAccountsByBranch                  │    ✓     │    ✓     │           │
-   │ SP_GetAccountsByCustomer                │    ✓     │    ✓     │    ✓      │
-   │ SP_GetAccount                           │    ✓     │    ✓     │    ✓      │
-   │ SP_AddAccount                           │    ✓     │    ✓     │           │
-   │ SP_UpdateAccount                        │    ✓     │    ✓     │           │
-   │ SP_DeleteAccount                        │    ✓     │    ✓     │           │
-   │ SP_CloseAccount                         │    ✓     │    ✓     │           │
-   │ SP_ReopenAccount                        │    ✓     │    ✓     │           │
-   │ SP_DeductFromAccount                    │    ✓     │    ✓     │           │
-   │ SP_AddToAccount                         │    ✓     │    ✓     │           │
-   │ SP_GetAllAccounts                       │    ✓     │          │           │
-   │ ── SP GIAO DỊCH ──                      │          │          │           │
-   │ SP_GetTransactionsByAccount             │    ✓     │    ✓     │    ✓      │
-   │ SP_GetTransactionsByBranch              │    ✓     │    ✓     │           │
-   │ SP_GetDailyWithdrawalTotal              │    ✓     │    ✓     │           │
-   │ SP_GetDailyTransferTotal                │    ✓     │    ✓     │           │
-   │ SP_Deposit                              │    ✓     │    ✓     │           │
-   │ SP_Withdraw                             │    ✓     │    ✓     │           │
-   │ SP_CreateTransferTransaction            │    ✓     │    ✓     │           │
-   │ SP_CrossBranchTransfer                  │    ✓     │    ✓     │           │
-   │ ── SP BÁO CÁO ──                        │          │          │           │
-   │ SP_GetAccountStatement                  │    ✓     │    ✓     │    ✓      │
-   │ SP_GetAccountsOpenedInPeriod            │    ✓     │    ✓     │           │
-   │ SP_GetTransactionSummary                │    ✓     │    ✓     │           │
-   │ ── SP XÁC THỰC + CHI NHÁNH ──          │          │          │           │
-   │ SP_GetUser                              │    ✓     │    ✓     │           │
-   │ SP_GetAllUsers                          │    ✓     │    ✓     │           │
-    │ USP_AddUser                             │    ✓     │    ✓     │           │
-   │ SP_UpdateUser                           │    ✓     │    ✓     │           │
-   │ SP_SoftDeleteUser                       │    ✓     │    ✓     │           │
-   │ SP_RestoreUser                          │    ✓     │          │           │
-   │ SP_GetBranches                          │    ✓     │    ✓     │    ✓      │
-   │ SP_GetBranch                            │    ✓     │    ✓     │    ✓      │
-   │ SP_AddBranch                            │    ✓     │          │           │
-   │ SP_UpdateBranch                         │    ✓     │          │           │
-   │ SP_DeleteBranch                         │    ✓     │          │           │
-   │ ── SP BẢO MẬT (file này) ──             │          │          │           │
-   │ sp_DangNhap                             │  PUBLIC  │  PUBLIC  │  PUBLIC   │
-   │ sp_TaoTaiKhoan                          │    ✓     │    ✓     │           │
-   └─────────────────────────────────────────┴──────────┴──────────┴───────────┘
-   ═══════════════════════════════════════════════════════════════════════════════ */
-
--- ── 3A. Cấp quyền cho NGANHANG (toàn quyền truy cập tất cả SP nghiệp vụ) ─────────────────
--- Khách hàng
+-- Cấp quyền EXECUTE cho role NGANHANG.
 GRANT EXECUTE ON dbo.SP_GetCustomersByBranch     TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_GetCustomerByCMND        TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_AddCustomer              TO NGANHANG;
@@ -160,7 +48,7 @@ GRANT EXECUTE ON dbo.SP_UpdateCustomer           TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_DeleteCustomer           TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_RestoreCustomer          TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_GetAllCustomers          TO NGANHANG;
--- Nhân viên
+
 GRANT EXECUTE ON dbo.SP_GetEmployeesByBranch     TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_GetEmployee              TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_AddEmployee              TO NGANHANG;
@@ -171,7 +59,7 @@ GRANT EXECUTE ON dbo.SP_TransferEmployee         TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_EmployeeExists           TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_GetAllEmployees          TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_GetNextManv              TO NGANHANG;
--- Tài khoản
+
 GRANT EXECUTE ON dbo.SP_GetAccountsByBranch      TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_GetAccountsByCustomer    TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_GetAccount               TO NGANHANG;
@@ -183,7 +71,7 @@ GRANT EXECUTE ON dbo.SP_ReopenAccount            TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_DeductFromAccount        TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_AddToAccount             TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_GetAllAccounts           TO NGANHANG;
--- Giao dịch
+
 GRANT EXECUTE ON dbo.SP_GetTransactionsByAccount TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_GetTransactionsByBranch  TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_GetDailyWithdrawalTotal  TO NGANHANG;
@@ -192,11 +80,11 @@ GRANT EXECUTE ON dbo.SP_Deposit                  TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_Withdraw                 TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_CreateTransferTransaction TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_CrossBranchTransfer      TO NGANHANG;
--- Báo cáo
+
 GRANT EXECUTE ON dbo.SP_GetAccountStatement      TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_GetAccountsOpenedInPeriod TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_GetTransactionSummary    TO NGANHANG;
--- Xác thực + Chi nhánh (quản trị đầy đủ bao gồm quản lý chi nhánh)
+
 GRANT EXECUTE ON dbo.SP_GetUser                  TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_GetAllUsers              TO NGANHANG;
 GRANT EXECUTE ON dbo.USP_AddUser                 TO NGANHANG;
@@ -209,16 +97,14 @@ GRANT EXECUTE ON dbo.SP_AddBranch                TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_UpdateBranch             TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_DeleteBranch             TO NGANHANG;
 GO
-
--- ── 3B. Cấp quyền cho CHINHANH (CRUD cấp chi nhánh, quản lý người dùng, không quản trị chi nhánh) ──
--- Khách hàng
+-- Cấp quyền EXECUTE cho role CHINHANH.
 GRANT EXECUTE ON dbo.SP_GetCustomersByBranch     TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_GetCustomerByCMND        TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_AddCustomer              TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_UpdateCustomer           TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_DeleteCustomer           TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_RestoreCustomer          TO CHINHANH;
--- Nhân viên
+
 GRANT EXECUTE ON dbo.SP_GetEmployeesByBranch     TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_GetEmployee              TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_AddEmployee              TO CHINHANH;
@@ -227,7 +113,7 @@ GRANT EXECUTE ON dbo.SP_DeleteEmployee           TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_RestoreEmployee          TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_EmployeeExists           TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_GetNextManv              TO CHINHANH;
--- Tài khoản
+
 GRANT EXECUTE ON dbo.SP_GetAccountsByBranch      TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_GetAccountsByCustomer    TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_GetAccount               TO CHINHANH;
@@ -238,7 +124,7 @@ GRANT EXECUTE ON dbo.SP_CloseAccount             TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_ReopenAccount            TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_DeductFromAccount        TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_AddToAccount             TO CHINHANH;
--- Giao dịch
+
 GRANT EXECUTE ON dbo.SP_GetTransactionsByAccount TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_GetTransactionsByBranch  TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_GetDailyWithdrawalTotal  TO CHINHANH;
@@ -247,71 +133,38 @@ GRANT EXECUTE ON dbo.SP_Deposit                  TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_Withdraw                 TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_CreateTransferTransaction TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_CrossBranchTransfer      TO CHINHANH;
--- Báo cáo
+
 GRANT EXECUTE ON dbo.SP_GetAccountStatement      TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_GetAccountsOpenedInPeriod TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_GetTransactionSummary    TO CHINHANH;
--- Xác thực (xem + tạo người dùng, không quản trị chi nhánh)
+
 GRANT EXECUTE ON dbo.SP_GetUser                  TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_GetAllUsers              TO CHINHANH;
 GRANT EXECUTE ON dbo.USP_AddUser                 TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_UpdateUser               TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_SoftDeleteUser           TO CHINHANH;
--- Chi nhánh (chỉ đọc cho CHINHANH; không Thêm/Sửa/Xóa)
 GRANT EXECUTE ON dbo.SP_GetBranches              TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_GetBranch                TO CHINHANH;
 GO
-
--- ── 3C. Cấp quyền cho KHACHHANG (tối thiểu: đọc tài khoản cá nhân + sao kê) ──────────
--- Tài khoản (chỉ đọc cho tài khoản cá nhân)
+-- Cấp quyền EXECUTE tối thiểu cho role KHACHHANG.
 GRANT EXECUTE ON dbo.SP_GetAccountsByCustomer    TO KHACHHANG;
 GRANT EXECUTE ON dbo.SP_GetAccount               TO KHACHHANG;
--- Giao dịch (lịch sử chỉ đọc cho tài khoản cá nhân)
 GRANT EXECUTE ON dbo.SP_GetTransactionsByAccount TO KHACHHANG;
--- Báo cáo (chỉ sao kê tài khoản cá nhân)
 GRANT EXECUTE ON dbo.SP_GetAccountStatement      TO KHACHHANG;
--- Chi nhánh (chỉ đọc cho danh sách chi nhánh)
 GRANT EXECUTE ON dbo.SP_GetBranches              TO KHACHHANG;
 GRANT EXECUTE ON dbo.SP_GetBranch                TO KHACHHANG;
 GO
-
-PRINT '>>> Section 3: GRANT EXECUTE permissions applied.';
+PRINT N'>>> Đã cấp quyền EXECUTE theo từng role.';
 GO
-
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   PHẦN 4 — sp_DangNhap  (Publisher version)
-   Xử lý đăng nhập ngân hàng: truy vấn catalog hệ thống SQL Server để xác định
-   vai trò cơ sở dữ liệu của đăng nhập SQL hiện tại.
-
-   Trả về một tập kết quả:
-     MANV      nvarchar(50)  — tên đăng nhập SQL (SYSTEM_USER)
-     HOTEN     nvarchar(128) — tên hiển thị (USER_NAME())
-     TENNHOM   nvarchar(128) — tên vai trò (NGANHANG / CHINHANH / KHACHHANG)
-     MACN      nChar(10)     — mã chi nhánh mặc định (NULL cho NGANHANG)
-
-   Giải thuật giải quyết DefaultBranch (MACN):
-     1. NGUOIDUNG.DefaultBranch  (hub-only, maps SQL login → branch)
-     2. NHANVIEN.MACN            (WHERE MANV = SYSTEM_USER)
-     3. KHACHHANG.MACN           (WHERE CMND = SYSTEM_USER)
-
-   Sử dụng ownership chaining: dbo SP đọc dbo table → bỏ qua DENY SELECT.
-
-   Sử dụng từ C#:
-     var result = await connection.QuerySingleAsync<LoginResult>("EXEC sp_DangNhap");
-   ═══════════════════════════════════════════════════════════════════════════════ */
-
+-- SP đăng nhập: trả về tài khoản, nhóm quyền và chi nhánh mặc định.
 CREATE OR ALTER PROCEDURE dbo.sp_DangNhap
 AS
 BEGIN
     SET NOCOUNT ON;
-
-    -- ── Step 1: Resolve role via system catalogs (QLVT pattern) ──
-    -- Priority: NGANHANG > CHINHANH > KHACHHANG.
-    DECLARE @MANV     nvarchar(50)  = SYSTEM_USER;   -- SQL login name
-    DECLARE @HOTEN    nvarchar(128) = USER_NAME();    -- DB user name
+    DECLARE @MANV     nvarchar(50)  = SYSTEM_USER;
+    DECLARE @HOTEN    nvarchar(128) = USER_NAME();
     DECLARE @TENNHOM  nvarchar(128) = NULL;
-    DECLARE @MACN     nChar(10)     = NULL;           -- default branch code
+    DECLARE @MACN     nChar(10)     = NULL;
 
     SELECT TOP 1 @TENNHOM = r.name
     FROM   sys.database_role_members rm
@@ -326,7 +179,6 @@ BEGIN
             WHEN N'KHACHHANG' THEN 3
         END ASC;
 
-    -- Fallback: db_owner / sysadmin → NGANHANG; otherwise lowest privilege.
     IF @TENNHOM IS NULL
     BEGIN
         IF IS_MEMBER('db_owner') = 1 OR IS_SRVROLEMEMBER('sysadmin') = 1
@@ -334,24 +186,17 @@ BEGIN
         ELSE
             SET @TENNHOM = N'KHACHHANG';
     END
-
-    -- ── Step 2: Resolve DefaultBranch (MACN) for CHINHANH / KHACHHANG ──
-    -- Ownership chaining: dbo SP → dbo tables, DENY SELECT on caller is bypassed.
+    
     IF @TENNHOM IN (N'CHINHANH', N'KHACHHANG')
     BEGIN
-        -- 1st: NGUOIDUNG table (hub-only, maps SQL login → branch directly)
-        --      NULLIF handles empty-string DefaultBranch rows (e.g. NGANHANG users).
         IF OBJECT_ID(N'dbo.NGUOIDUNG', N'U') IS NOT NULL
             SELECT @MACN = NULLIF(RTRIM(DefaultBranch), N'')
             FROM   dbo.NGUOIDUNG
             WHERE  Username = SYSTEM_USER AND TrangThaiXoa = 0;
-
-        -- 2nd: NHANVIEN (employee login whose MANV = SQL login name)
         IF @MACN IS NULL
             SELECT @MACN = MACN FROM dbo.NHANVIEN
             WHERE  MANV = SYSTEM_USER AND TrangThaiXoa = 0;
 
-        -- 3rd: KHACHHANG (customer login whose CMND = SQL login name)
         IF @MACN IS NULL
             SELECT TOP 1 @MACN = MACN FROM dbo.KHACHHANG
             WHERE  CMND = SYSTEM_USER AND TrangThaiXoa = 0;
@@ -361,35 +206,11 @@ BEGIN
 END
 GO
 
--- sp_DangNhap must be callable by any login (pre-authentication resolver)
 GRANT EXECUTE ON dbo.sp_DangNhap TO PUBLIC;
 GO
-
-PRINT '>>> Section 4: sp_DangNhap created.';
+PRINT N'>>> Đã tạo sp_DangNhap.';
 GO
-
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   PHẦN 5 — sp_TaoTaiKhoan
-   Tạo tài khoản ngân hàng: bao bọc sp_addlogin / sp_grantdbaccess /
-   sp_addrolemember để tạo đăng nhập SQL Server, ánh xạ vào DB hiện tại,
-   và gán vào vai trò cơ sở dữ liệu phù hợp.
-
-   Tham số:
-     @LOGIN    nvarchar(50)   — tên đăng nhập SQL cần tạo
-     @PASS     nvarchar(128)  — mật khẩu ban đầu
-     @TENNHOM  nvarchar(128)  — tên vai trò: 'NGANHANG', 'CHINHANH', hoặc 'KHACHHANG'
-
-   Phân quyền:
-     • Thành viên NGANHANG có thể tạo đăng nhập cho bất kỳ vai trò nào.
-     • Thành viên CHINHANH chỉ có thể tạo đăng nhập CHINHANH và KHACHHANG.
-     • Thành viên KHACHHANG không thể gọi SP này (không có GRANT).
-
-   Sử dụng từ C#:
-     await connection.ExecuteAsync("EXEC sp_TaoTaiKhoan @LOGIN, @PASS, @TENNHOM",
-         new { LOGIN = username, PASS = password, TENNHOM = "CHINHANH" });
-   ═══════════════════════════════════════════════════════════════════════════════ */
-
+-- SP tạo tài khoản đăng nhập và gán role theo phân quyền người gọi.
 CREATE OR ALTER PROCEDURE dbo.sp_TaoTaiKhoan
     @LOGIN    nvarchar(50),
     @PASS     nvarchar(128),
@@ -398,14 +219,12 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- ── Kiểm tra tên vai trò ───────────────────────────────────────────────────────
     IF @TENNHOM NOT IN (N'NGANHANG', N'CHINHANH', N'KHACHHANG')
     BEGIN
-        RAISERROR(N'Invalid role name: %s. Must be NGANHANG, CHINHANH, or KHACHHANG.', 16, 1, @TENNHOM);
+        RAISERROR(N'Tên role không hợp lệ: %s. Chỉ chấp nhận NGANHANG, CHINHANH hoặc KHACHHANG.', 16, 1, @TENNHOM);
         RETURN;
     END
 
-    -- ── Thực thi phân quyền: ai có thể tạo gì ───────────────────────────────
     DECLARE @CallerRole nvarchar(128);
     SELECT TOP 1 @CallerRole = r.name
     FROM   sys.database_role_members rm
@@ -420,51 +239,43 @@ BEGIN
             WHEN N'KHACHHANG' THEN 3
         END ASC;
 
-    -- db_owner / sysadmin → được xử lý như NGANHANG
     IF @CallerRole IS NULL AND (IS_MEMBER('db_owner') = 1 OR IS_SRVROLEMEMBER('sysadmin') = 1)
         SET @CallerRole = N'NGANHANG';
 
     IF @CallerRole IS NULL
     BEGIN
-        RAISERROR(N'Caller does not belong to any recognized role. Cannot create accounts.', 16, 1);
+        RAISERROR(N'Người gọi không thuộc role hợp lệ, không thể tạo tài khoản.', 16, 1);
         RETURN;
     END
 
-    -- CHINHANH chỉ có thể tạo đăng nhập CHINHANH hoặc KHACHHANG
     IF @CallerRole = N'CHINHANH' AND @TENNHOM = N'NGANHANG'
     BEGIN
-        RAISERROR(N'CHINHANH members cannot create NGANHANG logins.', 16, 1);
+        RAISERROR(N'Tài khoản CHINHANH không được tạo login thuộc role NGANHANG.', 16, 1);
         RETURN;
     END
 
-    -- KHACHHANG không thể tạo đăng nhập (không nên đến đây nhờ GRANT)
     IF @CallerRole = N'KHACHHANG'
     BEGIN
-        RAISERROR(N'KHACHHANG members cannot create logins.', 16, 1);
+        RAISERROR(N'Tài khoản KHACHHANG không được phép tạo login.', 16, 1);
         RETURN;
     END
 
-    -- ── Bước 1: Tạo đăng nhập SQL Server (cấp server) ───────────────────
     IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = @LOGIN)
     BEGIN
-        -- sp_addlogin tạo đăng nhập SQL Server với cơ sở dữ liệu mặc định
         EXEC sp_addlogin @loginame = @LOGIN, @passwd = @PASS, @defdb = N'NGANHANG_PUB';
-        PRINT 'Login created: ' + @LOGIN;
+        PRINT N'Đã tạo login: ' + @LOGIN;
     END
     ELSE
-        PRINT 'Login already exists: ' + @LOGIN;
+        PRINT N'Login đã tồn tại: ' + @LOGIN;
 
-    -- ── Bước 2: Ánh xạ đăng nhập sang người dùng cơ sở dữ liệu ───────────────
     IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = @LOGIN AND type IN ('S', 'U'))
     BEGIN
         EXEC sp_grantdbaccess @loginame = @LOGIN, @name_in_db = @LOGIN;
-        PRINT 'DB user created: ' + @LOGIN;
+        PRINT N'Đã tạo DB user: ' + @LOGIN;
     END
     ELSE
-        PRINT 'DB user already exists: ' + @LOGIN;
+        PRINT N'DB user đã tồn tại: ' + @LOGIN;
 
-    -- ── Bước 3: Thêm người dùng vào vai trò chỉ định ───────────────────────
-    -- Kiểm tra nếu đã là thành viên (tránh lỗi khi chạy lại)
     IF NOT EXISTS (
         SELECT 1
         FROM   sys.database_role_members rm
@@ -474,72 +285,51 @@ BEGIN
     )
     BEGIN
         EXEC sp_addrolemember @rolename = @TENNHOM, @membername = @LOGIN;
-        PRINT 'User ' + @LOGIN + ' added to role ' + @TENNHOM;
+        PRINT N'Đã thêm user ' + @LOGIN + N' vào role ' + @TENNHOM;
     END
     ELSE
-        PRINT 'User ' + @LOGIN + ' already in role ' + @TENNHOM;
+        PRINT N'User ' + @LOGIN + N' đã thuộc role ' + @TENNHOM;
 END
 GO
 
--- GRANT EXECUTE cho NGANHANG và CHINHANH (hai vai trò có thể tạo tài khoản)
 GRANT EXECUTE ON dbo.sp_TaoTaiKhoan TO NGANHANG;
 GRANT EXECUTE ON dbo.sp_TaoTaiKhoan TO CHINHANH;
 GO
-
-PRINT '>>> Section 5: sp_TaoTaiKhoan created.';
+PRINT N'>>> Đã tạo sp_TaoTaiKhoan.';
 GO
-
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   PHẦN 6 — sp_XoaTaiKhoan
-   Xóa đăng nhập SQL hiện có và người dùng cơ sở dữ liệu của nó. Chỉ thành viên NGANHANG
-   mới có thể thực thi (quyền quản trị đầy đủ).
-   ═══════════════════════════════════════════════════════════════════════════════ */
-
+-- SP xóa tài khoản login (chỉ NGANHANG hoặc quản trị hệ thống).
 CREATE OR ALTER PROCEDURE dbo.sp_XoaTaiKhoan
     @LOGIN nvarchar(50)
 AS
 BEGIN
     SET NOCOUNT ON;
-
-    -- Chỉ NGANHANG / db_owner / sysadmin được phép xóa đăng nhập
     IF IS_MEMBER('NGANHANG') <> 1
        AND IS_MEMBER('db_owner') <> 1
        AND IS_SRVROLEMEMBER('sysadmin') <> 1
     BEGIN
-        RAISERROR(N'Only NGANHANG members can delete login accounts.', 16, 1);
+        RAISERROR(N'Chỉ role NGANHANG mới được xóa tài khoản login.', 16, 1);
         RETURN;
     END
 
-    -- Xóa người dùng DB trước
     IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = @LOGIN AND type IN ('S', 'U'))
     BEGIN
         EXEC sp_revokedbaccess @name_in_db = @LOGIN;
-        PRINT 'DB user dropped: ' + @LOGIN;
+        PRINT N'Đã xóa DB user: ' + @LOGIN;
     END
 
-    -- Xóa đăng nhập server
     IF EXISTS (SELECT 1 FROM sys.server_principals WHERE name = @LOGIN)
     BEGIN
         EXEC sp_droplogin @loginame = @LOGIN;
-        PRINT 'Login dropped: ' + @LOGIN;
+        PRINT N'Đã xóa login: ' + @LOGIN;
     END
 END
 GO
 
 GRANT EXECUTE ON dbo.sp_XoaTaiKhoan TO NGANHANG;
 GO
-
-PRINT '>>> Section 6: sp_XoaTaiKhoan created.';
+PRINT N'>>> Đã tạo sp_XoaTaiKhoan.';
 GO
-
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   PHẦN 7 — sp_DoiMatKhau
-   Đổi mật khẩu đăng nhập SQL. Người dùng có thể đổi mật khẩu của mình;
-   thành viên NGANHANG có thể đặt lại mật khẩu của bất kỳ người dùng nào.
-   ═══════════════════════════════════════════════════════════════════════════════ */
-
+-- SP đổi mật khẩu: cho phép tự đổi hoặc NGANHANG reset cho tài khoản khác.
 CREATE OR ALTER PROCEDURE dbo.sp_DoiMatKhau
     @LOGIN    nvarchar(50),
     @PASSCU   nvarchar(128),
@@ -548,27 +338,23 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Tự đổi: người gọi đổi mật khẩu của mình
     IF @LOGIN = SYSTEM_USER
     BEGIN
-        -- sp_password kiểm tra mật khẩu cũ nội bộ
         EXEC sp_password @old = @PASSCU, @new = @PASSMOI, @loginame = @LOGIN;
-        PRINT 'Password changed for: ' + @LOGIN;
+        PRINT N'Đã đổi mật khẩu cho: ' + @LOGIN;
         RETURN;
     END
 
-    -- Đặt lại bởi quản trị: chỉ NGANHANG / db_owner / sysadmin
     IF IS_MEMBER('NGANHANG') <> 1
        AND IS_MEMBER('db_owner') <> 1
        AND IS_SRVROLEMEMBER('sysadmin') <> 1
     BEGIN
-        RAISERROR(N'Only NGANHANG members can reset other users'' passwords.', 16, 1);
+        RAISERROR(N'Chỉ role NGANHANG mới được đặt lại mật khẩu cho tài khoản khác.', 16, 1);
         RETURN;
     END
 
-    -- Quản trị viên không cần mật khẩu cũ
     EXEC sp_password @old = NULL, @new = @PASSMOI, @loginame = @LOGIN;
-    PRINT 'Password reset for: ' + @LOGIN;
+    PRINT N'Đã đặt lại mật khẩu cho: ' + @LOGIN;
 END
 GO
 
@@ -576,17 +362,9 @@ GRANT EXECUTE ON dbo.sp_DoiMatKhau TO NGANHANG;
 GRANT EXECUTE ON dbo.sp_DoiMatKhau TO CHINHANH;
 GRANT EXECUTE ON dbo.sp_DoiMatKhau TO KHACHHANG;
 GO
-
-PRINT '>>> Section 7: sp_DoiMatKhau created.';
+PRINT N'>>> Đã tạo sp_DoiMatKhau.';
 GO
-
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   PHẦN 8 — sp_DanhSachNhanVien (liệt kê tất cả người dùng DB và vai trò)
-   SP tiện ích cho trang quản trị — hiển thị ai có quyền truy cập và vai trò nào.
-   Chỉ NGANHANG và CHINHANH có thể gọi SP này.
-   ═══════════════════════════════════════════════════════════════════════════════ */
-
+-- SP liệt kê user theo nhóm quyền trong database.
 CREATE OR ALTER PROCEDURE dbo.sp_DanhSachNhanVien
 AS
 BEGIN
@@ -600,7 +378,7 @@ BEGIN
     JOIN   sys.database_principals   u ON u.principal_id = rm.member_principal_id
     JOIN   sys.database_principals   r ON r.principal_id = rm.role_principal_id
     WHERE  r.name IN (N'NGANHANG', N'CHINHANH', N'KHACHHANG')
-      AND  u.type IN ('S', 'U')     -- chỉ người dùng SQL và Windows
+            AND  u.type IN ('S', 'U')
     ORDER BY r.name ASC, u.name ASC;
 END
 GO
@@ -608,37 +386,25 @@ GO
 GRANT EXECUTE ON dbo.sp_DanhSachNhanVien TO NGANHANG;
 GRANT EXECUTE ON dbo.sp_DanhSachNhanVien TO CHINHANH;
 GO
-
-PRINT '>>> Section 8: sp_DanhSachNhanVien created.';
+PRINT N'>>> Đã tạo sp_DanhSachNhanVien.';
 GO
-
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   PHẦN 9 — Dữ liệu mẫu: đăng nhập quản trị demo
-   Tạo đăng nhập quản trị NGANHANG mặc định để truy cập hệ thống ban đầu.
-   Đây là tài khoản khởi tạo — sử dụng sp_TaoTaiKhoan cho tất cả
-   việc tạo tài khoản tiếp theo.
-
-   CẢNH BÁO: Đổi mật khẩu trước khi sử dụng cho sản xuất hoặc thuyết trình.
-   ═══════════════════════════════════════════════════════════════════════════════ */
-
--- Dữ liệu mẫu đăng nhập: ADMIN_NH / Admin@123
+-- Tạo sẵn login demo và gán role tương ứng.
 IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'ADMIN_NH')
 BEGIN
     EXEC sp_addlogin @loginame = N'ADMIN_NH', @passwd = N'Admin@123', @defdb = N'NGANHANG_PUB';
-    PRINT '>>> Seed login ADMIN_NH created.';
+    PRINT N'>>> Đã tạo login mẫu ADMIN_NH.';
 END
 ELSE
-    PRINT '>>> Seed login ADMIN_NH already exists — skipped.';
+    PRINT N'>>> Login mẫu ADMIN_NH đã tồn tại, bỏ qua.';
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'ADMIN_NH' AND type IN ('S', 'U'))
 BEGIN
     EXEC sp_grantdbaccess @loginame = N'ADMIN_NH', @name_in_db = N'ADMIN_NH';
-    PRINT '>>> Seed DB user ADMIN_NH mapped.';
+    PRINT N'>>> Đã ánh xạ DB user ADMIN_NH.';
 END
 ELSE
-    PRINT '>>> Seed DB user ADMIN_NH already exists — skipped.';
+    PRINT N'>>> DB user ADMIN_NH đã tồn tại, bỏ qua.';
 GO
 
 IF NOT EXISTS (
@@ -650,29 +416,28 @@ IF NOT EXISTS (
 )
 BEGIN
     EXEC sp_addrolemember @rolename = N'NGANHANG', @membername = N'ADMIN_NH';
-    PRINT '>>> Seed user ADMIN_NH added to role NGANHANG.';
+    PRINT N'>>> Đã thêm ADMIN_NH vào role NGANHANG.';
 END
 ELSE
-    PRINT '>>> Seed user ADMIN_NH already in role NGANHANG — skipped.';
+    PRINT N'>>> ADMIN_NH đã thuộc role NGANHANG, bỏ qua.';
 GO
 
--- Dữ liệu mẫu đăng nhập: NV_BT (nhân viên chi nhánh Bến Thành)
 IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'NV_BT')
 BEGIN
     EXEC sp_addlogin @loginame = N'NV_BT', @passwd = N'NhanVien@123', @defdb = N'NGANHANG_PUB';
-    PRINT '>>> Seed login NV_BT created.';
+    PRINT N'>>> Đã tạo login mẫu NV_BT.';
 END
 ELSE
-    PRINT '>>> Seed login NV_BT already exists — skipped.';
+    PRINT N'>>> Login mẫu NV_BT đã tồn tại, bỏ qua.';
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'NV_BT' AND type IN ('S', 'U'))
 BEGIN
     EXEC sp_grantdbaccess @loginame = N'NV_BT', @name_in_db = N'NV_BT';
-    PRINT '>>> Seed DB user NV_BT mapped.';
+    PRINT N'>>> Đã ánh xạ DB user NV_BT.';
 END
 ELSE
-    PRINT '>>> Seed DB user NV_BT already exists — skipped.';
+    PRINT N'>>> DB user NV_BT đã tồn tại, bỏ qua.';
 GO
 
 IF NOT EXISTS (
@@ -684,29 +449,28 @@ IF NOT EXISTS (
 )
 BEGIN
     EXEC sp_addrolemember @rolename = N'CHINHANH', @membername = N'NV_BT';
-    PRINT '>>> Seed user NV_BT added to role CHINHANH.';
+    PRINT N'>>> Đã thêm NV_BT vào role CHINHANH.';
 END
 ELSE
-    PRINT '>>> Seed user NV_BT already in role CHINHANH — skipped.';
+    PRINT N'>>> NV_BT đã thuộc role CHINHANH, bỏ qua.';
 GO
 
--- Dữ liệu mẫu đăng nhập: KH_DEMO (đăng nhập khách hàng demo)
 IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'KH_DEMO')
 BEGIN
     EXEC sp_addlogin @loginame = N'KH_DEMO', @passwd = N'KhachHang@123', @defdb = N'NGANHANG_PUB';
-    PRINT '>>> Seed login KH_DEMO created.';
+    PRINT N'>>> Đã tạo login mẫu KH_DEMO.';
 END
 ELSE
-    PRINT '>>> Seed login KH_DEMO already exists — skipped.';
+    PRINT N'>>> Login mẫu KH_DEMO đã tồn tại, bỏ qua.';
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'KH_DEMO' AND type IN ('S', 'U'))
 BEGIN
     EXEC sp_grantdbaccess @loginame = N'KH_DEMO', @name_in_db = N'KH_DEMO';
-    PRINT '>>> Seed DB user KH_DEMO mapped.';
+    PRINT N'>>> Đã ánh xạ DB user KH_DEMO.';
 END
 ELSE
-    PRINT '>>> Seed DB user KH_DEMO already exists — skipped.';
+    PRINT N'>>> DB user KH_DEMO đã tồn tại, bỏ qua.';
 GO
 
 IF NOT EXISTS (
@@ -718,23 +482,15 @@ IF NOT EXISTS (
 )
 BEGIN
     EXEC sp_addrolemember @rolename = N'KHACHHANG', @membername = N'KH_DEMO';
-    PRINT '>>> Seed user KH_DEMO added to role KHACHHANG.';
+    PRINT N'>>> Đã thêm KH_DEMO vào role KHACHHANG.';
 END
 ELSE
-    PRINT '>>> Seed user KH_DEMO already in role KHACHHANG — skipped.';
+    PRINT N'>>> KH_DEMO đã thuộc role KHACHHANG, bỏ qua.';
 GO
-
-PRINT '>>> Section 9: Seed demo logins created (ADMIN_NH, NV_BT, KH_DEMO).';
+PRINT N'>>> Đã xử lý xong nhóm login mẫu (ADMIN_NH, NV_BT, KH_DEMO).';
 GO
-
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   PHẦN 10 — Xác minh
-   Truy vấn tổng hợp hiển thị tất cả vai trò, thành viên và quyền SP.
-   ═══════════════════════════════════════════════════════════════════════════════ */
-
-PRINT '';
-PRINT '─── Role Membership ────────────────────────────────────';
+PRINT N'';
+PRINT N'--- Danh sách thành viên role ---';
 SELECT
     r.name   AS RoleName,
     u.name   AS MemberName,
@@ -745,9 +501,8 @@ JOIN   sys.database_principals   r ON r.principal_id = rm.role_principal_id
 WHERE  r.name IN (N'NGANHANG', N'CHINHANH', N'KHACHHANG')
 ORDER BY r.name, u.name;
 GO
-
-PRINT '';
-PRINT '─── SP Permission Counts per Role ──────────────────────';
+PRINT N'';
+PRINT N'--- Số quyền EXECUTE theo role ---';
 SELECT
     dp.name                     AS RoleName,
     COUNT(*)                    AS GrantedSPCount
@@ -760,9 +515,8 @@ WHERE  p.permission_name = 'EXECUTE'
 GROUP BY dp.name
 ORDER BY dp.name;
 GO
-
-PRINT '';
-PRINT '─── Security SPs Created ───────────────────────────────';
+PRINT N'';
+PRINT N'--- Danh sách stored procedure bảo mật ---';
 SELECT name, type_desc, create_date
 FROM   sys.objects
 WHERE  type = 'P'
@@ -770,12 +524,11 @@ WHERE  type = 'P'
                 'sp_DoiMatKhau', 'sp_DanhSachNhanVien')
 ORDER BY name;
 GO
-
-PRINT '';
-PRINT '=== 04_publisher_security.sql completed successfully ===';
-PRINT '    Roles:   NGANHANG, CHINHANH, KHACHHANG';
-PRINT '    SPs:     sp_DangNhap, sp_TaoTaiKhoan, sp_XoaTaiKhoan,';
-PRINT '             sp_DoiMatKhau, sp_DanhSachNhanVien';
-PRINT '    Seeds:   ADMIN_NH (NGANHANG), NV_BT (CHINHANH), KH_DEMO (KHACHHANG)';
-PRINT '    Next:    05_replication_setup_merge.sql (Step 5/8)';
+PRINT N'';
+PRINT N'=== Hoàn tất 04_publisher_security.sql ===';
+PRINT N'    Role: NGANHANG, CHINHANH, KHACHHANG';
+PRINT N'    SP bảo mật: sp_DangNhap, sp_TaoTaiKhoan, sp_XoaTaiKhoan,';
+PRINT N'               sp_DoiMatKhau, sp_DanhSachNhanVien';
+PRINT N'    Login mẫu: ADMIN_NH (NGANHANG), NV_BT (CHINHANH), KH_DEMO (KHACHHANG)';
+PRINT N'    Bước tiếp theo: 05_replication_setup_merge.sql (bước 5/8)';
 GO
