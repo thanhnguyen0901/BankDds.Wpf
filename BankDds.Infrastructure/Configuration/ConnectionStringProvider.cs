@@ -99,6 +99,23 @@ public class ConnectionStringProvider : IConnectionStringProvider
         return InjectCredentials(template, _sqlLogin, _sqlPassword);
     }
 
+    /// <inheritdoc />
+    public IReadOnlyList<string> GetConfiguredBranchCodes()
+    {
+        var branchCodes = _configuration
+            .GetSection("ConnectionStrings")
+            .GetChildren()
+            .Select(child => child.Key)
+            .Where(key => key.StartsWith("Branch_", StringComparison.OrdinalIgnoreCase))
+            .Select(key => key["Branch_".Length..].Trim().ToUpperInvariant())
+            .Where(code => !string.IsNullOrWhiteSpace(code))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(code => code, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return branchCodes;
+    }
+
     // ───────────────────────── misc ─────────────────────────
 
     public string DefaultBranch =>

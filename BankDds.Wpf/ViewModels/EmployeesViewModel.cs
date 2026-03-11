@@ -111,13 +111,15 @@ public class EmployeesViewModel : Screen
 
     public ObservableCollection<string> AvailableBranches { get; } = new() { "BENTHANH", "TANDINH" };
 
-    public bool CanAdd => !IsEditing;
-    public bool CanEdit => SelectedEmployee != null && !IsEditing;
-    public bool CanDelete => SelectedEmployee != null && !IsEditing && SelectedEmployee.TrangThaiXoa == 0;
-    public bool CanRestore => SelectedEmployee != null && !IsEditing && SelectedEmployee.TrangThaiXoa == 1;
+    private bool CanModifyEmployees => _userSession.UserGroup == UserGroup.ChiNhanh;
+
+    public bool CanAdd => CanModifyEmployees && !IsEditing;
+    public bool CanEdit => CanModifyEmployees && SelectedEmployee != null && !IsEditing;
+    public bool CanDelete => CanModifyEmployees && SelectedEmployee != null && !IsEditing && SelectedEmployee.TrangThaiXoa == 0;
+    public bool CanRestore => CanModifyEmployees && SelectedEmployee != null && !IsEditing && SelectedEmployee.TrangThaiXoa == 1;
     public bool CanSave => IsEditing && !string.IsNullOrWhiteSpace(EditingEmployee.HO) && !string.IsNullOrWhiteSpace(EditingEmployee.TEN);
     public bool CanCancel => IsEditing;
-    public bool CanExecuteTransferBranch => SelectedEmployee != null && !IsEditing && SelectedEmployee.TrangThaiXoa == 0 && !string.IsNullOrWhiteSpace(TransferBranch);
+    public bool CanExecuteTransferBranch => CanModifyEmployees && SelectedEmployee != null && !IsEditing && SelectedEmployee.TrangThaiXoa == 0 && !string.IsNullOrWhiteSpace(TransferBranch);
 
     protected override async Task OnActivateAsync(CancellationToken cancellationToken)
     {

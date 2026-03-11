@@ -249,9 +249,15 @@ BEGIN
         RETURN;
     END
 
-    IF @CallerRole = N'CHINHANH' AND @TENNHOM = N'NGANHANG'
+    IF @CallerRole = N'NGANHANG' AND @TENNHOM <> N'NGANHANG'
     BEGIN
-        RAISERROR(N'Tài khoản CHINHANH không được tạo login thuộc role NGANHANG.', 16, 1);
+        RAISERROR(N'Tài khoản NGANHANG chỉ được tạo login thuộc role NGANHANG.', 16, 1);
+        RETURN;
+    END
+
+    IF @CallerRole = N'CHINHANH' AND @TENNHOM <> N'CHINHANH'
+    BEGIN
+        RAISERROR(N'Tài khoản CHINHANH chỉ được tạo login thuộc role CHINHANH.', 16, 1);
         RETURN;
     END
 

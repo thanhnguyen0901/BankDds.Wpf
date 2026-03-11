@@ -24,12 +24,11 @@ public class AuthorizationService : IAuthorizationService
 
     public bool CanCreateUser(UserGroup targetUserGroup)
     {
-        // NganHang can create any user type
+        // NganHang can only create NganHang logins (same-group rule).
         if (_userSession.UserGroup == UserGroup.NganHang)
-            return true;
+            return targetUserGroup == UserGroup.NganHang;
 
-        // ChiNhanh can only create logins for the same group (same-branch ChiNhanh users).
-        // KhachHang login creation is an NganHang-only privilege.
+        // ChiNhanh can only create ChiNhanh logins (same-group rule).
         if (_userSession.UserGroup == UserGroup.ChiNhanh)
             return targetUserGroup == UserGroup.ChiNhanh;
 

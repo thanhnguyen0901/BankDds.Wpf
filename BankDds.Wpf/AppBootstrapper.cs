@@ -1,17 +1,17 @@
-using System.IO;
-using System.Reflection;
-using System.Windows;
 using Autofac;
-using Caliburn.Micro;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using BankDds.Core.Interfaces;
 using BankDds.Core.Validators;
 using BankDds.Infrastructure.Configuration;
 using BankDds.Infrastructure.Data;
 using BankDds.Infrastructure.Security;
-using BankDds.Wpf.ViewModels;
 using BankDds.Wpf.Services;
+using BankDds.Wpf.ViewModels;
+using Caliburn.Micro;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using System.IO;
+using System.Reflection;
+using System.Windows;
 
 namespace BankDds.Wpf;
 
@@ -90,7 +90,7 @@ public class AppBootstrapper : BootstrapperBase
                .As<IAuthorizationService>()
                .SingleInstance();
 
-        // Validators - Register as singletons (they're stateless)
+        // Validators - Register as singletons
         builder.RegisterType<CustomerValidator>().AsSelf().SingleInstance();
         builder.RegisterType<AccountValidator>().AsSelf().SingleInstance();
         builder.RegisterType<EmployeeValidator>().AsSelf().SingleInstance();
@@ -98,7 +98,7 @@ public class AppBootstrapper : BootstrapperBase
         builder.RegisterType<UserValidator>().AsSelf().SingleInstance();
         builder.RegisterType<BranchValidator>().AsSelf().SingleInstance();
 
-        // Data access repositories (SQL Server distributed setup only).
+        // Data access repositories
         builder.RegisterType<CustomerRepository>()
                .As<ICustomerRepository>()
                .InstancePerDependency();

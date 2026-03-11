@@ -16,11 +16,4 @@ public interface IAccountRepository
     Task<bool> DeleteAccountAsync(string sotk);
     Task<bool> CloseAccountAsync(string sotk);
     Task<bool> ReopenAccountAsync(string sotk);
-    
-    /// <summary>
-    /// Atomically transfers money between two accounts.
-    /// Both account balances are updated in a single atomic operation.
-    /// Returns false if accounts don't exist or insufficient balance.
-    /// </summary>
-    Task<bool> AtomicTransferAsync(string sotkFrom, string sotkTo, decimal amount);
 }

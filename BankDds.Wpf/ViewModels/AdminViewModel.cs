@@ -197,14 +197,11 @@ public class AdminViewModel : BaseViewModel
             return;
         }
 
-        // Populate creatable user groups based on the logged-in user's role:
-        // NganHang admins can create any role; ChiNhanh admins can only create ChiNhanh (same-group).
+        // Populate creatable user groups based on the same-group rule.
         AvailableUserGroups.Clear();
         if (_userSession.UserGroup == UserGroup.NganHang)
         {
             AvailableUserGroups.Add(UserGroup.NganHang);
-            AvailableUserGroups.Add(UserGroup.ChiNhanh);
-            AvailableUserGroups.Add(UserGroup.KhachHang);
         }
         else // ChiNhanh
         {
@@ -246,9 +243,9 @@ public class AdminViewModel : BaseViewModel
     {
         EditingUser = new User
         {
-            // Default group for ChiNhanh is their own group; for NganHang default to ChiNhanh
+            // Same-group default based on current admin role.
             UserGroup = _userSession.UserGroup == UserGroup.NganHang
-                ? UserGroup.ChiNhanh
+                ? UserGroup.NganHang
                 : UserGroup.ChiNhanh,
             // Always default the branch to the current user's branch so the service-layer
             // RequireCanManageUserInBranch check passes without the admin needing to change it
@@ -300,7 +297,14 @@ public class AdminViewModel : BaseViewModel
     public async Task Save()
     {
         // Validation before loading indicator
-        if (_userSession.UserGroup != UserGroup.NganHang && 
+        if (_userSession.UserGroup == UserGroup.NganHang &&
+            EditingUser.UserGroup != UserGroup.NganHang)
+        {
+            ErrorMessage = "Bank administrators can only create Bank-level (NganHang) users.";
+            return;
+        }
+
+        if (_userSession.UserGroup != UserGroup.NganHang &&
             EditingUser.UserGroup == UserGroup.NganHang)
         {
             ErrorMessage = "Only Bank administrators can create Bank-level users.";
@@ -311,14 +315,6 @@ public class AdminViewModel : BaseViewModel
             EditingUser.UserGroup != UserGroup.ChiNhanh)
         {
             ErrorMessage = "Branch administrators can only create Branch-level (ChiNhanh) users.";
-            return;
-        }
-
-        if (SelectedUser == null &&
-            EditingUser.UserGroup == UserGroup.KhachHang && 
-            string.IsNullOrWhiteSpace(EditingUser.CustomerCMND))
-        {
-            ErrorMessage = "CustomerCMND is required for customer users.";
             return;
         }
 

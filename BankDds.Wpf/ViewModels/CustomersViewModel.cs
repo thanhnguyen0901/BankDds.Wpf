@@ -182,12 +182,14 @@ public class CustomersViewModel : BaseViewModel
 
     #endregion
 
+    private bool CanModifyCustomerData => _userSession.UserGroup == UserGroup.ChiNhanh;
+
     #region Customer CanExecute Properties
 
-    public bool CanAdd => !IsEditing;
-    public bool CanEdit => SelectedCustomer != null && SelectedCustomer.TrangThaiXoa == 0 && !IsEditing;
-    public bool CanDelete => SelectedCustomer != null && SelectedCustomer.TrangThaiXoa == 0 && !IsEditing;
-    public bool CanRestore => SelectedCustomer != null && SelectedCustomer.TrangThaiXoa == 1 && !IsEditing;
+    public bool CanAdd => CanModifyCustomerData && !IsEditing;
+    public bool CanEdit => CanModifyCustomerData && SelectedCustomer != null && SelectedCustomer.TrangThaiXoa == 0 && !IsEditing;
+    public bool CanDelete => CanModifyCustomerData && SelectedCustomer != null && SelectedCustomer.TrangThaiXoa == 0 && !IsEditing;
+    public bool CanRestore => CanModifyCustomerData && SelectedCustomer != null && SelectedCustomer.TrangThaiXoa == 1 && !IsEditing;
     public bool CanSave => IsEditing && !string.IsNullOrWhiteSpace(EditingCustomer.CMND);
     public bool CanCancel => IsEditing;
 
@@ -195,10 +197,10 @@ public class CustomersViewModel : BaseViewModel
 
     #region Account CanExecute Properties
 
-    public bool CanAddAccount => SelectedCustomer != null && SelectedCustomer.TrangThaiXoa == 0 && !IsEditingAccount;
-    public bool CanEditAccount => SelectedAccount != null && !IsEditingAccount;
-    public bool CanCloseAccount => SelectedAccount != null && SelectedAccount.Status == "Active" && !IsEditingAccount;
-    public bool CanReopenAccount => SelectedAccount != null && SelectedAccount.Status == "Closed" && !IsEditingAccount;
+    public bool CanAddAccount => CanModifyCustomerData && SelectedCustomer != null && SelectedCustomer.TrangThaiXoa == 0 && !IsEditingAccount;
+    public bool CanEditAccount => CanModifyCustomerData && SelectedAccount != null && !IsEditingAccount;
+    public bool CanCloseAccount => CanModifyCustomerData && SelectedAccount != null && SelectedAccount.Status == "Active" && !IsEditingAccount;
+    public bool CanReopenAccount => CanModifyCustomerData && SelectedAccount != null && SelectedAccount.Status == "Closed" && !IsEditingAccount;
     public bool CanSaveAccount => IsEditingAccount && !string.IsNullOrWhiteSpace(EditingAccount.SOTK);
     public bool CanCancelAccount => IsEditingAccount;
 

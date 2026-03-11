@@ -119,14 +119,19 @@ public class TransactionsViewModel : BaseViewModel
         }
     }
 
+    private bool CanPerformTransactions => _userSession.UserGroup == UserGroup.ChiNhanh;
+
     // CanExecute properties
-    public bool CanDeposit => !string.IsNullOrWhiteSpace(SelectedAccountNumber) &&
+    public bool CanDeposit => CanPerformTransactions &&
+                              !string.IsNullOrWhiteSpace(SelectedAccountNumber) &&
                               decimal.TryParse(Amount, out var amt) && amt >= _minAmount;
 
-    public bool CanWithdraw => !string.IsNullOrWhiteSpace(SelectedAccountNumber) &&
+    public bool CanWithdraw => CanPerformTransactions &&
+                               !string.IsNullOrWhiteSpace(SelectedAccountNumber) &&
                                decimal.TryParse(Amount, out var amt) && amt >= _minAmount;
 
-    public bool CanTransfer => !string.IsNullOrWhiteSpace(SelectedAccountNumber) &&
+    public bool CanTransfer => CanPerformTransactions &&
+                               !string.IsNullOrWhiteSpace(SelectedAccountNumber) &&
                                !string.IsNullOrWhiteSpace(TransferToAccount) &&
                                decimal.TryParse(Amount, out var amt) && amt >= _minAmount;
 

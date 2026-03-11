@@ -2,25 +2,24 @@ using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
 using BankDds.Infrastructure.Security;
 using Caliburn.Micro;
-using Microsoft.Data.SqlClient;
 using System.Collections.ObjectModel;
 
 namespace BankDds.Wpf.ViewModels;
 
 /// <summary>
-/// Login form aligned to the Banking distributed model (DE3 — Ngân Hàng):
+/// Login flow:
 ///   1. User enters SQL login + password.
-///   2. Credentials are verified against Publisher (sp_DangNhap).
-///   3. Branch dropdown is loaded from Publisher view_DanhSachPhanManh (TOP 2).
-///   4. Role determines branch access and CRUD capability.
+///   2. Credentials are verified on Publisher via sp_DangNhap.
+///   3. Branch list shown pre-login comes from appsettings Branch_* keys (no hardcoded credentials).
+///   4. After login, NganHang branch list is refreshed from DB via BranchService.
 /// </summary>
 public class LoginViewModel : Screen
 {
     private readonly IAuthService _authService;
+    private readonly IBranchService _branchService;
     private readonly IUserSession _userSession;
     private readonly IConnectionStringProvider _connectionStringProvider;
 
-    // Real branch codes loaded from view_DanhSachPhanManh (MACN column)
     private List<string> _realBranchCodes = new();
 
     private string _selectedBranch = string.Empty;
@@ -30,20 +29,18 @@ public class LoginViewModel : Screen
 
     public LoginViewModel(
         IAuthService authService,
+        IBranchService branchService,
         IUserSession userSession,
         IConnectionStringProvider connectionStringProvider)
     {
-        _authService              = authService;
-        _userSession              = userSession;
+        _authService = authService;
+        _branchService = branchService;
+        _userSession = userSession;
         _connectionStringProvider = connectionStringProvider;
 
         DisplayName = "Bank DDS - Login";
     }
 
-    /// <summary>
-    /// Branch codes shown in the login dropdown.
-    /// Loaded from Publisher view_DanhSachPhanManh (TOP 2 subscriber branches).
-    /// </summary>
     public ObservableCollection<string> Branches { get; } = new();
 
     public string SelectedBranch
@@ -96,60 +93,60 @@ public class LoginViewModel : Screen
     protected override async Task OnActivateAsync(CancellationToken cancellationToken)
     {
         await base.OnActivateAsync(cancellationToken);
-
-        // Branch list is loaded BEFORE login — use a lightweight sa connection or
-        // a dedicated "branch-list" login that only has SELECT on view_DanhSachPhanManh.
-        // Here we use the Publisher template with a temporary sa/123 credential pair
-        // (same approach as the Banking Form_DangNhap which loads branch list before auth).
-        await LoadBranchesFromPublisherAsync();
+        LoadConfiguredBranches();
     }
 
-    /// <summary>
-    /// Queries view_DanhSachPhanManh on the Publisher to populate the branch dropdown.
-    /// Fallback to hardcoded values if the Publisher is unreachable at startup.
-    /// </summary>
-    private async Task LoadBranchesFromPublisherAsync()
+    private void LoadConfiguredBranches()
+    {
+        _realBranchCodes = _connectionStringProvider.GetConfiguredBranchCodes().ToList();
+        if (_realBranchCodes.Count == 0)
+        {
+            _realBranchCodes =
+            [
+                _connectionStringProvider.DefaultBranch.Trim().ToUpperInvariant()
+            ];
+        }
+
+        Branches.Clear();
+        foreach (var macn in _realBranchCodes)
+            Branches.Add(macn);
+
+        if (string.IsNullOrWhiteSpace(SelectedBranch) ||
+            !_realBranchCodes.Contains(SelectedBranch, StringComparer.OrdinalIgnoreCase))
+            SelectedBranch = _realBranchCodes.First();
+    }
+
+    private async Task<List<string>> LoadPermittedBranchesForNganHangAsync()
     {
         try
         {
-            // Pre-auth connection: use sa credentials to read branch list
-            // (view_DanhSachPhanManh is SELECT-accessible to all roles)
-            var connStr = _connectionStringProvider.GetPublisherConnectionForLogin("sa", "123");
+            var branches = await _branchService.GetAllBranchesAsync();
+            var codes = branches
+                .Select(b => b.MACN.Trim().ToUpperInvariant())
+                .Where(code => !string.IsNullOrWhiteSpace(code))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(code => code, StringComparer.OrdinalIgnoreCase)
+                .ToList();
 
-            await using var connection = new SqlConnection(connStr);
-            await connection.OpenAsync();
-
-            await using var cmd = new SqlCommand(
-                "SELECT MACN, TENCN FROM view_DanhSachPhanManh", connection);
-            await using var reader = await cmd.ExecuteReaderAsync();
-
-            _realBranchCodes.Clear();
-            Branches.Clear();
-
-            while (await reader.ReadAsync())
+            if (codes.Count > 0)
             {
-                var macn = (reader["MACN"]?.ToString() ?? string.Empty).Trim().ToUpperInvariant();
-                if (!string.IsNullOrWhiteSpace(macn))
-                {
-                    _realBranchCodes.Add(macn);
-                    Branches.Add(macn);
-                }
+                _realBranchCodes = codes;
+                Branches.Clear();
+                foreach (var code in codes)
+                    Branches.Add(code);
             }
-
-            if (string.IsNullOrEmpty(SelectedBranch) || !Branches.Contains(SelectedBranch))
-                SelectedBranch = _realBranchCodes.FirstOrDefault() ?? string.Empty;
         }
         catch
         {
-            // Fallback when Publisher is unreachable
-            if (Branches.Count == 0)
-            {
-                Branches.Add("BENTHANH");
-                Branches.Add("TANDINH");
-                _realBranchCodes = new List<string> { "BENTHANH", "TANDINH" };
-            }
-            SelectedBranch = Branches.FirstOrDefault() ?? string.Empty;
+            // Keep configured branch list if DB is unavailable.
         }
+
+        return _realBranchCodes.Count > 0
+            ? new List<string>(_realBranchCodes)
+            :
+            [
+                _connectionStringProvider.DefaultBranch.Trim().ToUpperInvariant()
+            ];
     }
 
     public async Task Login()
@@ -166,7 +163,6 @@ public class LoginViewModel : Screen
                 return;
             }
 
-            // Determine permitted branches and effective branch based on role
             var permittedBranches = new List<string>();
             UserGroup userGroup;
 
@@ -174,32 +170,35 @@ public class LoginViewModel : Screen
             {
                 case "NganHang":
                     userGroup = UserGroup.NganHang;
-                    // NganHang can VIEW all branches but cannot CRUD.
-                    // No "ALL" pseudo-branch — user picks a real branch to view.
-                    permittedBranches = new List<string>(_realBranchCodes);
+                    permittedBranches = await LoadPermittedBranchesForNganHangAsync();
+                    if (string.IsNullOrWhiteSpace(SelectedBranch) ||
+                        !permittedBranches.Contains(SelectedBranch, StringComparer.OrdinalIgnoreCase))
+                    {
+                        SelectedBranch = permittedBranches.First();
+                    }
                     break;
 
                 case "ChiNhanh":
                     userGroup = UserGroup.ChiNhanh;
-                    // ChiNhanh is locked to their own branch, full CRUD.
-                    // DefaultBranch comes from sp_DangNhap (MACN column).
-                    // Fallback: use the branch the user selected in the login dropdown
-                    // when the SP could not resolve it (e.g. no NHANVIEN row yet).
-                    var chiNhanhBranch = !string.IsNullOrEmpty(result.DefaultBranch)
+                    var chiNhanhBranch = !string.IsNullOrWhiteSpace(result.DefaultBranch)
                         ? result.DefaultBranch
-                        : SelectedBranch;
-                    permittedBranches = new List<string> { chiNhanhBranch };
+                        : (!string.IsNullOrWhiteSpace(SelectedBranch)
+                            ? SelectedBranch
+                            : _connectionStringProvider.DefaultBranch);
+                    chiNhanhBranch = chiNhanhBranch.Trim().ToUpperInvariant();
+                    permittedBranches = [chiNhanhBranch];
                     SelectedBranch = chiNhanhBranch;
                     break;
 
                 case "KhachHang":
                     userGroup = UserGroup.KhachHang;
-                    // KhachHang can only view own statement/report.
-                    // Same fallback strategy as ChiNhanh.
-                    var khachHangBranch = !string.IsNullOrEmpty(result.DefaultBranch)
+                    var khachHangBranch = !string.IsNullOrWhiteSpace(result.DefaultBranch)
                         ? result.DefaultBranch
-                        : SelectedBranch;
-                    permittedBranches = new List<string> { khachHangBranch };
+                        : (!string.IsNullOrWhiteSpace(SelectedBranch)
+                            ? SelectedBranch
+                            : _connectionStringProvider.DefaultBranch);
+                    khachHangBranch = khachHangBranch.Trim().ToUpperInvariant();
+                    permittedBranches = [khachHangBranch];
                     SelectedBranch = khachHangBranch;
                     break;
 
@@ -219,7 +218,6 @@ public class LoginViewModel : Screen
                 result.CustomerCMND,
                 result.EmployeeId);
 
-            // Navigate to Home through parent conductor
             if (Parent is MainShellViewModel mainShell)
             {
                 await mainShell.ShowHomeAsync();
