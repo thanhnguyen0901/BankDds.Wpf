@@ -8,7 +8,7 @@ namespace BankDds.Infrastructure.Data;
 
 /// <summary>
 /// SQL Server implementation of IBranchRepository.
-/// All operations execute against the Publisher (NGANHANG_PUB) because CHINHANH is a central
+/// All operations execute against the Publisher (NGANHANG) because CHINHANH is a central
 /// reference table replicated to all subscribers.
 ///
 /// Required stored procedures on Publisher:
@@ -167,4 +167,3 @@ public class BranchRepository : IBranchRepository
         SODT   = reader.IsDBNull(reader.GetOrdinal("SODT"))   ? string.Empty : reader.GetString(reader.GetOrdinal("SODT"))
     };
 }
-

@@ -1,4 +1,4 @@
-﻿USE NGANHANG_PUB;
+USE NGANHANG;
 GO
 -- Nạp dữ liệu mẫu cho Publisher (chạy an toàn nhiều lần).
 SET NOCOUNT ON;

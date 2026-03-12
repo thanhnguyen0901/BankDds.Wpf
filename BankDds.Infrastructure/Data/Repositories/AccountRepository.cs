@@ -66,7 +66,7 @@ public class AccountRepository : IAccountRepository
 
         try
         {
-            // Publisher (NGANHANG_PUB) has all data via Merge Replication — no UNION ALL needed.
+            // Publisher (NGANHANG) has all data via Merge Replication — no UNION ALL needed.
             using var connection = new SqlConnection(_connectionStringProvider.GetPublisherConnection());
             await connection.OpenAsync();
 
@@ -275,4 +275,3 @@ public class AccountRepository : IAccountRepository
         };
     }
 }
-

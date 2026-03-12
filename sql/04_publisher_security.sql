@@ -1,4 +1,4 @@
-USE NGANHANG_PUB;
+USE NGANHANG;
 GO
 -- Tạo các role nghiệp vụ nếu chưa tồn tại.
 IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'NGANHANG' AND type = 'R')
@@ -269,7 +269,7 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = @LOGIN)
     BEGIN
-        EXEC sp_addlogin @loginame = @LOGIN, @passwd = @PASS, @defdb = N'NGANHANG_PUB';
+        EXEC sp_addlogin @loginame = @LOGIN, @passwd = @PASS, @defdb = N'NGANHANG';
         PRINT N'Đã tạo login: ' + @LOGIN;
     END
     ELSE
@@ -398,7 +398,7 @@ GO
 -- Tạo sẵn login demo và gán role tương ứng.
 IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'ADMIN_NH')
 BEGIN
-    EXEC sp_addlogin @loginame = N'ADMIN_NH', @passwd = N'Admin@123', @defdb = N'NGANHANG_PUB';
+    EXEC sp_addlogin @loginame = N'ADMIN_NH', @passwd = N'Admin@123', @defdb = N'NGANHANG';
     PRINT N'>>> Đã tạo login mẫu ADMIN_NH.';
 END
 ELSE
@@ -431,7 +431,7 @@ GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'NV_BT')
 BEGIN
-    EXEC sp_addlogin @loginame = N'NV_BT', @passwd = N'NhanVien@123', @defdb = N'NGANHANG_PUB';
+    EXEC sp_addlogin @loginame = N'NV_BT', @passwd = N'NhanVien@123', @defdb = N'NGANHANG';
     PRINT N'>>> Đã tạo login mẫu NV_BT.';
 END
 ELSE
@@ -464,7 +464,7 @@ GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'KH_DEMO')
 BEGIN
-    EXEC sp_addlogin @loginame = N'KH_DEMO', @passwd = N'KhachHang@123', @defdb = N'NGANHANG_PUB';
+    EXEC sp_addlogin @loginame = N'KH_DEMO', @passwd = N'KhachHang@123', @defdb = N'NGANHANG';
     PRINT N'>>> Đã tạo login mẫu KH_DEMO.';
 END
 ELSE

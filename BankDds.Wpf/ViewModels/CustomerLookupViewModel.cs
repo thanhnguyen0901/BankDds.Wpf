@@ -7,7 +7,7 @@ namespace BankDds.Wpf.ViewModels;
 
 /// <summary>
 /// ViewModel for the cross-branch customer lookup screen.
-/// Visible only to NGANHANG-role users.  Queries the NGANHANG_TRACUU
+/// Visible only to NGANHANG-role users.  Queries the NGANHANG
 /// subscriber which holds a read-only replica of KHACHHANG from all branches.
 /// </summary>
 public class CustomerLookupViewModel : Screen

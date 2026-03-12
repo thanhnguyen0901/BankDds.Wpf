@@ -63,7 +63,7 @@
                     Margin="0,4,0,0"
                     FontSize="13"
                     Foreground="#888"
-                    Text="Tìm kiếm khách hàng trên CSDL tra cứu (NGANHANG_TRACUU) — dữ liệu từ tất cả chi nhánh." />
+                    Text="Tìm kiếm khách hàng trên CSDL tra cứu (NGANHANG) — dữ liệu từ tất cả chi nhánh." />
             </StackPanel>
 
             <!-- Search bar -->

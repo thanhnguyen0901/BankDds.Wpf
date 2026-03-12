@@ -1,4 +1,4 @@
-﻿USE NGANHANG_PUB;
+USE NGANHANG;
 GO
 -- Tạo view ánh xạ chi nhánh và server phân mảnh.
 CREATE OR ALTER VIEW dbo.view_DanhSachPhanManh
@@ -10,10 +10,7 @@ AS
             WHEN N'BENTHANH' THEN CAST(SERVERPROPERTY('MachineName') AS nvarchar(128)) + N'\SQLSERVER2'
             WHEN N'TANDINH'  THEN CAST(SERVERPROPERTY('MachineName') AS nvarchar(128)) + N'\SQLSERVER3'
         END                          AS TENSERVER,
-        CASE cn.MACN
-            WHEN N'BENTHANH' THEN N'NGANHANG_BT'
-            WHEN N'TANDINH'  THEN N'NGANHANG_TD'
-        END                          AS TENDB
+        N'NGANHANG'                  AS TENDB
     FROM  dbo.CHINHANH cn
     WHERE cn.MACN IN (N'BENTHANH', N'TANDINH')
     ORDER BY cn.MACN ASC;
@@ -637,15 +634,12 @@ BEGIN
         END CATCH
     END
 
-    DECLARE @remoteDB nvarchar(128) = CASE DB_NAME()
-        WHEN N'NGANHANG_BT' THEN N'NGANHANG_TD'
-        WHEN N'NGANHANG_TD' THEN N'NGANHANG_BT'
-    END;
+    DECLARE @remoteDB nvarchar(128) = N'NGANHANG';
 
-    IF @remoteDB IS NULL
+    IF DB_NAME() <> N'NGANHANG'
     BEGIN
         DECLARE @curDB nvarchar(128) = DB_NAME();
-        RAISERROR(N'RC-7: Cross-branch transfer not supported from database [%s]. Expected NGANHANG_BT or NGANHANG_TD.',
+        RAISERROR(N'RC-7: Cross-branch transfer not supported from database [%s]. Expected NGANHANG.',
               16, 1, @curDB);
         RETURN -7;
     END
@@ -1069,6 +1063,6 @@ GO
 PRINT N'';
 PRINT N'=== Hoàn tất 03_publisher_sp_views.sql ===';
 PRINT N'    Đối tượng đã tạo: 1 view + 50 stored procedure = 51';
-PRINT N'    Cơ sở dữ liệu: NGANHANG_PUB';
+PRINT N'    Cơ sở dữ liệu: NGANHANG';
 PRINT N'    Bước tiếp theo: 04_publisher_security.sql (bước 4/8)';
 GO

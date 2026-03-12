@@ -9,10 +9,10 @@
 
 ## 1) Quy ước instance và database
 
-1. Publisher instance: `DESKTOP-JBB41QU` -> DB `NGANHANG_PUB`.
-2. Subscriber CN1: `DESKTOP-JBB41QU\SQLSERVER2` -> DB `NGANHANG_BT`.
-3. Subscriber CN2: `DESKTOP-JBB41QU\SQLSERVER3` -> DB `NGANHANG_TD`.
-4. Subscriber Tra cứu: `DESKTOP-JBB41QU\SQLSERVER4` -> DB `NGANHANG_TRACUU`.
+1. Publisher instance: `DESKTOP-JBB41QU` -> DB `NGANHANG`.
+2. Subscriber CN1: `DESKTOP-JBB41QU\SQLSERVER2` -> DB `NGANHANG`.
+3. Subscriber CN2: `DESKTOP-JBB41QU\SQLSERVER3` -> DB `NGANHANG`.
+4. Subscriber Tra cứu: `DESKTOP-JBB41QU\SQLSERVER4` -> DB `NGANHANG`.
 
 ## 2) Thứ tự triển khai full flow
 
@@ -39,10 +39,10 @@
 
 ### Bước 2: Tạo database
 
-1. Trên `DESKTOP-JBB41QU`: tạo `NGANHANG_PUB`.
-2. Trên `DESKTOP-JBB41QU\SQLSERVER2`: tạo `NGANHANG_BT`.
-3. Trên `DESKTOP-JBB41QU\SQLSERVER3`: tạo `NGANHANG_TD`.
-4. Trên `DESKTOP-JBB41QU\SQLSERVER4`: tạo `NGANHANG_TRACUU`.
+1. Trên `DESKTOP-JBB41QU`: tạo `NGANHANG`.
+2. Trên `DESKTOP-JBB41QU\SQLSERVER2`: tạo `NGANHANG`.
+3. Trên `DESKTOP-JBB41QU\SQLSERVER3`: tạo `NGANHANG`.
+4. Trên `DESKTOP-JBB41QU\SQLSERVER4`: tạo `NGANHANG`.
 
 ### Bước 3: Cấu hình Distributor
 
@@ -57,7 +57,7 @@ Instance thao tác: `DESKTOP-JBB41QU`.
 ### Bước 4: Chạy script SQL trên Publisher
 
 Instance thao tác: `DESKTOP-JBB41QU`.  
-Database thao tác: `NGANHANG_PUB`.
+Database thao tác: `NGANHANG`.
 
 Chạy đúng thứ tự:
 
@@ -73,7 +73,7 @@ Mục đích: nạp dữ liệu mẫu để test/demo.
 Lưu ý:
 
 1. Bước này bắt buộc hoàn tất trước khi tạo Publication.
-2. Mỗi script chạy bằng `File -> Open -> File...`, chọn đúng DB `NGANHANG_PUB`, nhấn `Execute`.
+2. Mỗi script chạy bằng `File -> Open -> File...`, chọn đúng DB `NGANHANG`, nhấn `Execute`.
 3. Tab `Messages` không có lỗi mới chuyển bước tiếp.
 
 ### Bước 5: Tạo Publication
@@ -82,10 +82,10 @@ Instance thao tác: `DESKTOP-JBB41QU`.
 
 Tạo 3 publication:
 
-1. `PUB_NGANHANG_BT`
+1. `PUB_BENTHANH`
 Article: `CHINHANH`, `KHACHHANG`, `NHANVIEN`, `TAIKHOAN`, `GD_GOIRUT`, `GD_CHUYENTIEN`.
 Filter: `MACN = N'BENTHANH'`.
-2. `PUB_NGANHANG_TD`
+2. `PUB_TANDINH`
 Article: như BT.
 Filter: `MACN = N'TANDINH'`.
 3. `PUB_TRACUU`
@@ -96,9 +96,9 @@ Không filter cho `KHACHHANG`.
 
 Instance thao tác: `DESKTOP-JBB41QU`.
 
-1. `PUB_NGANHANG_BT` -> Subscriber `DESKTOP-JBB41QU\SQLSERVER2`, DB `NGANHANG_BT`.
-2. `PUB_NGANHANG_TD` -> Subscriber `DESKTOP-JBB41QU\SQLSERVER3`, DB `NGANHANG_TD`.
-3. `PUB_TRACUU` -> Subscriber `DESKTOP-JBB41QU\SQLSERVER4`, DB `NGANHANG_TRACUU`.
+1. `PUB_BENTHANH` -> Subscriber `DESKTOP-JBB41QU\SQLSERVER2`, DB `NGANHANG`.
+2. `PUB_TANDINH` -> Subscriber `DESKTOP-JBB41QU\SQLSERVER3`, DB `NGANHANG`.
+3. `PUB_TRACUU` -> Subscriber `DESKTOP-JBB41QU\SQLSERVER4`, DB `NGANHANG`.
 
 ### Bước 7: Đẩy SP xuống Subscriber
 
@@ -174,7 +174,7 @@ Mục tiêu: người dùng đăng nhập đúng vai trò và chỉ làm đượ
 
 ### 10.1 Chạy script security
 
-1. Mở query trên instance `DESKTOP-JBB41QU`, database `NGANHANG_PUB`.
+1. Mở query trên instance `DESKTOP-JBB41QU`, database `NGANHANG`.
 2. Chạy `sql/04_publisher_security.sql`.
 3. Kết quả mong đợi:
 đã có 3 role `NGANHANG`, `CHINHANH`, `KHACHHANG`.
@@ -184,7 +184,7 @@ Mục tiêu: người dùng đăng nhập đúng vai trò và chỉ làm đượ
 
 Có 2 cách:
 
-1. Cách khuyến nghị: gọi `sp_TaoTaiKhoan` trên `NGANHANG_PUB`.
+1. Cách khuyến nghị: gọi `sp_TaoTaiKhoan` trên `NGANHANG`.
 2. Cách thủ công UI: `Security` -> `Logins` -> `New Login...`.
 
 Lưu ý quan trọng:

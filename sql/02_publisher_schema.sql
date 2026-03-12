@@ -1,4 +1,4 @@
-﻿USE NGANHANG_PUB;
+USE NGANHANG;
 GO
 -- Tạo hoặc bổ sung schema Publisher theo hướng idempotent.
 IF OBJECT_ID('dbo.CHINHANH', 'U') IS NULL

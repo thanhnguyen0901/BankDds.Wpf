@@ -7,7 +7,7 @@ using System.Data;
 namespace BankDds.Infrastructure.Data;
 
 /// <summary>
-/// Read-only customer lookup against the lookup subscriber (NGANHANG_TRACUU).
+/// Read-only customer lookup against the lookup subscriber (NGANHANG).
 /// Uses direct SELECT on the replicated KHACHHANG table — the subscriber's
 /// security script (08_subscribers_post_replication_fixups.sql §7) grants
 /// SELECT to all three roles on that database.
@@ -125,4 +125,3 @@ public class CustomerLookupRepository : ICustomerLookupRepository
         TrangThaiXoa = reader.IsDBNull(reader.GetOrdinal("TrangThaiXoa")) ? 0 : Convert.ToInt32(reader.GetValue(reader.GetOrdinal("TrangThaiXoa")))
     };
 }
-
