@@ -916,7 +916,14 @@ BEGIN
 END
 GO
 IF OBJECT_ID('dbo.SP_AddUser', 'P') IS NOT NULL
-    DROP PROCEDURE dbo.SP_AddUser;
+BEGIN
+    BEGIN TRY
+        DROP PROCEDURE dbo.SP_AddUser;
+    END TRY
+    BEGIN CATCH
+        PRINT N'>>> Cảnh báo: không thể DROP dbo.SP_AddUser (có thể do quyền hoặc object đã đổi trạng thái). Bỏ qua.';
+    END CATCH
+END
 GO
 
 CREATE OR ALTER PROCEDURE dbo.USP_AddUser
