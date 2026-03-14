@@ -6,7 +6,7 @@ using System.Collections.ObjectModel;
 namespace BankDds.Wpf.ViewModels
 {
     /// <summary>
-    /// Handles AccountsViewModel responsibilities in the application.
+    /// Manages account list, account lifecycle actions, and editing state for the selected customer.
     /// </summary>
     public class AccountsViewModel : BaseViewModel
     {
@@ -27,11 +27,11 @@ namespace BankDds.Wpf.ViewModels
         /// <summary>
         /// Initializes a new instance of the <see cref="AccountsViewModel"/> class.
         /// </summary>
-        /// <param name="accountService"></param>
-        /// <param name="customerService"></param>
-        /// <param name="userSession"></param>
-        /// <param name="dialogService"></param>
-        /// <param name="validator"></param>
+        /// <param name="accountService">Service that executes account data operations.</param>
+        /// <param name="customerService">Service that executes customer data operations.</param>
+        /// <param name="userSession">Current authenticated session with role, branch, and identity context.</param>
+        /// <param name="dialogService">Dialog service used to show confirmation and feedback messages.</param>
+        /// <param name="validator">Validator that enforces input rules before saving data.</param>
         public AccountsViewModel(IAccountService accountService, ICustomerService customerService, IUserSession userSession, IDialogService dialogService, AccountValidator validator)
         {
             _accountService = accountService;

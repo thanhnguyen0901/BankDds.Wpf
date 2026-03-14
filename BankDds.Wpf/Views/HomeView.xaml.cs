@@ -3,7 +3,7 @@ using System.Windows.Controls;
 namespace BankDds.Wpf.Views
 {
     /// <summary>
-    /// Handles HomeView responsibilities in the application.
+    /// Interaction logic for the home workspace view.
     /// </summary>
     public partial class HomeView : UserControl
     {

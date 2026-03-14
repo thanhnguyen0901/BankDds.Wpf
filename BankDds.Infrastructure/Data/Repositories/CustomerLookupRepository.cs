@@ -29,6 +29,7 @@ namespace BankDds.Infrastructure.Data
 
         private string GetConnectionString()
         {
+            // Logic: prefer dedicated lookup replica; fallback to publisher when lookup connection is not configured.
             return _connectionStringProvider.GetLookupConnection()
                 ?? _connectionStringProvider.GetPublisherConnection();
         }

@@ -29,6 +29,7 @@ namespace BankDds.Infrastructure.Data
 
         private string GetConnectionString()
         {
+            // Logic: report procedures are exposed centrally on publisher for cross-branch aggregation.
             return _connectionStringProvider.GetPublisherConnection();
         }
 
@@ -99,6 +100,7 @@ namespace BankDds.Infrastructure.Data
                 var connStr = (string.IsNullOrEmpty(branchCode) || branchCode == "ALL")
                     ? _connectionStringProvider.GetPublisherConnection()
                     : _connectionStringProvider.GetConnectionStringForBranch(branchCode);
+                // Logic: branch filter chooses one shard; empty or ALL reads full data from publisher.
                 using var connection = new SqlConnection(connStr);
                 await connection.OpenAsync();
                 using var command = new SqlCommand("SP_GetAccountsOpenedInPeriod", connection)
@@ -130,6 +132,7 @@ namespace BankDds.Infrastructure.Data
                 var connStr = (string.IsNullOrEmpty(branchCode) || branchCode == "ALL")
                     ? _connectionStringProvider.GetPublisherConnection()
                     : _connectionStringProvider.GetConnectionStringForBranch(branchCode);
+                // Logic: customer report scope follows branch selection from report filter.
                 using var connection = new SqlConnection(connStr);
                 await connection.OpenAsync();
                 using var command = new SqlCommand("SP_GetCustomersByBranch", connection)
@@ -159,6 +162,7 @@ namespace BankDds.Infrastructure.Data
                 var connStr = (string.IsNullOrEmpty(branchCode) || branchCode == "ALL")
                     ? _connectionStringProvider.GetPublisherConnection()
                     : _connectionStringProvider.GetConnectionStringForBranch(branchCode);
+                // Logic: summary report keeps same branch scoping rule as other report endpoints.
                 using var connection = new SqlConnection(connStr);
                 await connection.OpenAsync();
                 using var command = new SqlCommand("SP_GetTransactionSummary", connection)

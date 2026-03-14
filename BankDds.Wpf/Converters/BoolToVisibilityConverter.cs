@@ -5,7 +5,7 @@ using System.Windows.Data;
 namespace BankDds.Wpf.Converters
 {
     /// <summary>
-    /// Handles BoolToVisibilityConverter responsibilities in the application.
+    /// Converts boolean values to WPF visibility states for conditional UI rendering.
     /// </summary>
     public class BoolToVisibilityConverter : IValueConverter
     {

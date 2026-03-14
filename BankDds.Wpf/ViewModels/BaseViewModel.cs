@@ -3,7 +3,7 @@ using Caliburn.Micro;
 namespace BankDds.Wpf.ViewModels
 {
     /// <summary>
-    /// Handles BaseViewModel responsibilities in the application.
+    /// Base view model that provides loading state, message handling, and safe async execution helpers.
     /// </summary>
     public abstract class BaseViewModel : Screen
     {

@@ -7,7 +7,7 @@ using System.Collections.ObjectModel;
 namespace BankDds.Wpf.ViewModels
 {
     /// <summary>
-    /// Handles BranchesViewModel responsibilities in the application.
+    /// Manages branch master data operations and editing workflow for branch records.
     /// </summary>
     public class BranchesViewModel : BaseViewModel
     {
@@ -22,9 +22,9 @@ namespace BankDds.Wpf.ViewModels
         /// <summary>
         /// Initializes a new instance of the <see cref="BranchesViewModel"/> class.
         /// </summary>
-        /// <param name="branchService"></param>
-        /// <param name="userSession"></param>
-        /// <param name="validator"></param>
+        /// <param name="branchService">Service that provides branch data and branch management operations.</param>
+        /// <param name="userSession">Current authenticated session with role, branch, and identity context.</param>
+        /// <param name="validator">Validator that enforces input rules before saving data.</param>
         public BranchesViewModel(
             IBranchService branchService,
             IUserSession userSession,

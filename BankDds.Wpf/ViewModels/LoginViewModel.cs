@@ -6,7 +6,7 @@ using Caliburn.Micro;
 namespace BankDds.Wpf.ViewModels
 {
     /// <summary>
-    /// Handles LoginViewModel responsibilities in the application.
+    /// Handles login validation, authentication, and user session initialization.
     /// </summary>
     public class LoginViewModel : Screen
     {
@@ -22,10 +22,10 @@ namespace BankDds.Wpf.ViewModels
         /// <summary>
         /// Initializes a new instance of the <see cref="LoginViewModel"/> class.
         /// </summary>
-        /// <param name="authService"></param>
-        /// <param name="branchService"></param>
-        /// <param name="userSession"></param>
-        /// <param name="connectionStringProvider"></param>
+        /// <param name="authService">Authentication service that validates user credentials.</param>
+        /// <param name="branchService">Service that provides branch data and branch management operations.</param>
+        /// <param name="userSession">Current authenticated session with role, branch, and identity context.</param>
+        /// <param name="connectionStringProvider">Provider used to resolve SQL Server connection strings by branch.</param>
         public LoginViewModel(
             IAuthService authService,
             IBranchService branchService,

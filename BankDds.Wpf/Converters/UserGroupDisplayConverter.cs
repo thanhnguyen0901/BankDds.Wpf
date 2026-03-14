@@ -6,7 +6,7 @@ using BankDds.Core.Models;
 namespace BankDds.Wpf.Converters
 {
     /// <summary>
-    /// Handles UserGroupDisplayConverter responsibilities in the application.
+    /// Converts user group enum values to Vietnamese display labels in the UI.
     /// </summary>
     public class UserGroupDisplayConverter : IValueConverter
     {

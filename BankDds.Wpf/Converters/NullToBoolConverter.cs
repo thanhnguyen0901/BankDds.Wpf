@@ -4,7 +4,7 @@ using System.Windows.Data;
 namespace BankDds.Wpf.Converters
 {
     /// <summary>
-    /// Handles NullToBoolConverter responsibilities in the application.
+    /// Converts null checks into boolean values for enabling and disabling UI elements.
     /// </summary>
     public class NullToBoolConverter : IValueConverter
     {

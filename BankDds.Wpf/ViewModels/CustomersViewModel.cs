@@ -7,7 +7,7 @@ using System.Collections.ObjectModel;
 namespace BankDds.Wpf.ViewModels
 {
     /// <summary>
-    /// Handles CustomersViewModel responsibilities in the application.
+    /// Manages customer records and the account-opening workflow for selected customers.
     /// </summary>
     public class CustomersViewModel : BaseViewModel
     {
@@ -31,12 +31,12 @@ namespace BankDds.Wpf.ViewModels
         /// <summary>
         /// Initializes a new instance of the <see cref="CustomersViewModel"/> class.
         /// </summary>
-        /// <param name="customerService"></param>
-        /// <param name="accountService"></param>
-        /// <param name="userSession"></param>
-        /// <param name="dialogService"></param>
-        /// <param name="validator"></param>
-        /// <param name="accountValidator"></param>
+        /// <param name="customerService">Service that executes customer data operations.</param>
+        /// <param name="accountService">Service that executes account data operations.</param>
+        /// <param name="userSession">Current authenticated session with role, branch, and identity context.</param>
+        /// <param name="dialogService">Dialog service used to show confirmation and feedback messages.</param>
+        /// <param name="validator">Validator that enforces input rules before saving data.</param>
+        /// <param name="accountValidator">Validator that enforces account-opening rules for subform data.</param>
         public CustomersViewModel(
             ICustomerService customerService,
             IAccountService accountService,

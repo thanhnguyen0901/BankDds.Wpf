@@ -5,7 +5,7 @@ using BankDds.Core.Interfaces;
 namespace BankDds.Wpf.Services
 {
     /// <summary>
-    /// Handles DialogService responsibilities in the application.
+    /// Provides a centralized dialog API for confirmation, information, warning, and error messages.
     /// </summary>
     public class DialogService : IDialogService
     {

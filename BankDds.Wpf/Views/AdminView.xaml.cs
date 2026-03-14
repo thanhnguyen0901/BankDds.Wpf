@@ -4,7 +4,7 @@ using BankDds.Wpf.ViewModels;
 namespace BankDds.Wpf.Views
 {
     /// <summary>
-    /// Handles AdminView responsibilities in the application.
+    /// Interaction logic for the user administration view.
     /// </summary>
     public partial class AdminView : UserControl
     {

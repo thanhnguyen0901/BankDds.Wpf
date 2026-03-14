@@ -27,7 +27,9 @@ namespace BankDds.Infrastructure.Data
             _connectionStringProvider = connectionStringProvider;
             _logger = logger;
         }
-        private string GetConnectionString() => _connectionStringProvider.GetPublisherConnection();
+        private string GetConnectionString() =>
+            // Logic: user/login metadata is centralized on publisher for global authentication flow.
+            _connectionStringProvider.GetPublisherConnection();
 
         public async Task<User?> GetUserAsync(string username)
         {

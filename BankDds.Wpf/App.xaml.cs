@@ -3,7 +3,7 @@ using System.Windows;
 namespace BankDds.Wpf
 {
     /// <summary>
-    /// Handles App responsibilities in the application.
+    /// Application entry point that initializes the WPF runtime and bootstrap process.
     /// </summary>
     public partial class App : Application
     {

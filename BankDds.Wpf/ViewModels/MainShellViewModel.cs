@@ -3,7 +3,7 @@ using Caliburn.Micro;
 namespace BankDds.Wpf.ViewModels
 {
     /// <summary>
-    /// Handles MainShellViewModel responsibilities in the application.
+    /// Controls transition between login screen and the main home workspace.
     /// </summary>
     public class MainShellViewModel : Conductor<Screen>.Collection.OneActive
     {

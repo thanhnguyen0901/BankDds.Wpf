@@ -6,7 +6,7 @@ using System.Collections.ObjectModel;
 namespace BankDds.Wpf.ViewModels
 {
     /// <summary>
-    /// Handles CustomerLookupViewModel responsibilities in the application.
+    /// Provides customer lookup by CMND or name for cross-screen search scenarios.
     /// </summary>
     public class CustomerLookupViewModel : Screen
     {
@@ -16,8 +16,8 @@ namespace BankDds.Wpf.ViewModels
         /// <summary>
         /// Initializes a new instance of the <see cref="CustomerLookupViewModel"/> class.
         /// </summary>
-        /// <param name="customerLookupService"></param>
-        /// <param name="dialogService"></param>
+        /// <param name="customerLookupService">Service used to search customer information for lookup screens.</param>
+        /// <param name="dialogService">Dialog service used to show confirmation and feedback messages.</param>
         public CustomerLookupViewModel(ICustomerLookupService customerLookupService, IDialogService dialogService)
         {
             _customerLookupService = customerLookupService;

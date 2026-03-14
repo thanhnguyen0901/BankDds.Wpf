@@ -6,7 +6,7 @@ using System.Collections.ObjectModel;
 namespace BankDds.Wpf.ViewModels
 {
     /// <summary>
-    /// Handles HomeViewModel responsibilities in the application.
+    /// Coordinates main menu navigation and feature visibility based on the logged-in user role.
     /// </summary>
     public class HomeViewModel : Conductor<Screen>.Collection.OneActive
     {
@@ -16,7 +16,7 @@ namespace BankDds.Wpf.ViewModels
         /// <summary>
         /// Initializes a new instance of the <see cref="HomeViewModel"/> class.
         /// </summary>
-        /// <param name="userSession"></param>
+        /// <param name="userSession">Current authenticated session with role, branch, and identity context.</param>
         public HomeViewModel(IUserSession userSession)
         {
             _userSession = userSession;

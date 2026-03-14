@@ -32,6 +32,7 @@ namespace BankDds.Infrastructure.Data
         }
 
         private string GetConnectionString() =>
+            // Logic: employee maintenance actions are scoped to the selected branch shard.
             _connectionStringProvider.GetConnectionStringForBranch(_userSession.SelectedBranch);
 
         public async Task<List<Employee>> GetEmployeesByBranchAsync(string branchCode)
@@ -39,6 +40,7 @@ namespace BankDds.Infrastructure.Data
             var employees = new List<Employee>();
             try
             {
+                // Logic: branch-specific employee queries must hit the requested branch shard.
                 using var connection = new SqlConnection(_connectionStringProvider.GetConnectionStringForBranch(branchCode));
                 await connection.OpenAsync();
                 using var command = new SqlCommand("SP_GetEmployeesByBranch", connection) { CommandType = CommandType.StoredProcedure };
@@ -55,6 +57,7 @@ namespace BankDds.Infrastructure.Data
             var employees = new List<Employee>();
             try
             {
+                // Logic: cross-branch employee list is available from publisher aggregate database.
                 using var connection = new SqlConnection(_connectionStringProvider.GetPublisherConnection());
                 await connection.OpenAsync();
                 using var command = new SqlCommand("SP_GetAllEmployees", connection) { CommandType = CommandType.StoredProcedure };

@@ -16,7 +16,7 @@ using System.Windows;
 namespace BankDds.Wpf
 {
     /// <summary>
-    /// Handles AppBootstrapper responsibilities in the application.
+    /// Configures dependency injection, service wiring, and startup navigation for the desktop application.
     /// </summary>
     public class AppBootstrapper : BootstrapperBase
     {

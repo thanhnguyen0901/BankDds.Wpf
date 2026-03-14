@@ -32,6 +32,7 @@ namespace BankDds.Infrastructure.Data
         }
 
         private string GetConnectionString() =>
+            // Logic: customer write operations run on the currently selected branch shard.
             _connectionStringProvider.GetConnectionStringForBranch(_userSession.SelectedBranch);
 
         public async Task<List<Customer>> GetCustomersByBranchAsync(string branchCode)
@@ -41,6 +42,7 @@ namespace BankDds.Infrastructure.Data
             var customers = new List<Customer>();
             try
             {
+                // Logic: per-branch customer list must read from target branch shard.
                 using var connection = new SqlConnection(_connectionStringProvider.GetConnectionStringForBranch(branchCode));
                 await connection.OpenAsync();
                 using var command = new SqlCommand("SP_GetCustomersByBranch", connection) { CommandType = CommandType.StoredProcedure };
@@ -58,6 +60,7 @@ namespace BankDds.Infrastructure.Data
             var customers = new List<Customer>();
             try
             {
+                // Logic: all-customer list is served by publisher aggregate database.
                 using var connection = new SqlConnection(_connectionStringProvider.GetPublisherConnection());
                 await connection.OpenAsync();
                 using var command = new SqlCommand("SP_GetAllCustomers", connection) { CommandType = CommandType.StoredProcedure };

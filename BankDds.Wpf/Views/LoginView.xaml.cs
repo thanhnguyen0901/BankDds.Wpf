@@ -5,7 +5,7 @@ using BankDds.Wpf.ViewModels;
 namespace BankDds.Wpf.Views
 {
     /// <summary>
-    /// Handles LoginView responsibilities in the application.
+    /// Interaction logic for the login view.
     /// </summary>
     public partial class LoginView : UserControl
     {

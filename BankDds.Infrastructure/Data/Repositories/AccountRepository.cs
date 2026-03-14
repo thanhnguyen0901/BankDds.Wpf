@@ -33,6 +33,7 @@ namespace BankDds.Infrastructure.Data
 
         private string GetConnectionString()
         {
+            // Logic: account write operations must run on the current selected branch shard.
             return _connectionStringProvider.GetConnectionStringForBranch(_userSession.SelectedBranch);
         }
 
@@ -41,6 +42,7 @@ namespace BankDds.Infrastructure.Data
             var accounts = new List<Account>();
             try
             {
+                // Logic: branch list uses branch-specific connection to enforce data partition.
                 using var connection = new SqlConnection(_connectionStringProvider.GetConnectionStringForBranch(branchCode));
                 await connection.OpenAsync();
                 using var command = new SqlCommand("SP_GetAccountsByBranch", connection)
@@ -66,6 +68,7 @@ namespace BankDds.Infrastructure.Data
             var accounts = new List<Account>();
             try
             {
+                // Logic: all-branch listing is only available from publisher aggregate database.
                 using var connection = new SqlConnection(_connectionStringProvider.GetPublisherConnection());
                 await connection.OpenAsync();
                 using var command = new SqlCommand("SP_GetAllAccounts", connection)
@@ -90,6 +93,7 @@ namespace BankDds.Infrastructure.Data
             var accounts = new List<Account>();
             try
             {
+                // Logic: customer-account lookup must use publisher to see accounts opened at any branch.
                 using var connection = new SqlConnection(_connectionStringProvider.GetPublisherConnection());
                 await connection.OpenAsync();
                 using var command = new SqlCommand("SP_GetAccountsByCustomer", connection)

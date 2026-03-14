@@ -3,7 +3,7 @@ using System.Windows.Controls;
 namespace BankDds.Wpf.Views
 {
     /// <summary>
-    /// Handles CustomerLookupView responsibilities in the application.
+    /// Interaction logic for the customer lookup view.
     /// </summary>
     public partial class CustomerLookupView : UserControl
     {

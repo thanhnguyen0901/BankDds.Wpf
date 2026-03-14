@@ -3,7 +3,7 @@ using System.Windows.Controls;
 namespace BankDds.Wpf.Views
 {
     /// <summary>
-    /// Handles BranchesView responsibilities in the application.
+    /// Interaction logic for the branch management view.
     /// </summary>
     public partial class BranchesView : UserControl
     {

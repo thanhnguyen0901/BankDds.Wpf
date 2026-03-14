@@ -28,6 +28,7 @@ namespace BankDds.Infrastructure.Data
         }
 
         private SqlConnection CreateBankConnection() =>
+            // Logic: branch master data is managed centrally on publisher.
             new SqlConnection(_connectionStringProvider.GetPublisherConnection());
 
         public async Task<List<Branch>> GetAllBranchesAsync()

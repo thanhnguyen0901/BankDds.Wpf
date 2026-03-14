@@ -3,7 +3,7 @@ using System.Windows;
 namespace BankDds.Wpf.Shell
 {
     /// <summary>
-    /// Handles MainShellView responsibilities in the application.
+    /// Main application shell window that hosts the current active screen.
     /// </summary>
     public partial class MainShellView : Window
     {

@@ -7,7 +7,7 @@ using System.Collections.ObjectModel;
 namespace BankDds.Wpf.ViewModels
 {
     /// <summary>
-    /// Handles TransactionsViewModel responsibilities in the application.
+    /// Handles deposit, withdrawal, and transfer workflows for customer accounts.
     /// </summary>
     public class TransactionsViewModel : BaseViewModel
     {
@@ -30,11 +30,11 @@ namespace BankDds.Wpf.ViewModels
         /// <summary>
         /// Initializes a new instance of the <see cref="TransactionsViewModel"/> class.
         /// </summary>
-        /// <param name="transactionService"></param>
-        /// <param name="accountService"></param>
-        /// <param name="userSession"></param>
-        /// <param name="configuration"></param>
-        /// <param name="validator"></param>
+        /// <param name="transactionService">Service that executes deposit, withdrawal, and transfer operations.</param>
+        /// <param name="accountService">Service that executes account data operations.</param>
+        /// <param name="userSession">Current authenticated session with role, branch, and identity context.</param>
+        /// <param name="configuration">Application configuration used for transaction limits and settings.</param>
+        /// <param name="validator">Validator that enforces input rules before saving data.</param>
         public TransactionsViewModel(
             ITransactionService transactionService,
             IAccountService accountService,

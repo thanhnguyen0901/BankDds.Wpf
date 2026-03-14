@@ -3,7 +3,7 @@ using System.Windows.Controls;
 namespace BankDds.Wpf.Views
 {
     /// <summary>
-    /// Handles EmployeesView responsibilities in the application.
+    /// Interaction logic for the employee management view.
     /// </summary>
     public partial class EmployeesView : UserControl
     {

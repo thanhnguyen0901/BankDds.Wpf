@@ -4,7 +4,7 @@ using System.Windows.Data;
 namespace BankDds.Wpf.Converters
 {
     /// <summary>
-    /// Handles ActiveItemConverter responsibilities in the application.
+    /// Converts current active screen type to an active or inactive state flag for navigation styling.
     /// </summary>
     public class ActiveItemConverter : IMultiValueConverter
     {

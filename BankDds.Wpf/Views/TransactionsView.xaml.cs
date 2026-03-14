@@ -3,7 +3,7 @@ using System.Windows.Controls;
 namespace BankDds.Wpf.Views
 {
     /// <summary>
-    /// Handles TransactionsView responsibilities in the application.
+    /// Interaction logic for the transaction management view.
     /// </summary>
     public partial class TransactionsView : UserControl
     {

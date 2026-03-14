@@ -7,7 +7,7 @@ using System.Collections.ObjectModel;
 namespace BankDds.Wpf.ViewModels
 {
     /// <summary>
-    /// Handles EmployeesViewModel responsibilities in the application.
+    /// Manages employee records, soft-delete workflow, and branch transfer operations.
     /// </summary>
     public class EmployeesViewModel : Screen
     {
@@ -25,10 +25,10 @@ namespace BankDds.Wpf.ViewModels
         /// <summary>
         /// Initializes a new instance of the <see cref="EmployeesViewModel"/> class.
         /// </summary>
-        /// <param name="employeeService"></param>
-        /// <param name="userSession"></param>
-        /// <param name="dialogService"></param>
-        /// <param name="validator"></param>
+        /// <param name="employeeService">Service that manages employee data and branch transfer actions.</param>
+        /// <param name="userSession">Current authenticated session with role, branch, and identity context.</param>
+        /// <param name="dialogService">Dialog service used to show confirmation and feedback messages.</param>
+        /// <param name="validator">Validator that enforces input rules before saving data.</param>
         public EmployeesViewModel(
             IEmployeeService employeeService,
             IUserSession userSession,

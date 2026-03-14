@@ -33,6 +33,7 @@ namespace BankDds.Infrastructure.Data
 
         private string GetConnectionString()
         {
+            // Logic: transaction write operations must target the session-selected branch shard.
             return _connectionStringProvider.GetConnectionStringForBranch(_userSession.SelectedBranch);
         }
 
@@ -66,6 +67,7 @@ namespace BankDds.Infrastructure.Data
             var transactions = new List<Transaction>();
             try
             {
+                // Logic: branch transaction history reads from requested branch shard only.
                 using var connection = new SqlConnection(_connectionStringProvider.GetConnectionStringForBranch(branchCode));
                 await connection.OpenAsync();
                 using var command = new SqlCommand("SP_GetTransactionsByBranch", connection)

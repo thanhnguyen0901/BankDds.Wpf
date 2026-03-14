@@ -3,7 +3,7 @@ using System.Windows.Controls;
 namespace BankDds.Wpf.Views
 {
     /// <summary>
-    /// Handles ReportsView responsibilities in the application.
+    /// Interaction logic for the reports view.
     /// </summary>
     public partial class ReportsView : UserControl
     {

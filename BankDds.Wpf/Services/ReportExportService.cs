@@ -13,7 +13,7 @@ using System.IO;
 namespace BankDds.Wpf.Services
 {
     /// <summary>
-    /// Handles ReportExportService responsibilities in the application.
+    /// Exports banking reports to PDF and Excel with localized labels and table formatting.
     /// </summary>
     public class ReportExportService : IReportExportService
     {

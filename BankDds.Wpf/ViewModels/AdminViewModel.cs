@@ -8,7 +8,7 @@ using System.Linq;
 namespace BankDds.Wpf.ViewModels
 {
     /// <summary>
-    /// Handles AdminViewModel responsibilities in the application.
+    /// Manages login creation, user mapping, and role assignment in the administration screen.
     /// </summary>
     public class AdminViewModel : BaseViewModel
     {
@@ -29,11 +29,11 @@ namespace BankDds.Wpf.ViewModels
         /// <summary>
         /// Initializes a new instance of the <see cref="AdminViewModel"/> class.
         /// </summary>
-        /// <param name="userService"></param>
-        /// <param name="userSession"></param>
-        /// <param name="dialogService"></param>
-        /// <param name="validator"></param>
-        /// <param name="branchService"></param>
+        /// <param name="userService">Service that manages application users and SQL logins.</param>
+        /// <param name="userSession">Current authenticated session with role, branch, and identity context.</param>
+        /// <param name="dialogService">Dialog service used to show confirmation and feedback messages.</param>
+        /// <param name="validator">Validator that enforces input rules before saving data.</param>
+        /// <param name="branchService">Service that provides branch data and branch management operations.</param>
         public AdminViewModel(
             IUserService userService,
             IUserSession userSession,
