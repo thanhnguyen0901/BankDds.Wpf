@@ -1,4 +1,4 @@
-USE NGANHANG;
+﻿USE NGANHANG;
 GO
 -- Tạo view ánh xạ chi nhánh và server phân mảnh.
 CREATE OR ALTER VIEW dbo.view_DanhSachPhanManh
@@ -251,9 +251,37 @@ CREATE OR ALTER PROCEDURE dbo.SP_GetAccountsByCustomer
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    DECLARE @TargetCMND nChar(10) = @CMND;
+
+    IF IS_MEMBER('KHACHHANG') = 1
+    BEGIN
+        IF OBJECT_ID(N'dbo.NGUOIDUNG', N'U') IS NOT NULL
+        BEGIN
+            SELECT TOP 1 @TargetCMND = NULLIF(RTRIM(CustomerCMND), N'')
+            FROM dbo.NGUOIDUNG
+            WHERE Username = SYSTEM_USER
+              AND TrangThaiXoa = 0;
+        END
+
+        IF @TargetCMND IS NULL
+        BEGIN
+            SELECT TOP 1 @TargetCMND = CMND
+            FROM dbo.KHACHHANG
+            WHERE CMND = SYSTEM_USER
+              AND TrangThaiXoa = 0;
+        END
+
+        IF @TargetCMND IS NULL
+        BEGIN
+            RAISERROR(N'KHACHHANG login is missing CustomerCMND mapping.', 16, 1);
+            RETURN;
+        END
+    END
+
     SELECT SOTK, CMND, SODU, MACN, NGAYMOTK, Status
     FROM   dbo.TAIKHOAN
-    WHERE  CMND = @CMND
+    WHERE  CMND = @TargetCMND
     ORDER BY NGAYMOTK DESC;
 END
 GO
@@ -374,6 +402,38 @@ CREATE OR ALTER PROCEDURE dbo.SP_GetTransactionsByAccount
 AS
 BEGIN
     SET NOCOUNT ON;
+    IF IS_MEMBER('KHACHHANG') = 1
+    BEGIN
+        DECLARE @TargetCMND nChar(10) = NULL;
+        DECLARE @OwnerCMND  nChar(10) = NULL;
+
+        IF OBJECT_ID(N'dbo.NGUOIDUNG', N'U') IS NOT NULL
+        BEGIN
+            SELECT TOP 1 @TargetCMND = NULLIF(RTRIM(CustomerCMND), N'')
+            FROM dbo.NGUOIDUNG
+            WHERE Username = SYSTEM_USER
+              AND TrangThaiXoa = 0;
+        END
+
+        IF @TargetCMND IS NULL
+        BEGIN
+            SELECT TOP 1 @TargetCMND = CMND
+            FROM dbo.KHACHHANG
+            WHERE CMND = SYSTEM_USER
+              AND TrangThaiXoa = 0;
+        END
+
+        SELECT @OwnerCMND = CMND
+        FROM dbo.TAIKHOAN
+        WHERE SOTK = @SOTK;
+
+        IF @TargetCMND IS NULL OR @OwnerCMND IS NULL OR @OwnerCMND <> @TargetCMND
+        BEGIN
+            RAISERROR(N'Access denied: KHACHHANG can only view own account transactions.', 16, 1);
+            RETURN;
+        END
+    END
+
     SELECT MAGD, SOTK, LOAIGD, NGAYGD, SOTIEN, MANV,
            CAST(NULL AS nChar(9)) AS SOTK_NHAN, Status, ErrorMessage
     FROM   dbo.GD_GOIRUT
@@ -725,6 +785,37 @@ CREATE OR ALTER PROCEDURE dbo.SP_GetAccountStatement
 AS
 BEGIN
     SET NOCOUNT ON;
+    IF IS_MEMBER('KHACHHANG') = 1
+    BEGIN
+        DECLARE @TargetCMND nChar(10) = NULL;
+        DECLARE @OwnerCMND  nChar(10) = NULL;
+
+        IF OBJECT_ID(N'dbo.NGUOIDUNG', N'U') IS NOT NULL
+        BEGIN
+            SELECT TOP 1 @TargetCMND = NULLIF(RTRIM(CustomerCMND), N'')
+            FROM dbo.NGUOIDUNG
+            WHERE Username = SYSTEM_USER
+              AND TrangThaiXoa = 0;
+        END
+
+        IF @TargetCMND IS NULL
+        BEGIN
+            SELECT TOP 1 @TargetCMND = CMND
+            FROM dbo.KHACHHANG
+            WHERE CMND = SYSTEM_USER
+              AND TrangThaiXoa = 0;
+        END
+
+        SELECT @OwnerCMND = CMND
+        FROM dbo.TAIKHOAN
+        WHERE SOTK = @SOTK;
+
+        IF @TargetCMND IS NULL OR @OwnerCMND IS NULL OR @OwnerCMND <> @TargetCMND
+        BEGIN
+            RAISERROR(N'Access denied: KHACHHANG can only view own account statement.', 16, 1);
+            RETURN;
+        END
+    END
 
     DECLARE @OpeningBal money;
 
@@ -935,13 +1026,173 @@ CREATE OR ALTER PROCEDURE dbo.USP_AddUser
     @EmployeeId    nChar(10)    = NULL
 AS
 BEGIN
-    SET NOCOUNT OFF;
+    SET NOCOUNT ON;
+
+    SET @Username      = LTRIM(RTRIM(@Username));
+    SET @PasswordHash  = LTRIM(RTRIM(@PasswordHash));
+    SET @DefaultBranch = UPPER(LTRIM(RTRIM(@DefaultBranch)));
+    SET @CustomerCMND  = NULLIF(LTRIM(RTRIM(@CustomerCMND)), N'');
+    SET @EmployeeId    = NULLIF(UPPER(LTRIM(RTRIM(@EmployeeId))), N'');
+
+    IF @UserGroup NOT IN (0, 1, 2)
+    BEGIN
+        RAISERROR(N'UserGroup khong hop le. Chi chap nhan 0 (NganHang), 1 (ChiNhanh), 2 (KhachHang).', 16, 1);
+        RETURN;
+    END
+
+    IF @Username = N'' OR @DefaultBranch = N''
+    BEGIN
+        RAISERROR(N'Username va DefaultBranch khong duoc de trong.', 16, 1);
+        RETURN;
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.CHINHANH WHERE MACN = @DefaultBranch)
+    BEGIN
+        RAISERROR(N'DefaultBranch %s khong ton tai trong CHINHANH.', 16, 1, @DefaultBranch);
+        RETURN;
+    END
+
+    DECLARE @CallerRole nvarchar(128) = NULL;
+    SELECT TOP 1 @CallerRole = r.name
+    FROM   sys.database_role_members rm
+    JOIN   sys.database_principals   u ON u.principal_id = rm.member_principal_id
+    JOIN   sys.database_principals   r ON r.principal_id = rm.role_principal_id
+    WHERE  u.name = USER_NAME()
+      AND  r.name IN (N'NGANHANG', N'CHINHANH', N'KHACHHANG')
+    ORDER BY CASE r.name
+                WHEN N'NGANHANG'  THEN 1
+                WHEN N'CHINHANH'  THEN 2
+                WHEN N'KHACHHANG' THEN 3
+             END;
+
+    IF @CallerRole IS NULL AND (IS_MEMBER('db_owner') = 1 OR IS_SRVROLEMEMBER('sysadmin') = 1)
+        SET @CallerRole = N'NGANHANG';
+
+    IF @CallerRole IS NULL
+    BEGIN
+        RAISERROR(N'Nguoi goi khong thuoc role hop le, khong the cap nhat NGUOIDUNG.', 16, 1);
+        RETURN;
+    END
+
+    IF @CallerRole = N'NGANHANG' AND @UserGroup <> 0
+    BEGIN
+        RAISERROR(N'Role NGANHANG chi duoc tao account nhom NganHang.', 16, 1);
+        RETURN;
+    END
+
+    IF @CallerRole = N'CHINHANH' AND @UserGroup NOT IN (1, 2)
+    BEGIN
+        RAISERROR(N'Role CHINHANH chi duoc tao account nhom ChiNhanh hoac KhachHang.', 16, 1);
+        RETURN;
+    END
+
+    IF @CallerRole = N'KHACHHANG'
+    BEGIN
+        RAISERROR(N'Role KHACHHANG khong duoc phep tao account.', 16, 1);
+        RETURN;
+    END
+
+    IF @CallerRole = N'CHINHANH'
+    BEGIN
+        DECLARE @CallerBranch nChar(10) = NULL;
+        SELECT TOP 1 @CallerBranch = DefaultBranch
+        FROM dbo.NGUOIDUNG
+        WHERE Username = SYSTEM_USER
+          AND TrangThaiXoa = 0;
+
+        IF @CallerBranch IS NULL
+        BEGIN
+            SELECT TOP 1 @CallerBranch = MACN
+            FROM dbo.NHANVIEN
+            WHERE MANV = SYSTEM_USER
+              AND TrangThaiXoa = 0;
+        END
+
+        IF @CallerBranch IS NULL
+        BEGIN
+            RAISERROR(N'Khong xac dinh duoc chi nhanh cua user CHINHANH dang tao account.', 16, 1);
+            RETURN;
+        END
+
+        IF RTRIM(@CallerBranch) <> @DefaultBranch
+        BEGIN
+            RAISERROR(N'User CHINHANH chi duoc tao account trong chi nhanh cua minh.', 16, 1);
+            RETURN;
+        END
+    END
+
+    IF @UserGroup = 1
+    BEGIN
+        IF @EmployeeId IS NULL
+        BEGIN
+            RAISERROR(N'EmployeeId bat buoc voi nhom ChiNhanh.', 16, 1);
+            RETURN;
+        END
+        SET @CustomerCMND = NULL;
+    END
+    ELSE IF @UserGroup = 2
+    BEGIN
+        IF @CustomerCMND IS NULL
+        BEGIN
+            RAISERROR(N'CustomerCMND bat buoc voi nhom KhachHang.', 16, 1);
+            RETURN;
+        END
+        SET @EmployeeId = NULL;
+    END
+    ELSE
+    BEGIN
+        SET @EmployeeId = NULL;
+        SET @CustomerCMND = NULL;
+    END
+
+    -- Ensure SQL login/user has already been created and assigned role by sp_TaoTaiKhoan.
+    IF NOT EXISTS (
+        SELECT 1 FROM sys.database_principals
+        WHERE name = @Username
+          AND type IN ('S', 'U')
+    )
+    BEGIN
+        RAISERROR(N'Username %s chua duoc tao SQL login/user trong database.', 16, 1, @Username);
+        RETURN;
+    END
+
+    DECLARE @ExpectedRole nvarchar(128) =
+        CASE @UserGroup
+            WHEN 0 THEN N'NGANHANG'
+            WHEN 1 THEN N'CHINHANH'
+            WHEN 2 THEN N'KHACHHANG'
+        END;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM   sys.database_role_members rm
+        JOIN   sys.database_principals   u ON u.principal_id = rm.member_principal_id
+        JOIN   sys.database_principals   r ON r.principal_id = rm.role_principal_id
+        WHERE  u.name = @Username AND r.name = @ExpectedRole
+    )
+    BEGIN
+        RAISERROR(N'Username %s chua thuoc role SQL tuong ung (%s).', 16, 1, @Username, @ExpectedRole);
+        RETURN;
+    END
+
     IF EXISTS (SELECT 1 FROM dbo.NGUOIDUNG WHERE Username = @Username)
-        RETURN; 
-    INSERT INTO dbo.NGUOIDUNG
-        (Username, PasswordHash, UserGroup, DefaultBranch, CustomerCMND, EmployeeId, TrangThaiXoa)
-    VALUES
-        (@Username, @PasswordHash, @UserGroup, @DefaultBranch, @CustomerCMND, @EmployeeId, 0);
+    BEGIN
+        UPDATE dbo.NGUOIDUNG
+        SET PasswordHash  = @PasswordHash,
+            UserGroup     = @UserGroup,
+            DefaultBranch = @DefaultBranch,
+            CustomerCMND  = @CustomerCMND,
+            EmployeeId    = @EmployeeId,
+            TrangThaiXoa  = 0
+        WHERE Username = @Username;
+    END
+    ELSE
+    BEGIN
+        INSERT INTO dbo.NGUOIDUNG
+            (Username, PasswordHash, UserGroup, DefaultBranch, CustomerCMND, EmployeeId, TrangThaiXoa)
+        VALUES
+            (@Username, @PasswordHash, @UserGroup, @DefaultBranch, @CustomerCMND, @EmployeeId, 0);
+    END
 END
 GO
 
@@ -1073,3 +1324,4 @@ PRINT N'    Đối tượng đã tạo: 1 view + 50 stored procedure = 51';
 PRINT N'    Cơ sở dữ liệu: NGANHANG';
 PRINT N'    Bước tiếp theo: 04_publisher_security.sql (bước 4/8)';
 GO
+

@@ -11,15 +11,18 @@ public class ReportService : IReportService
     private readonly IReportRepository _reportRepository;
     private readonly IAccountRepository _accountRepository;
     private readonly IAuthorizationService _authorizationService;
+    private readonly IUserSession _userSession;
 
     public ReportService(
         IReportRepository reportRepository,
         IAccountRepository accountRepository,
-        IAuthorizationService authorizationService)
+        IAuthorizationService authorizationService,
+        IUserSession userSession)
     {
         _reportRepository = reportRepository;
         _accountRepository = accountRepository;
         _authorizationService = authorizationService;
+        _userSession = userSession;
     }
 
     public async Task<AccountStatement> GetAccountStatementAsync(string sotk, DateTime fromDate, DateTime toDate)
@@ -30,7 +33,10 @@ public class ReportService : IReportService
 
         // Verify user can access this account
         _authorizationService.RequireCanAccessAccount(account.CMND);
-        _authorizationService.RequireCanAccessBranch(account.MACN);
+        if (_userSession.UserGroup != UserGroup.KhachHang)
+        {
+            _authorizationService.RequireCanAccessBranch(account.MACN);
+        }
         
         var statement = await _reportRepository.GetAccountStatementAsync(sotk, fromDate, toDate);
         if (statement == null)

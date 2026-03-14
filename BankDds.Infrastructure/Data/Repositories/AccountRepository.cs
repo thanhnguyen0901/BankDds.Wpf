@@ -1,4 +1,4 @@
-using BankDds.Core.Interfaces;
+﻿using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
@@ -95,7 +95,8 @@ public class AccountRepository : IAccountRepository
 
         try
         {
-            using var connection = new SqlConnection(GetConnectionString());
+            // Use Publisher so customer account lookup works across branches.
+            using var connection = new SqlConnection(_connectionStringProvider.GetPublisherConnection());
             await connection.OpenAsync();
 
             using var command = new SqlCommand("SP_GetAccountsByCustomer", connection)
@@ -122,7 +123,8 @@ public class AccountRepository : IAccountRepository
     {
         try
         {
-            using var connection = new SqlConnection(GetConnectionString());
+            // Use Publisher so account resolution is global (all branch fragments).
+            using var connection = new SqlConnection(_connectionStringProvider.GetPublisherConnection());
             await connection.OpenAsync();
 
             using var command = new SqlCommand("SP_GetAccount", connection)
@@ -275,3 +277,4 @@ public class AccountRepository : IAccountRepository
         };
     }
 }
+

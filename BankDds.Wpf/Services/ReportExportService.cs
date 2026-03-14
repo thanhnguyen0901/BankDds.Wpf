@@ -1,4 +1,4 @@
-using BankDds.Core.Models;
+﻿using BankDds.Core.Models;
 using ClosedXML.Excel;
 using iText.IO.Font;
 using iText.Kernel.Colors;
@@ -17,7 +17,7 @@ namespace BankDds.Wpf.Services;
 /// </summary>
 public class ReportExportService : IReportExportService
 {
-    // ????????????????????????? shared iText helpers ?????????????????????????
+    // ------------------------- shared iText helpers -------------------------
 
     /// <summary>
     /// Creates a PdfFont that supports Vietnamese glyphs.
@@ -42,7 +42,7 @@ public class ReportExportService : IReportExportService
         }
         catch
         {
-            // Swallow � fall through to Helvetica
+            // Swallow – fall through to Helvetica
         }
 
         return PdfFontFactory.CreateFont(iText.IO.Font.Constants.StandardFonts.HELVETICA);
@@ -66,7 +66,7 @@ public class ReportExportService : IReportExportService
         }
         catch
         {
-            // Swallow � fall through to Helvetica-Bold
+            // Swallow – fall through to Helvetica-Bold
         }
 
         return PdfFontFactory.CreateFont(iText.IO.Font.Constants.StandardFonts.HELVETICA_BOLD);
@@ -97,7 +97,7 @@ public class ReportExportService : IReportExportService
                 .SetMarginBottom(4));
         }
 
-        doc.Add(new Paragraph($"Ng�y xu?t: {DateTime.Now:dd/MM/yyyy HH:mm:ss}")
+        doc.Add(new Paragraph($"Ngày xuất: {DateTime.Now:dd/MM/yyyy HH:mm:ss}")
             .SetFont(normalFont)
             .SetFontSize(9)
             .SetTextAlignment(TextAlignment.CENTER)
@@ -123,7 +123,7 @@ public class ReportExportService : IReportExportService
             .SetPadding(4);
     }
 
-    // ??????????????????????? STATEMENT ???????????????????????
+    // ------------------------------ STATEMENT ------------------------------
 
     public Task ExportStatementToPdfAsync(AccountStatement statement, string filePath)
     {
@@ -138,28 +138,28 @@ public class ReportExportService : IReportExportService
             using var doc = new Document(pdf, iText.Kernel.Geom.PageSize.A4.Rotate());
 
             AddPdfHeader(doc, boldFont, font,
-                "SAO K� T�I KHO?N",
-                $"T�i kho?n: {statement.SOTK}  |  T? {statement.FromDate:dd/MM/yyyy} ??n {statement.ToDate:dd/MM/yyyy}");
+                "SAO KÊ TÀI KHOẢN",
+                $"Tài khoản: {statement.SOTK}  |  Từ {statement.FromDate:dd/MM/yyyy} đến {statement.ToDate:dd/MM/yyyy}");
 
             // Summary row
             var summaryTable = new Table(UnitValue.CreatePercentArray(new float[] { 1, 1 }))
                 .UseAllAvailableWidth()
                 .SetMarginBottom(10);
-            summaryTable.AddCell(new Cell().Add(new Paragraph($"S? d? ??u k?: {statement.OpeningBalance:N0} VND").SetFont(boldFont).SetFontSize(10)).SetBorder(Border.NO_BORDER));
-            summaryTable.AddCell(new Cell().Add(new Paragraph($"S? d? cu?i k?: {statement.ClosingBalance:N0} VND").SetFont(boldFont).SetFontSize(10)).SetBorder(Border.NO_BORDER).SetTextAlignment(TextAlignment.RIGHT));
+            summaryTable.AddCell(new Cell().Add(new Paragraph($"Số dư đầu kỳ: {statement.OpeningBalance:N0} VND").SetFont(boldFont).SetFontSize(10)).SetBorder(Border.NO_BORDER));
+            summaryTable.AddCell(new Cell().Add(new Paragraph($"Số dư cuối kỳ: {statement.ClosingBalance:N0} VND").SetFont(boldFont).SetFontSize(10)).SetBorder(Border.NO_BORDER).SetTextAlignment(TextAlignment.RIGHT));
             doc.Add(summaryTable);
 
             // Table
             var table = new Table(UnitValue.CreatePercentArray(new float[] { 15, 12, 13, 15, 15, 10, 20 }))
                 .UseAllAvailableWidth();
 
-            table.AddHeaderCell(HeaderCell("S? d? ??u", boldFont));
-            table.AddHeaderCell(HeaderCell("Ng�y", boldFont));
-            table.AddHeaderCell(HeaderCell("Lo?i GD", boldFont));
-            table.AddHeaderCell(HeaderCell("S? ti?n", boldFont));
-            table.AddHeaderCell(HeaderCell("S? d? sau", boldFont));
-            table.AddHeaderCell(HeaderCell("M� GD", boldFont));
-            table.AddHeaderCell(HeaderCell("Di?n gi?i", boldFont));
+            table.AddHeaderCell(HeaderCell("Số dư đầu", boldFont));
+            table.AddHeaderCell(HeaderCell("Ngày", boldFont));
+            table.AddHeaderCell(HeaderCell("Loại GD", boldFont));
+            table.AddHeaderCell(HeaderCell("Số tiền", boldFont));
+            table.AddHeaderCell(HeaderCell("Số dư sau", boldFont));
+            table.AddHeaderCell(HeaderCell("Mã GD", boldFont));
+            table.AddHeaderCell(HeaderCell("Diễn giải", boldFont));
 
             foreach (var line in statement.Lines)
             {
@@ -174,7 +174,7 @@ public class ReportExportService : IReportExportService
 
             doc.Add(table);
 
-            doc.Add(new Paragraph($"\nT?ng s? giao d?ch: {statement.Lines.Count}")
+            doc.Add(new Paragraph($"\nTổng số giao dịch: {statement.Lines.Count}")
                 .SetFont(font).SetFontSize(9).SetFontColor(ColorConstants.GRAY));
         });
     }
@@ -185,30 +185,30 @@ public class ReportExportService : IReportExportService
         {
             EnsureDirectory(filePath);
             using var wb = new XLWorkbook();
-            var ws = wb.Worksheets.Add("Sao k�");
+            var ws = wb.Worksheets.Add("Sao kê");
 
             // Header info
-            ws.Cell(1, 1).Value = "SAO K� T�I KHO?N";
+            ws.Cell(1, 1).Value = "SAO KÊ TÀI KHOẢN";
             ws.Cell(1, 1).Style.Font.Bold = true;
             ws.Cell(1, 1).Style.Font.FontSize = 14;
 
-            ws.Cell(2, 1).Value = $"T�i kho?n: {statement.SOTK}";
-            ws.Cell(3, 1).Value = $"T?: {statement.FromDate:dd/MM/yyyy}  �  ??n: {statement.ToDate:dd/MM/yyyy}";
-            ws.Cell(4, 1).Value = $"Ng�y xu?t: {DateTime.Now:dd/MM/yyyy HH:mm:ss}";
+            ws.Cell(2, 1).Value = $"Tài khoản: {statement.SOTK}";
+            ws.Cell(3, 1).Value = $"Từ: {statement.FromDate:dd/MM/yyyy}  —  đến: {statement.ToDate:dd/MM/yyyy}";
+            ws.Cell(4, 1).Value = $"Ngày xuất: {DateTime.Now:dd/MM/yyyy HH:mm:ss}";
 
-            ws.Cell(5, 1).Value = "S? d? ??u k?:";
+            ws.Cell(5, 1).Value = "Số dư đầu kỳ:";
             ws.Cell(5, 1).Style.Font.Bold = true;
             ws.Cell(5, 2).Value = statement.OpeningBalance;
             ws.Cell(5, 2).Style.NumberFormat.Format = "#,##0";
 
-            ws.Cell(5, 3).Value = "S? d? cu?i k?:";
+            ws.Cell(5, 3).Value = "Số dư cuối kỳ:";
             ws.Cell(5, 3).Style.Font.Bold = true;
             ws.Cell(5, 4).Value = statement.ClosingBalance;
             ws.Cell(5, 4).Style.NumberFormat.Format = "#,##0";
 
             // Column headers at row 7
             int headerRow = 7;
-            string[] headers = ["S? d? ??u", "Ng�y", "Lo?i GD", "S? ti?n", "S? d? sau", "M� GD", "Di?n gi?i"];
+            string[] headers = ["Số dư đầu", "Ngày", "Loại GD", "Số tiền", "Số dư sau", "Mã GD", "Diễn giải"];
             for (int i = 0; i < headers.Length; i++)
             {
                 var cell = ws.Cell(headerRow, i + 1);
@@ -247,7 +247,7 @@ public class ReportExportService : IReportExportService
         });
     }
 
-    // ??????????????????????? ACCOUNTS ???????????????????????
+    // ------------------------------- ACCOUNTS -------------------------------
 
     public Task ExportAccountsToPdfAsync(List<Account> accounts, DateTime fromDate, DateTime toDate, string filePath)
     {
@@ -262,17 +262,17 @@ public class ReportExportService : IReportExportService
             using var doc = new Document(pdf, iText.Kernel.Geom.PageSize.A4);
 
             AddPdfHeader(doc, boldFont, font,
-                "B�O C�O T�I KHO?N ?� M?",
-                $"T? {fromDate:dd/MM/yyyy} ??n {toDate:dd/MM/yyyy}  |  T?ng: {accounts.Count} t�i kho?n");
+                "BÁO CÁO TÀI KHOẢN ĐÃ MỞ",
+                $"Từ {fromDate:dd/MM/yyyy} đến {toDate:dd/MM/yyyy}  |  Tổng: {accounts.Count} tài khoản");
 
             var table = new Table(UnitValue.CreatePercentArray(new float[] { 20, 18, 22, 15, 25 }))
                 .UseAllAvailableWidth();
 
-            table.AddHeaderCell(HeaderCell("S? TK", boldFont));
+            table.AddHeaderCell(HeaderCell("Số TK", boldFont));
             table.AddHeaderCell(HeaderCell("CMND", boldFont));
-            table.AddHeaderCell(HeaderCell("S? d?", boldFont));
-            table.AddHeaderCell(HeaderCell("Chi nh�nh", boldFont));
-            table.AddHeaderCell(HeaderCell("Ng�y m?", boldFont));
+            table.AddHeaderCell(HeaderCell("Số dư", boldFont));
+            table.AddHeaderCell(HeaderCell("Chi nhánh", boldFont));
+            table.AddHeaderCell(HeaderCell("Ngày mở", boldFont));
 
             foreach (var a in accounts)
             {
@@ -293,16 +293,16 @@ public class ReportExportService : IReportExportService
         {
             EnsureDirectory(filePath);
             using var wb = new XLWorkbook();
-            var ws = wb.Worksheets.Add("T�i kho?n");
+            var ws = wb.Worksheets.Add("Tài khoản");
 
-            ws.Cell(1, 1).Value = "B�O C�O T�I KHO?N ?� M?";
+            ws.Cell(1, 1).Value = "BÁO CÁO TÀI KHOẢN ĐÃ MỞ";
             ws.Cell(1, 1).Style.Font.Bold = true;
             ws.Cell(1, 1).Style.Font.FontSize = 14;
-            ws.Cell(2, 1).Value = $"T?: {fromDate:dd/MM/yyyy}  �  ??n: {toDate:dd/MM/yyyy}";
-            ws.Cell(3, 1).Value = $"Ng�y xu?t: {DateTime.Now:dd/MM/yyyy HH:mm:ss}";
+            ws.Cell(2, 1).Value = $"Từ: {fromDate:dd/MM/yyyy}  —  đến: {toDate:dd/MM/yyyy}";
+            ws.Cell(3, 1).Value = $"Ngày xuất: {DateTime.Now:dd/MM/yyyy HH:mm:ss}";
 
             int headerRow = 5;
-            string[] headers = ["S? TK", "CMND", "S? d?", "Chi nh�nh", "Ng�y m?"];
+            string[] headers = ["Số TK", "CMND", "Số dư", "Chi nhánh", "Ngày mở"];
             for (int i = 0; i < headers.Length; i++)
             {
                 var cell = ws.Cell(headerRow, i + 1);
@@ -331,7 +331,7 @@ public class ReportExportService : IReportExportService
         });
     }
 
-    // ??????????????????????? CUSTOMERS ???????????????????????
+    // ------------------------------ CUSTOMERS ------------------------------
 
     public Task ExportCustomersToPdfAsync(List<Customer> customers, string? branchCode, string filePath)
     {
@@ -346,20 +346,20 @@ public class ReportExportService : IReportExportService
             using var doc = new Document(pdf, iText.Kernel.Geom.PageSize.A4.Rotate());
 
             AddPdfHeader(doc, boldFont, font,
-                "B�O C�O KH�CH H�NG THEO CHI NH�NH",
-                $"Chi nh�nh: {branchCode ?? "T?T C?"}  |  T?ng: {customers.Count} kh�ch h�ng");
+                "BÁO CÁO KHÁCH HÀNG THEO CHI NHÁNH",
+                $"Chi nhánh: {branchCode ?? "TẤT CẢ"}  |  Tổng: {customers.Count} khách hàng");
 
             var table = new Table(UnitValue.CreatePercentArray(new float[] { 12, 20, 10, 12, 20, 10, 8, 8 }))
                 .UseAllAvailableWidth();
 
             table.AddHeaderCell(HeaderCell("CMND", boldFont));
-            table.AddHeaderCell(HeaderCell("H? t�n", boldFont));
-            table.AddHeaderCell(HeaderCell("Ng�y sinh", boldFont));
-            table.AddHeaderCell(HeaderCell("Ng�y c?p", boldFont));
-            table.AddHeaderCell(HeaderCell("??a ch?", boldFont));
-            table.AddHeaderCell(HeaderCell("S?T", boldFont));
-            table.AddHeaderCell(HeaderCell("Ph�i", boldFont));
-            table.AddHeaderCell(HeaderCell("Chi nh�nh", boldFont));
+            table.AddHeaderCell(HeaderCell("Họ tên", boldFont));
+            table.AddHeaderCell(HeaderCell("Ngày sinh", boldFont));
+            table.AddHeaderCell(HeaderCell("Ngày cấp", boldFont));
+            table.AddHeaderCell(HeaderCell("Địa chỉ", boldFont));
+            table.AddHeaderCell(HeaderCell("SĐT", boldFont));
+            table.AddHeaderCell(HeaderCell("Phái", boldFont));
+            table.AddHeaderCell(HeaderCell("Chi nhánh", boldFont));
 
             foreach (var c in customers)
             {
@@ -383,16 +383,16 @@ public class ReportExportService : IReportExportService
         {
             EnsureDirectory(filePath);
             using var wb = new XLWorkbook();
-            var ws = wb.Worksheets.Add("Kh�ch h�ng");
+            var ws = wb.Worksheets.Add("Khách hàng");
 
-            ws.Cell(1, 1).Value = "B�O C�O KH�CH H�NG THEO CHI NH�NH";
+            ws.Cell(1, 1).Value = "BÁO CÁO KHÁCH HÀNG THEO CHI NHÁNH";
             ws.Cell(1, 1).Style.Font.Bold = true;
             ws.Cell(1, 1).Style.Font.FontSize = 14;
-            ws.Cell(2, 1).Value = $"Chi nh�nh: {branchCode ?? "T?T C?"}";
-            ws.Cell(3, 1).Value = $"Ng�y xu?t: {DateTime.Now:dd/MM/yyyy HH:mm:ss}";
+            ws.Cell(2, 1).Value = $"Chi nhánh: {branchCode ?? "TẤT CẢ"}";
+            ws.Cell(3, 1).Value = $"Ngày xuất: {DateTime.Now:dd/MM/yyyy HH:mm:ss}";
 
             int headerRow = 5;
-            string[] headers = ["CMND", "H? t�n", "Ng�y sinh", "Ng�y c?p", "??a ch?", "S?T", "Ph�i", "Chi nh�nh"];
+            string[] headers = ["CMND", "Họ tên", "Ngày sinh", "Ngày cấp", "Địa chỉ", "SĐT", "Phái", "Chi nhánh"];
             for (int i = 0; i < headers.Length; i++)
             {
                 var cell = ws.Cell(headerRow, i + 1);
@@ -433,7 +433,7 @@ public class ReportExportService : IReportExportService
         });
     }
 
-    // ??????????????????????? TRANSACTION SUMMARY ???????????????????????
+    // ------------------------- TRANSACTION SUMMARY -------------------------
 
     public Task ExportTransactionSummaryToPdfAsync(TransactionSummary summary, string filePath)
     {
@@ -448,29 +448,29 @@ public class ReportExportService : IReportExportService
             using var doc = new Document(pdf, iText.Kernel.Geom.PageSize.A4);
 
             AddPdfHeader(doc, boldFont, font,
-                "B�O C�O T?NG H?P GIAO D?CH",
-                $"T? {summary.FromDate:dd/MM/yyyy} ??n {summary.ToDate:dd/MM/yyyy}  |  Chi nh�nh: {summary.BranchDisplay}");
+                "BÁO CÁO TỔNG HỢP GIAO DỊCH",
+                $"Từ {summary.FromDate:dd/MM/yyyy} đến {summary.ToDate:dd/MM/yyyy}  |  Chi nhánh: {summary.BranchDisplay}");
 
             // Summary statistics box
             var statsTable = new Table(UnitValue.CreatePercentArray(new float[] { 1, 1, 1, 1 }))
                 .UseAllAvailableWidth()
                 .SetMarginBottom(15);
 
-            statsTable.AddCell(new Cell().Add(new Paragraph("T?ng giao d?ch").SetFont(boldFont).SetFontSize(9))
+            statsTable.AddCell(new Cell().Add(new Paragraph("Tổng giao dịch").SetFont(boldFont).SetFontSize(9))
                 .Add(new Paragraph($"{summary.TotalTransactionCount}").SetFont(font).SetFontSize(14).SetFontColor(new DeviceRgb(0, 120, 215)))
                 .SetBorder(Border.NO_BORDER).SetTextAlignment(TextAlignment.CENTER));
 
-            statsTable.AddCell(new Cell().Add(new Paragraph("G?i ti?n (GT)").SetFont(boldFont).SetFontSize(9))
+            statsTable.AddCell(new Cell().Add(new Paragraph("Gửi tiền (GT)").SetFont(boldFont).SetFontSize(9))
                 .Add(new Paragraph($"{summary.DepositCount} GD").SetFont(font).SetFontSize(11).SetFontColor(new DeviceRgb(40, 167, 69)))
                 .Add(new Paragraph($"{summary.TotalDepositAmount:N0} VND").SetFont(font).SetFontSize(9))
                 .SetBorder(Border.NO_BORDER).SetTextAlignment(TextAlignment.CENTER));
 
-            statsTable.AddCell(new Cell().Add(new Paragraph("R�t ti?n (RT)").SetFont(boldFont).SetFontSize(9))
+            statsTable.AddCell(new Cell().Add(new Paragraph("Rút tiền (RT)").SetFont(boldFont).SetFontSize(9))
                 .Add(new Paragraph($"{summary.WithdrawalCount} GD").SetFont(font).SetFontSize(11).SetFontColor(new DeviceRgb(220, 53, 69)))
                 .Add(new Paragraph($"{summary.TotalWithdrawalAmount:N0} VND").SetFont(font).SetFontSize(9))
                 .SetBorder(Border.NO_BORDER).SetTextAlignment(TextAlignment.CENTER));
 
-            statsTable.AddCell(new Cell().Add(new Paragraph("Chuy?n ti?n (CT)").SetFont(boldFont).SetFontSize(9))
+            statsTable.AddCell(new Cell().Add(new Paragraph("Chuyển tiền (CT)").SetFont(boldFont).SetFontSize(9))
                 .Add(new Paragraph($"{summary.TransferCount} GD").SetFont(font).SetFontSize(11).SetFontColor(new DeviceRgb(23, 162, 184)))
                 .Add(new Paragraph($"{summary.TotalTransferAmount:N0} VND").SetFont(font).SetFontSize(9))
                 .SetBorder(Border.NO_BORDER).SetTextAlignment(TextAlignment.CENTER));
@@ -478,7 +478,7 @@ public class ReportExportService : IReportExportService
             doc.Add(statsTable);
 
             // Total amount
-            doc.Add(new Paragraph($"T?ng s? ti?n giao d?ch: {summary.TotalAmount:N0} VND")
+            doc.Add(new Paragraph($"Tổng số tiền giao dịch: {summary.TotalAmount:N0} VND")
                 .SetFont(boldFont).SetFontSize(12)
                 .SetTextAlignment(TextAlignment.CENTER)
                 .SetFontColor(new DeviceRgb(0, 120, 215))
@@ -487,19 +487,19 @@ public class ReportExportService : IReportExportService
             // Transaction detail table
             if (summary.Transactions.Count > 0)
             {
-                doc.Add(new Paragraph("Chi ti?t giao d?ch:")
+                doc.Add(new Paragraph("Chi tiết giao dịch:")
                     .SetFont(boldFont).SetFontSize(11).SetMarginBottom(6));
 
                 var table = new Table(UnitValue.CreatePercentArray(new float[] { 10, 18, 10, 15, 20, 15, 12 }))
                     .UseAllAvailableWidth();
 
-                table.AddHeaderCell(HeaderCell("M� GD", boldFont));
-                table.AddHeaderCell(HeaderCell("S? TK", boldFont));
-                table.AddHeaderCell(HeaderCell("Lo?i", boldFont));
-                table.AddHeaderCell(HeaderCell("Ng�y", boldFont));
-                table.AddHeaderCell(HeaderCell("S? ti?n", boldFont));
-                table.AddHeaderCell(HeaderCell("TK ??n", boldFont));
-                table.AddHeaderCell(HeaderCell("Tr?ng th�i", boldFont));
+                table.AddHeaderCell(HeaderCell("Mã GD", boldFont));
+                table.AddHeaderCell(HeaderCell("Số TK", boldFont));
+                table.AddHeaderCell(HeaderCell("Loại", boldFont));
+                table.AddHeaderCell(HeaderCell("Ngày", boldFont));
+                table.AddHeaderCell(HeaderCell("Số tiền", boldFont));
+                table.AddHeaderCell(HeaderCell("TK nhận", boldFont));
+                table.AddHeaderCell(HeaderCell("Trạng thái", boldFont));
 
                 foreach (var t in summary.Transactions)
                 {
@@ -525,20 +525,20 @@ public class ReportExportService : IReportExportService
             using var wb = new XLWorkbook();
 
             // --- Sheet 1: Summary ---
-            var wsSummary = wb.Worksheets.Add("T?ng h?p");
+            var wsSummary = wb.Worksheets.Add("Tổng hợp");
 
-            wsSummary.Cell(1, 1).Value = "B�O C�O T?NG H?P GIAO D?CH";
+            wsSummary.Cell(1, 1).Value = "BÁO CÁO TỔNG HỢP GIAO DỊCH";
             wsSummary.Cell(1, 1).Style.Font.Bold = true;
             wsSummary.Cell(1, 1).Style.Font.FontSize = 14;
-            wsSummary.Cell(2, 1).Value = $"T?: {summary.FromDate:dd/MM/yyyy}  �  ??n: {summary.ToDate:dd/MM/yyyy}";
-            wsSummary.Cell(3, 1).Value = $"Chi nh�nh: {summary.BranchDisplay}";
-            wsSummary.Cell(4, 1).Value = $"Ng�y xu?t: {DateTime.Now:dd/MM/yyyy HH:mm:ss}";
+            wsSummary.Cell(2, 1).Value = $"Từ: {summary.FromDate:dd/MM/yyyy}  —  đến: {summary.ToDate:dd/MM/yyyy}";
+            wsSummary.Cell(3, 1).Value = $"Chi nhánh: {summary.BranchDisplay}";
+            wsSummary.Cell(4, 1).Value = $"Ngày xuất: {DateTime.Now:dd/MM/yyyy HH:mm:ss}";
 
             // Stats
             int r = 6;
-            wsSummary.Cell(r, 1).Value = "Lo?i"; wsSummary.Cell(r, 1).Style.Font.Bold = true;
-            wsSummary.Cell(r, 2).Value = "S? l??ng"; wsSummary.Cell(r, 2).Style.Font.Bold = true;
-            wsSummary.Cell(r, 3).Value = "T?ng ti?n (VND)"; wsSummary.Cell(r, 3).Style.Font.Bold = true;
+            wsSummary.Cell(r, 1).Value = "Loại"; wsSummary.Cell(r, 1).Style.Font.Bold = true;
+            wsSummary.Cell(r, 2).Value = "Số lượng"; wsSummary.Cell(r, 2).Style.Font.Bold = true;
+            wsSummary.Cell(r, 3).Value = "Tổng tiền (VND)"; wsSummary.Cell(r, 3).Style.Font.Bold = true;
             foreach (var cell in wsSummary.Range(r, 1, r, 3).Cells())
             {
                 cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#0078D7");
@@ -546,25 +546,25 @@ public class ReportExportService : IReportExportService
             }
 
             r++;
-            wsSummary.Cell(r, 1).Value = "G?i ti?n (GT)";
+            wsSummary.Cell(r, 1).Value = "Gửi tiền (GT)";
             wsSummary.Cell(r, 2).Value = summary.DepositCount;
             wsSummary.Cell(r, 3).Value = summary.TotalDepositAmount;
             wsSummary.Cell(r, 3).Style.NumberFormat.Format = "#,##0";
 
             r++;
-            wsSummary.Cell(r, 1).Value = "R�t ti?n (RT)";
+            wsSummary.Cell(r, 1).Value = "Rút tiền (RT)";
             wsSummary.Cell(r, 2).Value = summary.WithdrawalCount;
             wsSummary.Cell(r, 3).Value = summary.TotalWithdrawalAmount;
             wsSummary.Cell(r, 3).Style.NumberFormat.Format = "#,##0";
 
             r++;
-            wsSummary.Cell(r, 1).Value = "Chuy?n ti?n (CT)";
+            wsSummary.Cell(r, 1).Value = "Chuyển tiền (CT)";
             wsSummary.Cell(r, 2).Value = summary.TransferCount;
             wsSummary.Cell(r, 3).Value = summary.TotalTransferAmount;
             wsSummary.Cell(r, 3).Style.NumberFormat.Format = "#,##0";
 
             r++;
-            wsSummary.Cell(r, 1).Value = "T?NG C?NG";
+            wsSummary.Cell(r, 1).Value = "TỔNG CỘNG";
             wsSummary.Cell(r, 1).Style.Font.Bold = true;
             wsSummary.Cell(r, 2).Value = summary.TotalTransactionCount;
             wsSummary.Cell(r, 2).Style.Font.Bold = true;
@@ -577,10 +577,10 @@ public class ReportExportService : IReportExportService
             // --- Sheet 2: Transaction details ---
             if (summary.Transactions.Count > 0)
             {
-                var wsDetail = wb.Worksheets.Add("Chi ti?t");
+                var wsDetail = wb.Worksheets.Add("Chi tiết");
 
                 int headerRow = 1;
-                string[] headers = ["M� GD", "S? TK", "Lo?i", "Ng�y", "S? ti?n", "TK ??n", "Tr?ng th�i"];
+                string[] headers = ["Mã GD", "Số TK", "Loại", "Ngày", "Số tiền", "TK nhận", "Trạng thái"];
                 for (int i = 0; i < headers.Length; i++)
                 {
                     var cell = wsDetail.Cell(headerRow, i + 1);
@@ -613,3 +613,5 @@ public class ReportExportService : IReportExportService
         });
     }
 }
+
+

@@ -1,4 +1,4 @@
-using BankDds.Core.Interfaces;
+﻿using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
 
 namespace BankDds.Infrastructure.Security;
@@ -24,13 +24,14 @@ public class AuthorizationService : IAuthorizationService
 
     public bool CanCreateUser(UserGroup targetUserGroup)
     {
-        // NganHang can only create NganHang logins (same-group rule).
+        // NganHang can only create NganHang logins.
         if (_userSession.UserGroup == UserGroup.NganHang)
             return targetUserGroup == UserGroup.NganHang;
 
-        // ChiNhanh can only create ChiNhanh logins (same-group rule).
+        // ChiNhanh can create ChiNhanh and KhachHang logins
+        // (branch-level onboarding extension in DE3 authz workflow).
         if (_userSession.UserGroup == UserGroup.ChiNhanh)
-            return targetUserGroup == UserGroup.ChiNhanh;
+            return targetUserGroup is UserGroup.ChiNhanh or UserGroup.KhachHang;
 
         // KhachHang cannot create users
         return false;
@@ -230,3 +231,5 @@ public class AuthorizationService : IAuthorizationService
         return _userSession.SelectedBranch;
     }
 }
+
+

@@ -1,4 +1,4 @@
-<UserControl
+﻿<UserControl
     x:Class="BankDds.Wpf.Views.LoginView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -190,21 +190,6 @@
                     Foreground="#666666"
                     Text="Đăng nhập vào hệ thống" />
 
-                <!--  Branch Selection  -->
-                <StackPanel Grid.Row="2">
-                    <TextBlock
-                        Margin="0,0,0,8"
-                        FontSize="13"
-                        FontWeight="SemiBold"
-                        Foreground="#333333"
-                        Text="Chi nhánh" />
-                    <ComboBox
-                        x:Name="SelectedBranch"
-                        ItemsSource="{Binding Branches}"
-                        SelectedItem="{Binding SelectedBranch, Mode=TwoWay}"
-                        Style="{StaticResource ModernComboBoxStyle}" />
-                </StackPanel>
-
                 <!--  User Name  -->
                 <StackPanel Grid.Row="4">
                     <TextBlock
@@ -305,3 +290,4 @@
         </Border>
     </Grid>
 </UserControl>
+

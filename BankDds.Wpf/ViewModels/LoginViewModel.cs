@@ -2,7 +2,6 @@ using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
 using BankDds.Infrastructure.Security;
 using Caliburn.Micro;
-using System.Collections.ObjectModel;
 
 namespace BankDds.Wpf.ViewModels;
 
@@ -10,8 +9,8 @@ namespace BankDds.Wpf.ViewModels;
 /// Login flow:
 ///   1. User enters SQL login + password.
 ///   2. Credentials are verified on Publisher via sp_DangNhap.
-///   3. Branch list shown pre-login comes from appsettings Branch_* keys (no hardcoded credentials).
-///   4. After login, NganHang branch list is refreshed from DB via BranchService.
+///   3. SQL returns role + branch scope (MACN) for the session.
+///   4. After login, NganHang branch list is loaded from DB for post-login switching.
 /// </summary>
 public class LoginViewModel : Screen
 {
@@ -22,7 +21,6 @@ public class LoginViewModel : Screen
 
     private List<string> _realBranchCodes = new();
 
-    private string _selectedBranch = string.Empty;
     private string _userName = string.Empty;
     private string _password = string.Empty;
     private string _errorMessage = string.Empty;
@@ -39,18 +37,6 @@ public class LoginViewModel : Screen
         _connectionStringProvider = connectionStringProvider;
 
         DisplayName = "Bank DDS - Login";
-    }
-
-    public ObservableCollection<string> Branches { get; } = new();
-
-    public string SelectedBranch
-    {
-        get => _selectedBranch;
-        set
-        {
-            _selectedBranch = value;
-            NotifyOfPropertyChange(() => SelectedBranch);
-        }
     }
 
     public string UserName
@@ -88,7 +74,9 @@ public class LoginViewModel : Screen
 
     public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
 
-    public bool CanLogin => !string.IsNullOrWhiteSpace(UserName);
+    public bool CanLogin =>
+        !string.IsNullOrWhiteSpace(UserName) &&
+        !string.IsNullOrWhiteSpace(Password);
 
     protected override async Task OnActivateAsync(CancellationToken cancellationToken)
     {
@@ -107,13 +95,10 @@ public class LoginViewModel : Screen
             ];
         }
 
-        Branches.Clear();
-        foreach (var macn in _realBranchCodes)
-            Branches.Add(macn);
-
-        if (string.IsNullOrWhiteSpace(SelectedBranch) ||
-            !_realBranchCodes.Contains(SelectedBranch, StringComparer.OrdinalIgnoreCase))
-            SelectedBranch = _realBranchCodes.First();
+        _realBranchCodes = _realBranchCodes
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(code => code, StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     private async Task<List<string>> LoadPermittedBranchesForNganHangAsync()
@@ -131,9 +116,6 @@ public class LoginViewModel : Screen
             if (codes.Count > 0)
             {
                 _realBranchCodes = codes;
-                Branches.Clear();
-                foreach (var code in codes)
-                    Branches.Add(code);
             }
         }
         catch
@@ -165,41 +147,46 @@ public class LoginViewModel : Screen
 
             var permittedBranches = new List<string>();
             UserGroup userGroup;
+            string selectedBranch;
 
             switch (result.UserGroup)
             {
                 case "NganHang":
                     userGroup = UserGroup.NganHang;
                     permittedBranches = await LoadPermittedBranchesForNganHangAsync();
-                    if (string.IsNullOrWhiteSpace(SelectedBranch) ||
-                        !permittedBranches.Contains(SelectedBranch, StringComparer.OrdinalIgnoreCase))
+                    selectedBranch = result.DefaultBranch?.Trim().ToUpperInvariant() ?? string.Empty;
+                    if (string.IsNullOrWhiteSpace(selectedBranch) ||
+                        !permittedBranches.Contains(selectedBranch, StringComparer.OrdinalIgnoreCase))
                     {
-                        SelectedBranch = permittedBranches.First();
+                        selectedBranch = permittedBranches.First();
                     }
                     break;
 
                 case "ChiNhanh":
                     userGroup = UserGroup.ChiNhanh;
-                    var chiNhanhBranch = !string.IsNullOrWhiteSpace(result.DefaultBranch)
-                        ? result.DefaultBranch
-                        : (!string.IsNullOrWhiteSpace(SelectedBranch)
-                            ? SelectedBranch
-                            : _connectionStringProvider.DefaultBranch);
-                    chiNhanhBranch = chiNhanhBranch.Trim().ToUpperInvariant();
-                    permittedBranches = [chiNhanhBranch];
-                    SelectedBranch = chiNhanhBranch;
+                    if (string.IsNullOrWhiteSpace(result.DefaultBranch))
+                    {
+                        ErrorMessage = "Account is missing branch mapping (MACN). Please contact administrator.";
+                        return;
+                    }
+                    selectedBranch = result.DefaultBranch.Trim().ToUpperInvariant();
+                    permittedBranches = [selectedBranch];
                     break;
 
                 case "KhachHang":
                     userGroup = UserGroup.KhachHang;
-                    var khachHangBranch = !string.IsNullOrWhiteSpace(result.DefaultBranch)
-                        ? result.DefaultBranch
-                        : (!string.IsNullOrWhiteSpace(SelectedBranch)
-                            ? SelectedBranch
-                            : _connectionStringProvider.DefaultBranch);
-                    khachHangBranch = khachHangBranch.Trim().ToUpperInvariant();
-                    permittedBranches = [khachHangBranch];
-                    SelectedBranch = khachHangBranch;
+                    if (string.IsNullOrWhiteSpace(result.DefaultBranch))
+                    {
+                        ErrorMessage = "Customer account is missing branch mapping (MACN). Please contact administrator.";
+                        return;
+                    }
+                    if (string.IsNullOrWhiteSpace(result.CustomerCMND))
+                    {
+                        ErrorMessage = "Customer account is missing CMND mapping. Please contact administrator.";
+                        return;
+                    }
+                    selectedBranch = result.DefaultBranch.Trim().ToUpperInvariant();
+                    permittedBranches = [selectedBranch];
                     break;
 
                 default:
@@ -213,7 +200,7 @@ public class LoginViewModel : Screen
                 UserName,
                 displayName,
                 userGroup,
-                SelectedBranch,
+                selectedBranch,
                 permittedBranches,
                 result.CustomerCMND,
                 result.EmployeeId);

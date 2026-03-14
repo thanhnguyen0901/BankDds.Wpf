@@ -1,4 +1,4 @@
-```md
+﻿```md
 # ĐỀ TÀI MÔN CƠ SỞ DỮ LIỆU PHÂN TÁN
 
 ## ĐỀ TÀI SỐ 3 – NGÂN HÀNG
@@ -209,3 +209,4 @@ Chương trình có **3 nhóm người dùng**:
 - Sinh viên tự kiểm tra các ràng buộc dữ liệu
 - **Bắt buộc thực hiện truy vấn trên SQL Server**
 ```
+

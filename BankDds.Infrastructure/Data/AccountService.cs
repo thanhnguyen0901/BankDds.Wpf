@@ -11,15 +11,18 @@ public class AccountService : IAccountService
     private readonly IAccountRepository _accountRepository;
     private readonly ICustomerRepository _customerRepository;
     private readonly IAuthorizationService _authorizationService;
+    private readonly IUserSession _userSession;
 
     public AccountService(
         IAccountRepository accountRepository, 
         ICustomerRepository customerRepository,
-        IAuthorizationService authorizationService)
+        IAuthorizationService authorizationService,
+        IUserSession userSession)
     {
         _accountRepository = accountRepository;
         _customerRepository = customerRepository;
         _authorizationService = authorizationService;
+        _userSession = userSession;
     }
 
     public Task<List<Account>> GetAccountsByBranchAsync(string branchCode)
@@ -62,7 +65,10 @@ public class AccountService : IAccountService
 
         // Verify user can access this account's customer and branch
         _authorizationService.RequireCanAccessAccount(account.CMND);
-        _authorizationService.RequireCanAccessBranch(account.MACN);
+        if (_userSession.UserGroup != UserGroup.KhachHang)
+        {
+            _authorizationService.RequireCanAccessBranch(account.MACN);
+        }
         
         return account;
     }

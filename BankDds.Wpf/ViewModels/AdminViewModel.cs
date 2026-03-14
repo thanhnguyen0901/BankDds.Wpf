@@ -1,9 +1,9 @@
-using Caliburn.Micro;
-using BankDds.Core.Interfaces;
+﻿using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
 using BankDds.Core.Validators;
-
+using Caliburn.Micro;
 using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace BankDds.Wpf.ViewModels;
 
@@ -14,28 +14,29 @@ public class AdminViewModel : BaseViewModel
     private readonly IDialogService _dialogService;
     private readonly UserValidator _validator;
     private readonly IBranchService _branchService;
-    
+
     private ObservableCollection<User> _users = new();
     private User? _selectedUser;
     private User _editingUser = new();
     private bool _isEditing;
+    private UserGroup _selectedEditingUserGroup;
     private string _newPassword = string.Empty;
     private string _confirmPassword = string.Empty;
     private string _passwordValidationMessage = string.Empty;
 
     public AdminViewModel(
-        IUserService userService, 
-        IUserSession userSession, 
+        IUserService userService,
+        IUserSession userSession,
         IDialogService dialogService,
         UserValidator validator,
         IBranchService branchService)
     {
-        _userService   = userService;
-        _userSession   = userSession;
+        _userService = userService;
+        _userSession = userSession;
         _dialogService = dialogService;
-        _validator     = validator;
+        _validator = validator;
         _branchService = branchService;
-        DisplayName    = "User Administration";
+        DisplayName = "User Administration";
     }
 
     public ObservableCollection<User> Users
@@ -58,6 +59,7 @@ public class AdminViewModel : BaseViewModel
             NotifyOfPropertyChange(() => CanEdit);
             NotifyOfPropertyChange(() => CanDelete);
             NotifyOfPropertyChange(() => CanRestore);
+            NotifyOfPropertyChange(() => CanChangeTargetUserGroup);
         }
     }
 
@@ -67,7 +69,32 @@ public class AdminViewModel : BaseViewModel
         set
         {
             _editingUser = value;
+            _selectedEditingUserGroup = _editingUser.UserGroup;
             NotifyOfPropertyChange(() => EditingUser);
+            NotifyOfPropertyChange(() => SelectedEditingUserGroup);
+            NotifyOfPropertyChange(() => CanEditDefaultBranch);
+            NotifyOfPropertyChange(() => ShowEmployeeIdField);
+            NotifyOfPropertyChange(() => ShowCustomerCmndField);
+            NotifyOfPropertyChange(() => CanSave);
+        }
+    }
+
+    public UserGroup SelectedEditingUserGroup
+    {
+        get => _selectedEditingUserGroup;
+        set
+        {
+            if (_selectedEditingUserGroup == value) return;
+
+            _selectedEditingUserGroup = value;
+            _editingUser.UserGroup = value;
+            ApplyRoleSpecificDefaults();
+
+            NotifyOfPropertyChange(() => SelectedEditingUserGroup);
+            NotifyOfPropertyChange(() => EditingUser);
+            NotifyOfPropertyChange(() => CanEditDefaultBranch);
+            NotifyOfPropertyChange(() => ShowEmployeeIdField);
+            NotifyOfPropertyChange(() => ShowCustomerCmndField);
             NotifyOfPropertyChange(() => CanSave);
         }
     }
@@ -85,6 +112,7 @@ public class AdminViewModel : BaseViewModel
             NotifyOfPropertyChange(() => CanRestore);
             NotifyOfPropertyChange(() => CanSave);
             NotifyOfPropertyChange(() => CanCancel);
+            NotifyOfPropertyChange(() => CanChangeTargetUserGroup);
         }
     }
 
@@ -126,18 +154,20 @@ public class AdminViewModel : BaseViewModel
     public bool IsPasswordValid => PasswordValidationMessage.StartsWith("?");
 
     public ObservableCollection<UserGroup> AvailableUserGroups { get; } = new();
-    /// <summary>
-    /// Real branch codes loaded from IBranchService on activate.
-    /// Does NOT include "ALL" — DefaultBranch must be a real branch code.
-    /// </summary>
+
+    // Real branch codes loaded from IBranchService on activate.
     public ObservableCollection<string> AvailableBranches { get; } = new();
 
-    // CanExecute properties - Standard CRUD pattern
+    public bool CanEditDefaultBranch => _userSession.UserGroup == UserGroup.NganHang;
+    public bool ShowEmployeeIdField => SelectedEditingUserGroup == UserGroup.ChiNhanh;
+    public bool ShowCustomerCmndField => SelectedEditingUserGroup == UserGroup.KhachHang;
+    public bool CanChangeTargetUserGroup => SelectedUser == null;
+
+    // CanExecute properties
     public bool CanAdd => !IsEditing;
-    // In SQL-login mode, password reset and login deletion are NGANHANG-only actions.
     public bool CanEdit => SelectedUser != null && !IsEditing && _userSession.UserGroup == UserGroup.NganHang;
-    public bool CanDelete  => SelectedUser != null && !IsEditing && _userSession.UserGroup == UserGroup.NganHang;
-    public bool CanRestore => false; // Soft-restore is not supported after moving to SQL login lifecycle.
+    public bool CanDelete => SelectedUser != null && !IsEditing && _userSession.UserGroup == UserGroup.NganHang;
+    public bool CanRestore => false;
     public bool CanSave => IsEditing &&
                            !string.IsNullOrWhiteSpace(EditingUser.Username) &&
                            !string.IsNullOrWhiteSpace(NewPassword) &&
@@ -152,74 +182,73 @@ public class AdminViewModel : BaseViewModel
             PasswordValidationMessage = "Password is required";
             return;
         }
-        
+
         if (NewPassword.Length < 8)
         {
             PasswordValidationMessage = "Password must be at least 8 characters";
             return;
         }
-        
+
         if (!NewPassword.Any(char.IsUpper))
         {
             PasswordValidationMessage = "Password must contain at least one uppercase letter";
             return;
         }
-        
+
         if (!NewPassword.Any(char.IsLower))
         {
             PasswordValidationMessage = "Password must contain at least one lowercase letter";
             return;
         }
-        
+
         if (!NewPassword.Any(char.IsDigit))
         {
             PasswordValidationMessage = "Password must contain at least one number";
             return;
         }
-        
+
         if (NewPassword != ConfirmPassword)
         {
             PasswordValidationMessage = "Passwords do not match";
             return;
         }
-        
+
         PasswordValidationMessage = "? Password meets requirements";
     }
 
     protected override async Task OnActivateAsync(CancellationToken cancellationToken)
     {
         await base.OnActivateAsync(cancellationToken);
-        
-        // Allow both NganHang and ChiNhanh to access admin (with different privileges)
+
         if (_userSession.UserGroup != UserGroup.NganHang && _userSession.UserGroup != UserGroup.ChiNhanh)
         {
-            ErrorMessage = "Access Denied: Only Bank-level and Branch-level administrators can access this module.";
+            ErrorMessage = "Access denied: only NganHang and ChiNhanh users can open this module.";
             return;
         }
 
-        // Populate creatable user groups based on the same-group rule.
         AvailableUserGroups.Clear();
         if (_userSession.UserGroup == UserGroup.NganHang)
         {
             AvailableUserGroups.Add(UserGroup.NganHang);
         }
-        else // ChiNhanh
+        else
         {
             AvailableUserGroups.Add(UserGroup.ChiNhanh);
+            AvailableUserGroups.Add(UserGroup.KhachHang);
         }
         NotifyOfPropertyChange(() => AvailableUserGroups);
 
-        // Load real branch codes from repository — no "ALL" here; DefaultBranch must be a real branch
         try
         {
             var branches = await _branchService.GetAllBranchesAsync();
             AvailableBranches.Clear();
             foreach (var b in branches)
-                AvailableBranches.Add(b.MACN);
+            {
+                AvailableBranches.Add(b.MACN.Trim().ToUpperInvariant());
+            }
         }
         catch
         {
-            // Fallback: keep existing entries if service is unavailable
             if (AvailableBranches.Count == 0)
             {
                 AvailableBranches.Add("BENTHANH");
@@ -241,22 +270,21 @@ public class AdminViewModel : BaseViewModel
 
     public void Add()
     {
+        if (!AvailableUserGroups.Any())
+        {
+            ErrorMessage = "No user group is available for the current login.";
+            return;
+        }
+
         EditingUser = new User
         {
-            // Same-group default based on current admin role.
-            UserGroup = _userSession.UserGroup == UserGroup.NganHang
-                ? UserGroup.NganHang
-                : UserGroup.ChiNhanh,
-            // Always default the branch to the current user's branch so the service-layer
-            // RequireCanManageUserInBranch check passes without the admin needing to change it
+            UserGroup = AvailableUserGroups[0],
             DefaultBranch = _userSession.SelectedBranch == "ALL"
                 ? (AvailableBranches.FirstOrDefault() ?? "BENTHANH")
-                : _userSession.SelectedBranch,
-            // EmployeeId links this user account to an existing employee record.
-            // It must be entered manually by the administrator — auto-generation here
-            // would produce a dangling reference to a non-existent employee.
-            EmployeeId = string.Empty
+                : _userSession.SelectedBranch
         };
+        ApplyRoleSpecificDefaults();
+
         IsEditing = true;
         SelectedUser = null;
         ErrorMessage = string.Empty;
@@ -272,20 +300,22 @@ public class AdminViewModel : BaseViewModel
 
         if (_userSession.UserGroup != UserGroup.NganHang)
         {
-            ErrorMessage = "Only Bank administrators can reset passwords in this module.";
+            ErrorMessage = "Only NganHang users can reset other users' passwords.";
             return;
         }
 
         EditingUser = new User
         {
-            Username      = SelectedUser.Username,
-            PasswordHash  = SelectedUser.PasswordHash,
-            UserGroup     = SelectedUser.UserGroup,
+            Username = SelectedUser.Username,
+            PasswordHash = SelectedUser.PasswordHash,
+            UserGroup = SelectedUser.UserGroup,
             DefaultBranch = SelectedUser.DefaultBranch,
-            CustomerCMND  = SelectedUser.CustomerCMND,
-            EmployeeId    = SelectedUser.EmployeeId,
-            TrangThaiXoa  = SelectedUser.TrangThaiXoa  // preserve soft-delete state
+            CustomerCMND = SelectedUser.CustomerCMND,
+            EmployeeId = SelectedUser.EmployeeId,
+            TrangThaiXoa = SelectedUser.TrangThaiXoa
         };
+        ApplyRoleSpecificDefaults();
+
         IsEditing = true;
         ErrorMessage = string.Empty;
         SuccessMessage = string.Empty;
@@ -296,49 +326,38 @@ public class AdminViewModel : BaseViewModel
 
     public async Task Save()
     {
-        // Validation before loading indicator
         if (_userSession.UserGroup == UserGroup.NganHang &&
             EditingUser.UserGroup != UserGroup.NganHang)
         {
-            ErrorMessage = "Bank administrators can only create Bank-level (NganHang) users.";
+            ErrorMessage = "NganHang accounts can only create NganHang accounts.";
             return;
         }
 
-        if (_userSession.UserGroup != UserGroup.NganHang &&
+        if (_userSession.UserGroup == UserGroup.ChiNhanh &&
             EditingUser.UserGroup == UserGroup.NganHang)
         {
-            ErrorMessage = "Only Bank administrators can create Bank-level users.";
-            return;
-        }
-
-        if (_userSession.UserGroup == UserGroup.ChiNhanh && 
-            EditingUser.UserGroup != UserGroup.ChiNhanh)
-        {
-            ErrorMessage = "Branch administrators can only create Branch-level (ChiNhanh) users.";
+            ErrorMessage = "ChiNhanh accounts cannot create NganHang accounts.";
             return;
         }
 
         await ExecuteWithLoadingAsync(async () =>
         {
-            // In SQL-login mode PasswordHash carries plain password input for SP calls.
             EditingUser.PasswordHash = NewPassword;
-
-            // Validate input model.
-            var validationContext = new FluentValidation.ValidationContext<User>(EditingUser);
-
-            var validationResult = await _validator.ValidateAsync(validationContext);
-            if (!validationResult.IsValid)
-            {
-                // Aggregate all validation errors
-                ErrorMessage = string.Join(Environment.NewLine, 
-                    validationResult.Errors.Select(e => e.ErrorMessage));
-                return;
-            }
+            ApplyRoleSpecificDefaults();
 
             bool result;
 
             if (SelectedUser == null)
             {
+                var validationContext = new FluentValidation.ValidationContext<User>(EditingUser);
+                var validationResult = await _validator.ValidateAsync(validationContext);
+
+                if (!validationResult.IsValid)
+                {
+                    ErrorMessage = string.Join(Environment.NewLine, validationResult.Errors.Select(e => e.ErrorMessage));
+                    return;
+                }
+
                 result = await _userService.AddUserAsync(EditingUser);
                 if (result)
                 {
@@ -349,9 +368,10 @@ public class AdminViewModel : BaseViewModel
             {
                 if (_userSession.UserGroup != UserGroup.NganHang)
                 {
-                    ErrorMessage = "Only Bank administrators can reset passwords.";
+                    ErrorMessage = "Only NganHang users can reset passwords.";
                     return;
                 }
+
                 result = await _userService.UpdateUserAsync(EditingUser);
                 if (result)
                 {
@@ -383,15 +403,13 @@ public class AdminViewModel : BaseViewModel
 
         if (_userSession.UserGroup != UserGroup.NganHang)
         {
-            await _dialogService.ShowWarningAsync("Only Bank administrators can delete logins.", "Delete Login");
+            await _dialogService.ShowWarningAsync("Only NganHang users can delete logins.", "Delete Login");
             return;
         }
 
-        // Hard delete SQL login/user via sp_XoaTaiKhoan
         var confirmed = await _dialogService.ShowConfirmationAsync(
-            $"Bạn có chắc chắn muốn xóa login '{SelectedUser.Username}'?\nThao tác này sẽ xóa DB user và SQL login.",
-            "Xác nhận xóa login"
-        );
+            $"Are you sure you want to delete login '{SelectedUser.Username}'?",
+            "Confirm delete login");
 
         if (!confirmed) return;
 
@@ -402,11 +420,11 @@ public class AdminViewModel : BaseViewModel
             {
                 await LoadUsersAsync();
                 SelectedUser = null;
-                SuccessMessage = "Login đã được xóa.";
+                SuccessMessage = "Login deleted.";
             }
             else
             {
-                ErrorMessage = "Không thể xóa login.";
+                ErrorMessage = "Cannot delete login.";
             }
         });
     }
@@ -414,7 +432,7 @@ public class AdminViewModel : BaseViewModel
     public async Task Restore()
     {
         await _dialogService.ShowWarningAsync(
-            "Restore is not supported in SQL-login mode. Please recreate the login if needed.",
+            "Restore is not supported in SQL-login mode. Recreate the login if needed.",
             "Restore Not Supported");
     }
 
@@ -422,10 +440,43 @@ public class AdminViewModel : BaseViewModel
     {
         IsEditing = false;
         EditingUser = new User();
+        _selectedEditingUserGroup = default;
         ErrorMessage = string.Empty;
         SuccessMessage = string.Empty;
         NewPassword = string.Empty;
         ConfirmPassword = string.Empty;
         PasswordValidationMessage = string.Empty;
+    }
+
+    private void ApplyRoleSpecificDefaults()
+    {
+        if (_userSession.UserGroup == UserGroup.ChiNhanh)
+        {
+            _editingUser.DefaultBranch = _userSession.SelectedBranch;
+        }
+
+        _editingUser.DefaultBranch = (_editingUser.DefaultBranch ?? string.Empty).Trim().ToUpperInvariant();
+
+        switch (_editingUser.UserGroup)
+        {
+            case UserGroup.ChiNhanh:
+                _editingUser.EmployeeId = string.IsNullOrWhiteSpace(_editingUser.EmployeeId)
+                    ? string.Empty
+                    : _editingUser.EmployeeId.Trim().ToUpperInvariant();
+                _editingUser.CustomerCMND = null;
+                break;
+
+            case UserGroup.KhachHang:
+                _editingUser.CustomerCMND = string.IsNullOrWhiteSpace(_editingUser.CustomerCMND)
+                    ? string.Empty
+                    : _editingUser.CustomerCMND.Trim();
+                _editingUser.EmployeeId = null;
+                break;
+
+            default:
+                _editingUser.EmployeeId = null;
+                _editingUser.CustomerCMND = null;
+                break;
+        }
     }
 }

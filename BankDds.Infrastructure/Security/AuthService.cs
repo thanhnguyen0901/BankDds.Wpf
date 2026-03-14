@@ -1,4 +1,4 @@
-using BankDds.Core.Interfaces;
+﻿using BankDds.Core.Interfaces;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 
@@ -34,7 +34,8 @@ public class AuthService : IAuthService
             await using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync();
 
-            // sp_DangNhap returns: MANV, HOTEN, TENNHOM, and (after schema update) MACN.
+            // sp_DangNhap returns role/session context:
+            // MANV, HOTEN, TENNHOM, MACN, CustomerCMND, EmployeeId.
             await using var cmd = new SqlCommand("sp_DangNhap", connection)
             {
                 CommandType = System.Data.CommandType.StoredProcedure
@@ -51,27 +52,12 @@ public class AuthService : IAuthService
                 };
             }
 
-            var manv = reader["MANV"]?.ToString() ?? string.Empty;
-            var hoTen = reader["HOTEN"]?.ToString() ?? manv;
-            var tenNhom = reader["TENNHOM"]?.ToString() ?? string.Empty;
-
-            // Read MACN column if present (added by updated sp_DangNhap).
-            // Older SP versions return only 3 columns — handle gracefully.
-            string defaultBranch = string.Empty;
-            try
-            {
-                int macnOrdinal = reader.GetOrdinal("MACN");
-                if (!reader.IsDBNull(macnOrdinal))
-                    defaultBranch = reader.GetString(macnOrdinal).Trim();
-            }
-            catch (IndexOutOfRangeException)
-            {
-                // MACN column not present — old SP version; will use C# fallback.
-                _logger.LogWarning(
-                    "sp_DangNhap did not return MACN column for login '{Login}'. " +
-                    "Consider re-running sql/04_publisher_security.sql to update the SP.",
-                    userName);
-            }
+            var manv = ReadOptionalString(reader, "MANV");
+            var hoTen = ReadOptionalString(reader, "HOTEN");
+            var tenNhom = ReadOptionalString(reader, "TENNHOM");
+            var defaultBranch = ReadOptionalString(reader, "MACN");
+            var customerCmnd = ReadOptionalString(reader, "CustomerCMND");
+            var employeeId = ReadOptionalString(reader, "EmployeeId");
 
             // Map SQL role name to the UserGroup string used by the WPF layer
             string userGroup = tenNhom.ToUpperInvariant() switch
@@ -91,14 +77,55 @@ public class AuthService : IAuthService
                 };
             }
 
-            // Log a warning when branch-dependent roles have no DefaultBranch from SP.
-            // LoginViewModel will apply a C#-side fallback using the login form selection.
-            if (string.IsNullOrEmpty(defaultBranch) && userGroup is "ChiNhanh" or "KhachHang")
+            if (string.IsNullOrWhiteSpace(hoTen))
+                hoTen = string.IsNullOrWhiteSpace(manv) ? userName : manv;
+
+            if (userGroup is "ChiNhanh" or "KhachHang")
             {
-                _logger.LogWarning(
-                    "sp_DangNhap returned empty MACN for '{Login}' (role={Role}). " +
-                    "Branch will be inferred from the login form selection.",
-                    userName, userGroup);
+                if (string.IsNullOrWhiteSpace(defaultBranch))
+                {
+                    _logger.LogWarning(
+                        "Login '{Login}' resolved role {Role} but no MACN from sp_DangNhap.",
+                        userName, userGroup);
+                    return new AuthResult
+                    {
+                        Success = false,
+                        ErrorMessage = "Login account is missing branch mapping (MACN)."
+                    };
+                }
+
+                defaultBranch = defaultBranch.Trim().ToUpperInvariant();
+            }
+
+            if (userGroup == "ChiNhanh")
+            {
+                employeeId = string.IsNullOrWhiteSpace(employeeId) ? manv : employeeId;
+                if (string.IsNullOrWhiteSpace(employeeId))
+                {
+                    _logger.LogWarning(
+                        "Login '{Login}' resolved CHINHANH but no EmployeeId/MANV mapping.",
+                        userName);
+                    return new AuthResult
+                    {
+                        Success = false,
+                        ErrorMessage = "Branch account is missing EmployeeId mapping."
+                    };
+                }
+            }
+
+            if (userGroup == "KhachHang")
+            {
+                if (string.IsNullOrWhiteSpace(customerCmnd))
+                {
+                    _logger.LogWarning(
+                        "Login '{Login}' resolved KHACHHANG but no CustomerCMND mapping.",
+                        userName);
+                    return new AuthResult
+                    {
+                        Success = false,
+                        ErrorMessage = "Customer account is missing CustomerCMND mapping."
+                    };
+                }
             }
 
             // Store the SQL login credentials in the provider so all subsequent
@@ -109,13 +136,15 @@ public class AuthService : IAuthService
             {
                 Success = true,
                 UserGroup = userGroup,
-                EmployeeId = manv,
+                EmployeeId = employeeId,
                 DisplayName = hoTen,
-                DefaultBranch = defaultBranch
+                DefaultBranch = defaultBranch,
+                CustomerCMND = customerCmnd
             };
         }
         catch (SqlException ex)
         {
+            _logger.LogWarning(ex, "SQL login failed for account '{Login}'.", userName);
             return new AuthResult
             {
                 Success = false,
@@ -124,6 +153,7 @@ public class AuthService : IAuthService
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Unexpected login error for account '{Login}'.", userName);
             return new AuthResult
             {
                 Success = false,
@@ -137,4 +167,21 @@ public class AuthService : IAuthService
         _connectionStringProvider.ClearSqlLoginCredentials();
         return Task.CompletedTask;
     }
+
+    private static string ReadOptionalString(SqlDataReader reader, string columnName)
+    {
+        try
+        {
+            int ordinal = reader.GetOrdinal(columnName);
+            if (reader.IsDBNull(ordinal))
+                return string.Empty;
+
+            return reader.GetValue(ordinal)?.ToString()?.Trim() ?? string.Empty;
+        }
+        catch (IndexOutOfRangeException)
+        {
+            return string.Empty;
+        }
+    }
 }
+

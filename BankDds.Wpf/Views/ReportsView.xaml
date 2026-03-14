@@ -1,4 +1,4 @@
-<UserControl
+﻿<UserControl
     x:Class="BankDds.Wpf.Views.ReportsView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -189,7 +189,9 @@
                     </Border>
                 </Grid>
             </TabItem>
-            <TabItem Header="Tài khoản đã mở">
+            <TabItem
+                Header="Tài khoản đã mở"
+                Visibility="{Binding CanViewManagementReports, Converter={StaticResource BoolToVisConverter}}">
                 <Grid Margin="15">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -284,7 +286,9 @@
                     </DataGrid>
                 </Grid>
             </TabItem>
-            <TabItem Header="Khách hàng theo chi nhánh">
+            <TabItem
+                Header="Khách hàng theo chi nhánh"
+                Visibility="{Binding CanViewManagementReports, Converter={StaticResource BoolToVisConverter}}">
                 <Grid Margin="15">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -363,7 +367,9 @@
                     </DataGrid>
                 </Grid>
             </TabItem>
-            <TabItem Header="Tổng hợp giao dịch">
+            <TabItem
+                Header="Tổng hợp giao dịch"
+                Visibility="{Binding CanViewManagementReports, Converter={StaticResource BoolToVisConverter}}">
                 <Grid Margin="15">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -546,3 +552,4 @@
         </TabControl>
     </Grid>
 </UserControl>
+

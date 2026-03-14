@@ -1,4 +1,4 @@
-USE NGANHANG;
+﻿USE NGANHANG;
 GO
 -- Tạo các role nghiệp vụ nếu chưa tồn tại.
 IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'NGANHANG' AND type = 'R')
@@ -162,10 +162,13 @@ CREATE OR ALTER PROCEDURE dbo.sp_DangNhap
 AS
 BEGIN
     SET NOCOUNT ON;
+    DECLARE @LOGIN    nvarchar(128) = SYSTEM_USER;
     DECLARE @MANV     nvarchar(50)  = SYSTEM_USER;
-    DECLARE @HOTEN    nvarchar(128) = USER_NAME();
+    DECLARE @HOTEN    nvarchar(128) = SYSTEM_USER;
     DECLARE @TENNHOM  nvarchar(128) = NULL;
     DECLARE @MACN     nChar(10)     = NULL;
+    DECLARE @CustomerCMND nChar(10) = NULL;
+    DECLARE @EmployeeId   nChar(10) = NULL;
 
     SELECT TOP 1 @TENNHOM = r.name
     FROM   sys.database_role_members rm
@@ -187,23 +190,69 @@ BEGIN
         ELSE
             SET @TENNHOM = N'KHACHHANG';
     END
-    
-    IF @TENNHOM IN (N'CHINHANH', N'KHACHHANG')
-    BEGIN
-        IF OBJECT_ID(N'dbo.NGUOIDUNG', N'U') IS NOT NULL
-            SELECT @MACN = NULLIF(RTRIM(DefaultBranch), N'')
-            FROM   dbo.NGUOIDUNG
-            WHERE  Username = SYSTEM_USER AND TrangThaiXoa = 0;
-        IF @MACN IS NULL
-            SELECT @MACN = MACN FROM dbo.NHANVIEN
-            WHERE  MANV = SYSTEM_USER AND TrangThaiXoa = 0;
 
-        IF @MACN IS NULL
-            SELECT TOP 1 @MACN = MACN FROM dbo.KHACHHANG
-            WHERE  CMND = SYSTEM_USER AND TrangThaiXoa = 0;
+    IF OBJECT_ID(N'dbo.NGUOIDUNG', N'U') IS NOT NULL
+    BEGIN
+        SELECT TOP 1
+            @MACN         = NULLIF(RTRIM(DefaultBranch), N''),
+            @CustomerCMND = NULLIF(RTRIM(CustomerCMND), N''),
+            @EmployeeId   = NULLIF(RTRIM(EmployeeId), N'')
+        FROM dbo.NGUOIDUNG
+        WHERE Username = @LOGIN
+          AND TrangThaiXoa = 0;
     END
 
-    SELECT @MANV AS MANV, @HOTEN AS HOTEN, @TENNHOM AS TENNHOM, @MACN AS MACN;
+    IF @TENNHOM = N'CHINHANH'
+    BEGIN
+        IF @EmployeeId IS NULL
+            SET @EmployeeId = @LOGIN;
+
+        SELECT TOP 1
+            @MACN  = COALESCE(@MACN, MACN),
+            @HOTEN = RTRIM(HO) + N' ' + RTRIM(TEN)
+        FROM dbo.NHANVIEN
+        WHERE MANV = @EmployeeId
+          AND TrangThaiXoa = 0;
+
+        IF @MACN IS NULL
+        BEGIN
+            SELECT TOP 1
+                @MACN  = MACN,
+                @HOTEN = RTRIM(HO) + N' ' + RTRIM(TEN)
+            FROM dbo.NHANVIEN
+            WHERE MANV = @LOGIN
+              AND TrangThaiXoa = 0;
+        END
+
+        SET @MANV = COALESCE(@EmployeeId, @MANV);
+    END
+
+    IF @TENNHOM = N'KHACHHANG'
+    BEGIN
+        IF @CustomerCMND IS NULL
+        BEGIN
+            IF EXISTS (SELECT 1 FROM dbo.KHACHHANG WHERE CMND = @LOGIN AND TrangThaiXoa = 0)
+                SET @CustomerCMND = @LOGIN;
+        END
+
+        IF @CustomerCMND IS NOT NULL
+        BEGIN
+            SELECT TOP 1
+                @MACN  = COALESCE(@MACN, MACN),
+                @HOTEN = RTRIM(HO) + N' ' + RTRIM(TEN)
+            FROM dbo.KHACHHANG
+            WHERE CMND = @CustomerCMND
+              AND TrangThaiXoa = 0;
+        END
+    END
+
+    SELECT
+        @MANV                    AS MANV,
+        @HOTEN                   AS HOTEN,
+        @TENNHOM                 AS TENNHOM,
+        @MACN                    AS MACN,
+        @CustomerCMND            AS CustomerCMND,
+        @EmployeeId              AS EmployeeId;
 END
 GO
 
@@ -255,9 +304,9 @@ BEGIN
         RETURN;
     END
 
-    IF @CallerRole = N'CHINHANH' AND @TENNHOM <> N'CHINHANH'
+    IF @CallerRole = N'CHINHANH' AND @TENNHOM NOT IN (N'CHINHANH', N'KHACHHANG')
     BEGIN
-        RAISERROR(N'Tài khoản CHINHANH chỉ được tạo login thuộc role CHINHANH.', 16, 1);
+        RAISERROR(N'Tài khoản CHINHANH chỉ được tạo login thuộc role CHINHANH hoặc KHACHHANG.', 16, 1);
         RETURN;
     END
 
@@ -539,3 +588,4 @@ PRINT N'               sp_DoiMatKhau, sp_DanhSachNhanVien';
 PRINT N'    Login mẫu: ADMIN_NH (NGANHANG), NV_BT (CHINHANH), KH_DEMO (KHACHHANG)';
 PRINT N'    Bước tiếp theo: setup hạ tầng theo SSMS UI runbook (không dùng script 05/06/08 làm flow chính).';
 GO
+

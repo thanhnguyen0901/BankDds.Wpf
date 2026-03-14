@@ -1,4 +1,4 @@
-using Caliburn.Micro;
+﻿using Caliburn.Micro;
 using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
 using BankDds.Wpf.Services;
@@ -175,7 +175,9 @@ public class ReportsViewModel : Screen
 
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
 
-    public ObservableCollection<string> AvailableBranches { get; } = new() { "ALL", "BENTHANH", "TANDINH" };
+    public ObservableCollection<string> AvailableBranches { get; } = new();
+    public bool IsCustomerMode => _userSession.UserGroup == UserGroup.KhachHang;
+    public bool CanViewManagementReports => _userSession.UserGroup != UserGroup.KhachHang;
 
     // Export button states
     public bool CanExportStatementToPdf => HasStatement;
@@ -236,12 +238,45 @@ public class ReportsViewModel : Screen
     protected override async Task OnActivateAsync(CancellationToken cancellationToken)
     {
         await base.OnActivateAsync(cancellationToken);
+        InitializeBranchFilters();
         
         // For customer mode, pre-populate with their accounts
         if (_userSession.UserGroup == UserGroup.KhachHang)
         {
             await LoadCustomerAccountsAsync();
         }
+    }
+
+    private void InitializeBranchFilters()
+    {
+        AvailableBranches.Clear();
+
+        if (_userSession.UserGroup == UserGroup.NganHang)
+        {
+            AvailableBranches.Add("ALL");
+            foreach (var branch in _userSession.PermittedBranches
+                         .Distinct(StringComparer.OrdinalIgnoreCase)
+                         .OrderBy(static b => b, StringComparer.OrdinalIgnoreCase))
+            {
+                AvailableBranches.Add(branch);
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(_userSession.SelectedBranch))
+        {
+            AvailableBranches.Add(_userSession.SelectedBranch);
+        }
+
+        if (AvailableBranches.Count == 0)
+        {
+            AvailableBranches.Add("ALL");
+        }
+
+        SelectedBranchForAccounts = AvailableBranches[0];
+        SelectedBranchForCustomers = AvailableBranches[0];
+        SelectedBranchForTransactionSummary = AvailableBranches[0];
+
+        NotifyOfPropertyChange(() => IsCustomerMode);
+        NotifyOfPropertyChange(() => CanViewManagementReports);
     }
 
     private async Task LoadCustomerAccountsAsync()
@@ -306,6 +341,12 @@ public class ReportsViewModel : Screen
 
     public async Task GenerateAccountsOpenedReport()
     {
+        if (!CanViewManagementReports)
+        {
+            ErrorMessage = "Khách hàng không có quyền xem báo cáo này.";
+            return;
+        }
+
         try
         {
             var accounts = await _reportService.GetAccountsOpenedInPeriodAsync(
@@ -324,6 +365,12 @@ public class ReportsViewModel : Screen
 
     public async Task GenerateCustomersPerBranchReport()
     {
+        if (!CanViewManagementReports)
+        {
+            ErrorMessage = "Khách hàng không có quyền xem báo cáo này.";
+            return;
+        }
+
         try
         {
             string? branchFilter = SelectedBranchForCustomers == "ALL" ? null : SelectedBranchForCustomers;
@@ -346,6 +393,12 @@ public class ReportsViewModel : Screen
 
     public async Task GenerateTransactionSummaryReport()
     {
+        if (!CanViewManagementReports)
+        {
+            ErrorMessage = "Khách hàng không có quyền xem báo cáo này.";
+            return;
+        }
+
         try
         {
             string? branchFilter = SelectedBranchForTransactionSummary == "ALL" ? null : SelectedBranchForTransactionSummary;
@@ -585,3 +638,5 @@ public class ReportsViewModel : Screen
         }
     }
 }
+
+

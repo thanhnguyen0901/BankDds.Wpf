@@ -1,4 +1,4 @@
-using BankDds.Core.Interfaces;
+﻿using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
@@ -12,22 +12,21 @@ namespace BankDds.Infrastructure.Data;
 public class ReportRepository : IReportRepository
 {
     private readonly IConnectionStringProvider _connectionStringProvider;
-    private readonly IUserSession _userSession;
     private readonly ILogger<ReportRepository> _logger;
 
     public ReportRepository(
         IConnectionStringProvider connectionStringProvider,
-        IUserSession userSession,
         ILogger<ReportRepository> logger)
     {
         _connectionStringProvider = connectionStringProvider;
-        _userSession = userSession;
         _logger = logger;
     }
 
     private string GetConnectionString()
     {
-        return _connectionStringProvider.GetConnectionStringForBranch(_userSession.SelectedBranch);
+        // Account statements are resolved on Publisher so KH can view own accounts
+        // even when those accounts are opened at a different branch.
+        return _connectionStringProvider.GetPublisherConnection();
     }
 
     /// <summary>
@@ -331,4 +330,6 @@ public class ReportRepository : IReportRepository
         };
     }
 }
+
+
 

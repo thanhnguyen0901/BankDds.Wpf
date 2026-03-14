@@ -1,4 +1,4 @@
-using Caliburn.Micro;
+﻿using Caliburn.Micro;
 using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
 using System.Collections.ObjectModel;
@@ -78,10 +78,10 @@ public class HomeViewModel : Conductor<Screen>.Collection.OneActive
     }
 
     // Role-based permissions
-    public bool CanViewCustomers => _userSession.UserGroup is UserGroup.NganHang or UserGroup.ChiNhanh;
-    public bool CanViewAccounts => _userSession.UserGroup is UserGroup.NganHang or UserGroup.ChiNhanh;
-    public bool CanViewEmployees => _userSession.UserGroup is UserGroup.NganHang or UserGroup.ChiNhanh;
-    public bool CanViewTransactions => _userSession.UserGroup is UserGroup.NganHang or UserGroup.ChiNhanh;
+    public bool CanViewCustomers => _userSession.UserGroup == UserGroup.ChiNhanh;
+    public bool CanViewAccounts => _userSession.UserGroup == UserGroup.ChiNhanh;
+    public bool CanViewEmployees => _userSession.UserGroup == UserGroup.ChiNhanh;
+    public bool CanViewTransactions => _userSession.UserGroup == UserGroup.ChiNhanh;
     public bool CanViewReports => true; // All users can view reports (filtered by role)
     // GAP-01: ChiNhanh must also reach Admin to create logins in the same group (DE3 §IV.2)
     public bool CanViewAdmin => _userSession.UserGroup is UserGroup.NganHang or UserGroup.ChiNhanh;
@@ -235,3 +235,5 @@ public class HomeViewModel : Conductor<Screen>.Collection.OneActive
         }
     }
 }
+
+

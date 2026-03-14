@@ -1,4 +1,4 @@
-using BankDds.Core.Interfaces;
+﻿using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
@@ -69,7 +69,8 @@ public class CustomerRepository : ICustomerRepository
     {
         try
         {
-            using var connection = new SqlConnection(GetConnectionString());
+            // Use Publisher so CMND lookup is global across branch fragments.
+            using var connection = new SqlConnection(_connectionStringProvider.GetPublisherConnection());
             await connection.OpenAsync();
             using var command = new SqlCommand("SP_GetCustomerByCMND", connection) { CommandType = CommandType.StoredProcedure };
             command.Parameters.AddWithValue("@CMND", cmnd);
@@ -164,4 +165,5 @@ public class CustomerRepository : ICustomerRepository
         TrangThaiXoa = reader.IsDBNull(reader.GetOrdinal("TrangThaiXoa")) ? 0 : Convert.ToInt32(reader.GetValue(reader.GetOrdinal("TrangThaiXoa")))
     };
 }
+
 

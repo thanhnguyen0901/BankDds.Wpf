@@ -1,4 +1,4 @@
-# Hướng Dẫn SSMS 21: Full Flow NGANHANG
+﻿﻿# Hướng Dẫn SSMS 21: Full Flow NGANHANG
 
 Áp dụng: SQL Server + SSMS 21  
 
@@ -523,72 +523,117 @@ Checklist DONE cho Bước 9:
 3. `SQLSERVER3` có `LINK0`, `LINK1` đúng mapping.
 4. `sp_testlinkedserver` chạy thành công cho tất cả link bắt buộc.
 
-### Bước 10: Security theo đề tài
+### Bước 10: Security + Authz Workflow theo đề tài
 
 Mục tiêu:
-tạo SQL login + DB user + role mapping đúng 3 nhóm (`NGANHANG`, `CHINHANH`, `KHACHHANG`) để đăng nhập và phân quyền đúng theo đề tài.
+đồng bộ SQL login/role và mapping `NGUOIDUNG` để app chạy đúng workflow trong `DE3-NGANHANG_AUTHZ_WORKFLOW.md`.
 
 ### 10.1 Điều kiện đầu vào
 
-1. Bước 4 đã chạy `sql/04_publisher_security.sql` trên `DESKTOP-JBB41QU`, DB `NGANHANG`.
-2. Lưu ý kiến trúc theo đề:
-`NGUOIDUNG` không phải bảng nghiệp vụ bắt buộc của đề tài.
-Trong bộ lab này, `NGUOIDUNG` được dùng như bảng phụ trợ trên Publisher để phục vụ quản trị account/app.
-2 database phân mảnh (`SQLSERVER2`, `SQLSERVER3`) không có `NGUOIDUNG` là chấp nhận được.
-3. Phân quyền chính vẫn dựa trên SQL Login + database role (`NGANHANG`, `CHINHANH`, `KHACHHANG`).
-4. Nếu chưa chắc, kiểm tra nhanh:
+1. Đã chạy xong các script ở Bước 4 trên Publisher `DESKTOP-JBB41QU`, DB `NGANHANG`.
+2. Nếu bạn đã dựng môi trường từ bản cũ, chạy lại đúng thứ tự:
+- `sql/03_publisher_sp_views.sql`
+- `sql/04_publisher_security.sql`
+3. App login dùng `username/password` SQL, sau đó gọi `sp_DangNhap` để lấy session (`TENNHOM`, `MACN`, `CustomerCMND`, `EmployeeId`).
+
+### 10.2 Rule phân quyền chốt theo đề
+
+1. Có 3 role:
+- `NGANHANG`
+- `CHINHANH`
+- `KHACHHANG`
+2. Rule tạo account:
+- account `NGANHANG` chỉ tạo được account `NGANHANG`.
+- account `CHINHANH` tạo được account `CHINHANH` và `KHACHHANG`.
+- account `KHACHHANG` không được tạo account.
+3. Rule scope:
+- `NGANHANG`: xem báo cáo theo chi nhánh được chọn.
+- `CHINHANH`: tác nghiệp trong đúng chi nhánh của account.
+- `KHACHHANG`: chỉ xem sao kê của chính mình.
+
+### 10.3 NGUOIDUNG là mapping bắt buộc cho app
+
+`NGUOIDUNG` dùng để map context nghiệp vụ cho session app, phải có trên Publisher:
+
+1. `Username`: trùng SQL login.
+2. `UserGroup`: `0=NganHang`, `1=ChiNhanh`, `2=KhachHang`.
+3. `DefaultBranch`: mã chi nhánh (`BENTHANH`/`TANDINH`).
+4. `EmployeeId`: bắt buộc với `ChiNhanh`.
+5. `CustomerCMND`: bắt buộc với `KhachHang`.
+
+Ghi chú:
+2 DB phân mảnh (`SQLSERVER2`, `SQLSERVER3`) không cần bảng `NGUOIDUNG` để app login;
+nguồn xác thực + mapping session nằm ở Publisher.
+
+### 10.4 Luồng tạo account đúng chuẩn
+
+Ưu tiên dùng app module `Quản trị` (đã bám rule ở trên):
+
+1. Login bằng account quản trị hợp lệ.
+2. Vào tab `Quản trị` -> `Thêm người dùng`.
+3. Chọn đúng nhóm theo quyền người tạo:
+- `NGANHANG` chỉ thấy chọn `NganHang`.
+- `CHINHANH` thấy chọn `ChiNhanh` hoặc `KhachHang`.
+4. Nhập field bắt buộc theo nhóm:
+- `ChiNhanh`: nhập `EmployeeId`.
+- `KhachHang`: nhập `CustomerCMND`.
+5. `DefaultBranch`:
+- với `CHINHANH` bị khóa theo chi nhánh đang đăng nhập.
+- với `NGANHANG` cho phép chọn.
+6. Bấm `Ghi`.
+
+Khi lưu, app gọi theo chuỗi:
+1. `sp_TaoTaiKhoan` (tạo SQL login + DB user + role).
+2. `USP_AddUser` (ghi/upsert mapping `NGUOIDUNG`).
+
+### 10.5 Tạo bằng SQL (khi cần kiểm thử thủ công)
 
 ```sql
 USE NGANHANG;
 GO
-SELECT name
-FROM sys.database_principals
-WHERE type = 'R'
-  AND name IN (N'NGANHANG', N'CHINHANH', N'KHACHHANG');
 
-SELECT name
-FROM sys.objects
-WHERE type = 'P'
-  AND name IN (N'sp_DangNhap', N'sp_TaoTaiKhoan', N'sp_XoaTaiKhoan', N'sp_DoiMatKhau');
+-- 1) Tao login + role SQL
+EXEC dbo.sp_TaoTaiKhoan
+    @LOGIN   = N'KH_TEST01',
+    @PASS    = N'Test@123',
+    @TENNHOM = N'KHACHHANG';
+GO
+
+-- 2) Tao mapping app session
+EXEC dbo.USP_AddUser
+    @Username      = N'KH_TEST01',
+    @PasswordHash  = N'N/A-SQL-AUTH',
+    @UserGroup     = 2,
+    @DefaultBranch = N'BENTHANH',
+    @CustomerCMND  = N'0800100001',
+    @EmployeeId    = NULL;
+GO
 ```
 
-5. Nếu thiếu role/SP thì chạy lại `sql/04_publisher_security.sql`.
+### 10.6 Query kiểm tra nhanh sau khi tạo
 
-### 10.2 Nguyên tắc triển khai account
+```sql
+USE NGANHANG;
+GO
 
-1. `Login` là đối tượng cấp server.
-2. Người dùng đăng nhập vào instance nào thì login phải tồn tại trên instance đó.
-3. `User` + `Role` là trong database:
-ở đây map vào DB `NGANHANG`.
-4. Khuyến nghị cho môi trường lab:
-tạo cùng login/password trên các instance mà app có thể kết nối để tránh lỗi đăng nhập khác instance.
+-- Role SQL
+SELECT dp.name AS UserName, rp.name AS RoleName
+FROM sys.database_role_members drm
+JOIN sys.database_principals dp ON dp.principal_id = drm.member_principal_id
+JOIN sys.database_principals rp ON rp.principal_id = drm.role_principal_id
+WHERE dp.name IN (N'ADMIN_NH', N'NV_BT', N'KH_DEMO', N'KH_TEST01')
+ORDER BY dp.name;
 
-### 10.3 Cách làm chuẩn bằng SSMS UI (khuyến nghị)
+-- Mapping NGUOIDUNG
+SELECT Username, UserGroup, DefaultBranch, CustomerCMND, EmployeeId, TrangThaiXoa
+FROM dbo.NGUOIDUNG
+WHERE Username IN (N'ADMIN_NH', N'NV_BT', N'KH_DEMO', N'KH_TEST01')
+ORDER BY Username;
+```
 
-Thực hiện trên từng instance cần cho phép đăng nhập (`DESKTOP-JBB41QU`, `SQLSERVER2`, `SQLSERVER3`, `SQLSERVER4` tùy nhu cầu):
+### 10.7 Kiểm tra login/session đúng workflow
 
-1. Mở node instance đó -> `Security` -> `Logins` -> `New Login...`.
-2. `Login name`: nhập tài khoản.
-3. Chọn `SQL Server authentication`, nhập mật khẩu.
-4. Tab `User Mapping`:
-tick database `NGANHANG`,
-tick đúng 1 role theo nhóm:
-`NGANHANG` hoặc `CHINHANH` hoặc `KHACHHANG`.
-5. Bấm `OK`.
-
-Lưu ý:
-không gán 1 user vào nhiều role nghiệp vụ cùng lúc để tránh sai phân quyền test.
-
-### 10.4 Cách tạo bằng stored procedure (tùy chọn)
-
-1. Có thể dùng:
-`EXEC dbo.sp_TaoTaiKhoan @LOGIN, @PASS, @TENNHOM;`
-2. SP này có rule kiểm soát người gọi theo role.
-3. Nếu gặp chặn logic role khi tạo tài khoản chéo nhóm, dùng cách UI ở mục 10.3 để chủ động hơn trong lab.
-
-### 10.5 Kiểm tra quyền sau khi tạo account
-
-Đăng nhập bằng từng account mẫu và chạy:
+Đăng nhập bằng từng account và chạy:
 
 ```sql
 USE NGANHANG;
@@ -600,29 +645,31 @@ SELECT IS_MEMBER('NGANHANG') AS IsNganHang,
 ```
 
 Kỳ vọng:
+1. `TENNHOM` trả đúng role của account.
+2. `MACN` trả đúng theo `NGUOIDUNG.DefaultBranch` (hoặc mapping nghiệp vụ tương ứng).
+3. Account `KHACHHANG` phải có `CustomerCMND`.
+4. Account `CHINHANH` phải có `EmployeeId`.
 
-1. Account nhóm `NGANHANG`: `IsNganHang = 1`.
-2. Account nhóm `CHINHANH`: `IsChiNhanh = 1`.
-3. Account nhóm `KHACHHANG`: `IsKhachHang = 1`.
-4. `sp_DangNhap` trả đúng `TENNHOM` và `MACN` theo dữ liệu người dùng.
-
-### 10.6 Lỗi thường gặp và xử lý nhanh
+### 10.8 Lỗi thường gặp và xử lý nhanh
 
 1. `Login failed for user ...`:
-login chưa tồn tại ở instance đang đăng nhập hoặc sai mật khẩu.
-2. `The EXECUTE permission was denied ...`:
-chưa map user vào DB `NGANHANG` hoặc chưa add đúng role.
-3. `Cannot open database 'NGANHANG' ...`:
-đã có login nhưng chưa có user mapping vào DB.
-4. Account đăng nhập được nhưng sai quyền:
-kiểm tra lại `User Mapping` và đảm bảo chỉ gán đúng 1 role nghiệp vụ.
+login chưa tồn tại ở instance đang kết nối hoặc sai mật khẩu.
+2. `EXECUTE permission denied`:
+user chưa vào đúng role SQL (`NGANHANG`/`CHINHANH`/`KHACHHANG`).
+3. Tạo login thành công nhưng app không login được theo role:
+thiếu mapping `NGUOIDUNG` hoặc mapping sai (`UserGroup/DefaultBranch/CMND/EmployeeId`).
+4. `CHINHANH` tạo account khác chi nhánh:
+bị chặn theo rule; kiểm tra lại `DefaultBranch` và session branch người tạo.
 
 Checklist DONE cho Bước 10:
 
-1. Đã có đủ account test cho 3 nhóm quyền.
-2. Các login cần dùng đã tồn tại trên đúng instance đăng nhập.
-3. Mỗi login map vào DB `NGANHANG` và đúng role.
-4. `sp_DangNhap` trả về đúng `TENNHOM`/`MACN` cho từng account.
+1. `sp_DangNhap`, `sp_TaoTaiKhoan`, `USP_AddUser` chạy được.
+2. Rule tạo account đúng:
+- `NGANHANG -> NGANHANG`
+- `CHINHANH -> CHINHANH/KHACHHANG`
+- `KHACHHANG -> không được tạo`
+3. Mỗi account có đủ role SQL + mapping `NGUOIDUNG` tương ứng.
+4. Login app dựng đúng session theo role/scope trong đề.
 
 ### Bước 11: Kiểm tra nghiệm thu cuối
 
@@ -659,3 +706,4 @@ Checklist DONE cho Bước 10:
 `SP_GetCustomersByBranch` (ORDER BY `HO`, `TEN`).
 8. Phân quyền đăng nhập:
 `sp_DangNhap`, `sp_TaoTaiKhoan`, nhóm role `NGANHANG`/`CHINHANH`/`KHACHHANG`.
+

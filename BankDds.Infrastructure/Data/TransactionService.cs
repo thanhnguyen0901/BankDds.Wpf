@@ -8,15 +8,18 @@ public class TransactionService : ITransactionService
     private readonly ITransactionRepository _transactionRepository;
     private readonly IAccountRepository _accountRepository;
     private readonly IAuthorizationService _authorizationService;
+    private readonly IUserSession _userSession;
 
     public TransactionService(
         ITransactionRepository transactionRepository,
         IAccountRepository accountRepository,
-        IAuthorizationService authorizationService)
+        IAuthorizationService authorizationService,
+        IUserSession userSession)
     {
         _transactionRepository = transactionRepository;
         _accountRepository = accountRepository;
         _authorizationService = authorizationService;
+        _userSession = userSession;
     }
 
     public async Task<List<Transaction>> GetTransactionsByAccountAsync(string sotk)
@@ -26,7 +29,10 @@ public class TransactionService : ITransactionService
             throw new InvalidOperationException("Account not found");
 
         _authorizationService.RequireCanAccessAccount(account.CMND);
-        _authorizationService.RequireCanAccessBranch(account.MACN);
+        if (_userSession.UserGroup != UserGroup.KhachHang)
+        {
+            _authorizationService.RequireCanAccessBranch(account.MACN);
+        }
         
         return await _transactionRepository.GetTransactionsByAccountAsync(sotk);
     }

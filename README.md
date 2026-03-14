@@ -1,4 +1,4 @@
-# BankDds - Distributed Banking System
+﻿# BankDds - Distributed Banking System
 
 A .NET 8 WPF application built with **clean 3-layer architecture** using MVVM pattern, Caliburn.Micro, and Autofac for dependency injection. This is a comprehensive banking system with role-based access control, designed for a distributed banking database course project.
 

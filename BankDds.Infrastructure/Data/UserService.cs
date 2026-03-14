@@ -1,5 +1,6 @@
 using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
+using System.Linq;
 
 namespace BankDds.Infrastructure.Data;
 
@@ -35,13 +36,15 @@ public class UserService : IUserService
         // Check if user can access admin
         _authorizationService.RequireAdminAccess();
 
+        var preparedUser = PrepareUserForCreate(user);
+
         // Check if user can create this type of user
-        _authorizationService.RequireCanCreateUser(user.UserGroup);
+        _authorizationService.RequireCanCreateUser(preparedUser.UserGroup);
 
-        // ChiNhanh admins may only create logins for their own branch
-        _authorizationService.RequireCanManageUserInBranch(user.DefaultBranch);
+        // ChiNhanh admins may only create logins for their own branch.
+        _authorizationService.RequireCanManageUserInBranch(preparedUser.DefaultBranch);
 
-        return _userRepository.AddUserAsync(user);
+        return _userRepository.AddUserAsync(preparedUser);
     }
 
     public Task<bool> UpdateUserAsync(User user)
@@ -56,12 +59,8 @@ public class UserService : IUserService
                 "Only Bank administrators can reset other users' passwords.");
         }
 
-        // Check if user can modify this type of user
-        _authorizationService.RequireCanCreateUser(user.UserGroup);
-
-        // ChiNhanh admins may only update logins belonging to their own branch
-        _authorizationService.RequireCanManageUserInBranch(user.DefaultBranch);
-
+        // Password reset path in this module is NGANHANG-only and does not
+        // change business mapping/scope; repository only calls sp_DoiMatKhau.
         return _userRepository.UpdateUserAsync(user);
     }
 
@@ -86,10 +85,58 @@ public class UserService : IUserService
         return _userRepository.RestoreUserAsync(username);
     }
 
-    public Task<List<User>> GetAllUsersAsync()
+    public async Task<List<User>> GetAllUsersAsync()
     {
         // Admin access required to list all users
         _authorizationService.RequireAdminAccess();
-        return _userRepository.GetAllUsersAsync();
+
+        var users = await _userRepository.GetAllUsersAsync();
+
+        if (_userSession.UserGroup == UserGroup.NganHang)
+            return users;
+
+        // ChiNhanh: only users in own branch and only manageable groups.
+        var branch = _userSession.SelectedBranch.Trim().ToUpperInvariant();
+        return users
+            .Where(u => u.DefaultBranch.Trim().ToUpperInvariant() == branch)
+            .Where(u => _authorizationService.CanCreateUser(u.UserGroup))
+            .ToList();
+    }
+
+    private User PrepareUserForCreate(User input)
+    {
+        if (input == null) throw new ArgumentNullException(nameof(input));
+
+        var prepared = new User
+        {
+            Username = input.Username.Trim(),
+            PasswordHash = input.PasswordHash,
+            UserGroup = input.UserGroup,
+            DefaultBranch = (input.DefaultBranch ?? string.Empty).Trim().ToUpperInvariant(),
+            CustomerCMND = string.IsNullOrWhiteSpace(input.CustomerCMND) ? null : input.CustomerCMND.Trim(),
+            EmployeeId = string.IsNullOrWhiteSpace(input.EmployeeId) ? null : input.EmployeeId.Trim().ToUpperInvariant(),
+            TrangThaiXoa = 0
+        };
+
+        if (_userSession.UserGroup == UserGroup.ChiNhanh)
+        {
+            prepared.DefaultBranch = _userSession.SelectedBranch;
+        }
+
+        if (prepared.UserGroup == UserGroup.KhachHang)
+        {
+            prepared.EmployeeId = null;
+        }
+        else if (prepared.UserGroup == UserGroup.ChiNhanh)
+        {
+            prepared.CustomerCMND = null;
+        }
+        else
+        {
+            prepared.CustomerCMND = null;
+            prepared.EmployeeId = null;
+        }
+
+        return prepared;
     }
 }
