@@ -59,7 +59,23 @@ IF NOT EXISTS (SELECT 1 FROM dbo.KHACHHANG WHERE CMND = N'0800200003')
     INSERT INTO dbo.KHACHHANG (CMND, HO, TEN, NGAYSINH, DIACHI, NGAYCAP, SODT, PHAI, MACN, TrangThaiXoa)
     VALUES (N'0800200003', N'Lý Khánh', N'Vy', '1993-09-05', N'50 Nam Kỳ Khởi Nghĩa, Q.3', '2013-12-01', N'0912000006', N'Nữ', N'TANDINH', 0);
 
-PRINT N'>>> KHACHHANG: 6 khách hàng (3 BT + 3 TD) - OK';
+IF NOT EXISTS (SELECT 1 FROM dbo.KHACHHANG WHERE CMND = N'0800100004')
+    INSERT INTO dbo.KHACHHANG (CMND, HO, TEN, NGAYSINH, DIACHI, NGAYCAP, SODT, PHAI, MACN, TrangThaiXoa)
+    VALUES (N'0800100004', N'Nguyễn Quang', N'Minh', '1991-04-11', N'18 Nguyễn Công Trứ, Q.1', '2011-07-19', N'0912000007', N'Nam', N'BENTHANH', 0);
+
+IF NOT EXISTS (SELECT 1 FROM dbo.KHACHHANG WHERE CMND = N'0800100005')
+    INSERT INTO dbo.KHACHHANG (CMND, HO, TEN, NGAYSINH, DIACHI, NGAYCAP, SODT, PHAI, MACN, TrangThaiXoa)
+    VALUES (N'0800100005', N'Phan Thùy', N'Trang', '1994-10-26', N'77 Trần Quý Cáp, Q.1', '2014-03-09', N'0912000008', N'Nữ', N'BENTHANH', 0);
+
+IF NOT EXISTS (SELECT 1 FROM dbo.KHACHHANG WHERE CMND = N'0800200004')
+    INSERT INTO dbo.KHACHHANG (CMND, HO, TEN, NGAYSINH, DIACHI, NGAYCAP, SODT, PHAI, MACN, TrangThaiXoa)
+    VALUES (N'0800200004', N'Dương Đức', N'Long', '1989-12-14', N'99 Nguyễn Đình Chiểu, Q.3', '2009-06-10', N'0912000009', N'Nam', N'TANDINH', 0);
+
+IF NOT EXISTS (SELECT 1 FROM dbo.KHACHHANG WHERE CMND = N'0800200005')
+    INSERT INTO dbo.KHACHHANG (CMND, HO, TEN, NGAYSINH, DIACHI, NGAYCAP, SODT, PHAI, MACN, TrangThaiXoa)
+    VALUES (N'0800200005', N'Tạ Mỹ', N'Hạnh', '1996-02-02', N'12 Nguyễn Thông, Q.3', '2016-09-21', N'0912000010', N'Nữ', N'TANDINH', 0);
+
+PRINT N'>>> KHACHHANG: 10 khách hàng (5 BT + 5 TD) - OK';
 GO
 -- 4) Dữ liệu tài khoản.
 IF NOT EXISTS (SELECT 1 FROM dbo.TAIKHOAN WHERE SOTK = N'BT0000001')
@@ -94,7 +110,31 @@ IF NOT EXISTS (SELECT 1 FROM dbo.TAIKHOAN WHERE SOTK = N'BT0000004')
     INSERT INTO dbo.TAIKHOAN (SOTK, CMND, SODU, MACN, NGAYMOTK, Status)
     VALUES (N'BT0000004', N'0800200001', 12000000, N'BENTHANH', '2024-06-15', 'Active');
 
-PRINT N'>>> TAIKHOAN: 8 tài khoản (4 BT + 4 TD, 2 khách hàng liên chi nhánh) - OK';
+IF NOT EXISTS (SELECT 1 FROM dbo.TAIKHOAN WHERE SOTK = N'BT0000005')
+    INSERT INTO dbo.TAIKHOAN (SOTK, CMND, SODU, MACN, NGAYMOTK, Status)
+    VALUES (N'BT0000005', N'0800100004', 18000000, N'BENTHANH', '2024-06-20', 'Active');
+
+IF NOT EXISTS (SELECT 1 FROM dbo.TAIKHOAN WHERE SOTK = N'BT0000006')
+    INSERT INTO dbo.TAIKHOAN (SOTK, CMND, SODU, MACN, NGAYMOTK, Status)
+    VALUES (N'BT0000006', N'0800100005', 22000000, N'BENTHANH', '2024-07-01', 'Active');
+
+IF NOT EXISTS (SELECT 1 FROM dbo.TAIKHOAN WHERE SOTK = N'TD0000005')
+    INSERT INTO dbo.TAIKHOAN (SOTK, CMND, SODU, MACN, NGAYMOTK, Status)
+    VALUES (N'TD0000005', N'0800200004', 17500000, N'TANDINH', '2024-06-22', 'Active');
+
+IF NOT EXISTS (SELECT 1 FROM dbo.TAIKHOAN WHERE SOTK = N'TD0000006')
+    INSERT INTO dbo.TAIKHOAN (SOTK, CMND, SODU, MACN, NGAYMOTK, Status)
+    VALUES (N'TD0000006', N'0800200005', 9800000, N'TANDINH', '2024-07-03', 'Active');
+
+IF NOT EXISTS (SELECT 1 FROM dbo.TAIKHOAN WHERE SOTK = N'TD0000007')
+    INSERT INTO dbo.TAIKHOAN (SOTK, CMND, SODU, MACN, NGAYMOTK, Status)
+    VALUES (N'TD0000007', N'0800100002', 7600000, N'TANDINH', '2024-07-06', 'Active');
+
+IF NOT EXISTS (SELECT 1 FROM dbo.TAIKHOAN WHERE SOTK = N'BT0000007')
+    INSERT INTO dbo.TAIKHOAN (SOTK, CMND, SODU, MACN, NGAYMOTK, Status)
+    VALUES (N'BT0000007', N'0800200002', 8400000, N'BENTHANH', '2024-07-09', 'Active');
+
+PRINT N'>>> TAIKHOAN: 14 tài khoản (7 BT + 7 TD, nhiều khách hàng liên chi nhánh) - OK';
 GO
 -- 5) Dữ liệu giao dịch gửi/rút.
 IF NOT EXISTS (
@@ -146,7 +186,35 @@ IF NOT EXISTS (
     INSERT INTO dbo.GD_GOIRUT (SOTK, LOAIGD, NGAYGD, SOTIEN, MANV, MACN, Status)
     VALUES (N'BT0000003', N'GT', '2024-08-01', 500000, N'NV00000001', N'BENTHANH', 'Completed');
 
-PRINT N'>>> GD_GOIRUT: 7 giao dịch gửi/rút (4 BT + 3 TD) - OK';
+IF NOT EXISTS (
+    SELECT 1 FROM dbo.GD_GOIRUT
+    WHERE SOTK = N'BT0000005' AND LOAIGD = N'GT' AND SOTIEN = 2500000 AND NGAYGD = '2024-08-03'
+)
+    INSERT INTO dbo.GD_GOIRUT (SOTK, LOAIGD, NGAYGD, SOTIEN, MANV, MACN, Status)
+    VALUES (N'BT0000005', N'GT', '2024-08-03', 2500000, N'NV00000002', N'BENTHANH', 'Completed');
+
+IF NOT EXISTS (
+    SELECT 1 FROM dbo.GD_GOIRUT
+    WHERE SOTK = N'TD0000005' AND LOAIGD = N'GT' AND SOTIEN = 4200000 AND NGAYGD = '2024-08-04'
+)
+    INSERT INTO dbo.GD_GOIRUT (SOTK, LOAIGD, NGAYGD, SOTIEN, MANV, MACN, Status)
+    VALUES (N'TD0000005', N'GT', '2024-08-04', 4200000, N'NV00000003', N'TANDINH', 'Completed');
+
+IF NOT EXISTS (
+    SELECT 1 FROM dbo.GD_GOIRUT
+    WHERE SOTK = N'BT0000006' AND LOAIGD = N'RT' AND SOTIEN = 1200000 AND NGAYGD = '2024-08-06'
+)
+    INSERT INTO dbo.GD_GOIRUT (SOTK, LOAIGD, NGAYGD, SOTIEN, MANV, MACN, Status)
+    VALUES (N'BT0000006', N'RT', '2024-08-06', 1200000, N'NV00000002', N'BENTHANH', 'Completed');
+
+IF NOT EXISTS (
+    SELECT 1 FROM dbo.GD_GOIRUT
+    WHERE SOTK = N'TD0000006' AND LOAIGD = N'RT' AND SOTIEN = 900000 AND NGAYGD = '2024-08-09'
+)
+    INSERT INTO dbo.GD_GOIRUT (SOTK, LOAIGD, NGAYGD, SOTIEN, MANV, MACN, Status)
+    VALUES (N'TD0000006', N'RT', '2024-08-09', 900000, N'NV00000004', N'TANDINH', 'Completed');
+
+PRINT N'>>> GD_GOIRUT: 12 giao dịch gửi/rút (6 BT + 6 TD) - OK';
 GO
 -- 6) Dữ liệu giao dịch chuyển tiền.
 IF NOT EXISTS (
@@ -170,25 +238,208 @@ IF NOT EXISTS (
     INSERT INTO dbo.GD_CHUYENTIEN (SOTK_CHUYEN, SOTK_NHAN, LOAIGD, NGAYGD, SOTIEN, MANV, MACN, Status)
     VALUES (N'BT0000001', N'TD0000001', N'CT', '2024-08-15', 3000000, N'NV00000001', N'BENTHANH', 'Completed');
 
-PRINT N'>>> GD_CHUYENTIEN: 3 giao dịch chuyển tiền (2 nội bộ + 1 liên CN) - OK';
-GO
--- 7) Dữ liệu ánh xạ tài khoản ứng dụng.
-IF NOT EXISTS (SELECT 1 FROM dbo.NGUOIDUNG WHERE Username = N'NV_BT')
-    INSERT INTO dbo.NGUOIDUNG (Username, PasswordHash, UserGroup, DefaultBranch, EmployeeId, TrangThaiXoa)
-    VALUES (N'NV_BT', N'N/A-SQL-AUTH', 1, N'BENTHANH', N'NV00000001', 0);
-PRINT N'>>> NGUOIDUNG: NV_BT -> BENTHANH - OK';
+IF NOT EXISTS (
+    SELECT 1 FROM dbo.GD_CHUYENTIEN
+    WHERE SOTK_CHUYEN = N'TD0000004' AND SOTK_NHAN = N'BT0000004' AND SOTIEN = 700000 AND NGAYGD = '2024-08-16'
+)
+    INSERT INTO dbo.GD_CHUYENTIEN (SOTK_CHUYEN, SOTK_NHAN, LOAIGD, NGAYGD, SOTIEN, MANV, MACN, Status)
+    VALUES (N'TD0000004', N'BT0000004', N'CT', '2024-08-16', 700000, N'NV00000003', N'TANDINH', 'Completed');
 
-IF NOT EXISTS (SELECT 1 FROM dbo.NGUOIDUNG WHERE Username = N'KH_DEMO')
-    INSERT INTO dbo.NGUOIDUNG (Username, PasswordHash, UserGroup, DefaultBranch, CustomerCMND, TrangThaiXoa)
-    VALUES (N'KH_DEMO', N'N/A-SQL-AUTH', 2, N'BENTHANH', N'0800100001', 0);
-PRINT N'>>> NGUOIDUNG: KH_DEMO -> BENTHANH - OK';
+IF NOT EXISTS (
+    SELECT 1 FROM dbo.GD_CHUYENTIEN
+    WHERE SOTK_CHUYEN = N'BT0000007' AND SOTK_NHAN = N'TD0000007' AND SOTIEN = 1100000 AND NGAYGD = '2024-08-17'
+)
+    INSERT INTO dbo.GD_CHUYENTIEN (SOTK_CHUYEN, SOTK_NHAN, LOAIGD, NGAYGD, SOTIEN, MANV, MACN, Status)
+    VALUES (N'BT0000007', N'TD0000007', N'CT', '2024-08-17', 1100000, N'NV00000002', N'BENTHANH', 'Completed');
 
-IF NOT EXISTS (SELECT 1 FROM dbo.NGUOIDUNG WHERE Username = N'ADMIN_NH')
-    INSERT INTO dbo.NGUOIDUNG (Username, PasswordHash, UserGroup, DefaultBranch, TrangThaiXoa)
-    VALUES (N'ADMIN_NH', N'N/A-SQL-AUTH', 0, N'BENTHANH', 0);
-PRINT N'>>> NGUOIDUNG: ADMIN_NH - OK';
+IF NOT EXISTS (
+    SELECT 1 FROM dbo.GD_CHUYENTIEN
+    WHERE SOTK_CHUYEN = N'TD0000005' AND SOTK_NHAN = N'TD0000006' AND SOTIEN = 1300000 AND NGAYGD = '2024-08-18'
+)
+    INSERT INTO dbo.GD_CHUYENTIEN (SOTK_CHUYEN, SOTK_NHAN, LOAIGD, NGAYGD, SOTIEN, MANV, MACN, Status)
+    VALUES (N'TD0000005', N'TD0000006', N'CT', '2024-08-18', 1300000, N'NV00000004', N'TANDINH', 'Completed');
+
+IF NOT EXISTS (
+    SELECT 1 FROM dbo.GD_CHUYENTIEN
+    WHERE SOTK_CHUYEN = N'BT0000006' AND SOTK_NHAN = N'BT0000005' AND SOTIEN = 950000 AND NGAYGD = '2024-08-19'
+)
+    INSERT INTO dbo.GD_CHUYENTIEN (SOTK_CHUYEN, SOTK_NHAN, LOAIGD, NGAYGD, SOTIEN, MANV, MACN, Status)
+    VALUES (N'BT0000006', N'BT0000005', N'CT', '2024-08-19', 950000, N'NV00000001', N'BENTHANH', 'Completed');
+
+PRINT N'>>> GD_CHUYENTIEN: 8 giao dịch chuyển tiền (5 nội bộ + 3 liên CN) - OK';
 GO
--- 8) Tổng hợp dữ liệu sau khi seed.
+-- 7) Dữ liệu ánh xạ tài khoản ứng dụng (upsert để sửa được dữ liệu cũ thiếu MACN/EmployeeId/CustomerCMND).
+MERGE dbo.NGUOIDUNG AS target
+USING (
+    SELECT
+        N'NV_BT'       AS Username,
+        N'N/A-SQL-AUTH' AS PasswordHash,
+        1              AS UserGroup,
+        N'BENTHANH'    AS DefaultBranch,
+        CAST(NULL AS nChar(10)) AS CustomerCMND,
+        CAST(N'NV00000001' AS nChar(10)) AS EmployeeId,
+        CAST(0 AS tinyint) AS TrangThaiXoa
+    UNION ALL
+    SELECT
+        N'KH_DEMO',
+        N'N/A-SQL-AUTH',
+        2,
+        N'BENTHANH',
+        CAST(N'0800100001' AS nChar(10)),
+        CAST(NULL AS nChar(10)),
+        CAST(0 AS tinyint)
+    UNION ALL
+    SELECT
+        N'ADMIN_NH',
+        N'N/A-SQL-AUTH',
+        0,
+        N'BENTHANH',
+        CAST(NULL AS nChar(10)),
+        CAST(NULL AS nChar(10)),
+        CAST(0 AS tinyint)
+) AS src
+ON target.Username = src.Username
+WHEN MATCHED THEN
+    UPDATE SET
+        target.PasswordHash  = src.PasswordHash,
+        target.UserGroup     = src.UserGroup,
+        target.DefaultBranch = src.DefaultBranch,
+        target.CustomerCMND  = src.CustomerCMND,
+        target.EmployeeId    = src.EmployeeId,
+        target.TrangThaiXoa  = src.TrangThaiXoa
+WHEN NOT MATCHED THEN
+    INSERT (Username, PasswordHash, UserGroup, DefaultBranch, CustomerCMND, EmployeeId, TrangThaiXoa)
+    VALUES (src.Username, src.PasswordHash, src.UserGroup, src.DefaultBranch, src.CustomerCMND, src.EmployeeId, src.TrangThaiXoa);
+
+PRINT N'>>> NGUOIDUNG: upsert xong ADMIN_NH, NV_BT, KH_DEMO - OK';
+GO
+-- 8) Seed full login test set (all roles, default password Password!123).
+DECLARE @DefaultPassword nvarchar(128) = N'Password!123';
+DECLARE @Accounts TABLE
+(
+    Username      nvarchar(50)  NOT NULL PRIMARY KEY,
+    RoleName      nvarchar(128) NOT NULL,
+    UserGroup     int           NOT NULL,
+    DefaultBranch nChar(10)     NOT NULL,
+    EmployeeId    nChar(10)     NULL,
+    CustomerCMND  nChar(10)     NULL
+);
+
+INSERT INTO @Accounts (Username, RoleName, UserGroup, DefaultBranch, EmployeeId, CustomerCMND)
+VALUES
+    (N'ADMIN_NH',   N'NGANHANG',  0, N'BENTHANH', NULL,          NULL),
+    (N'ADMIN_NH_2', N'NGANHANG',  0, N'TANDINH',  NULL,          NULL),
+
+    (N'NV_BT',      N'CHINHANH',  1, N'BENTHANH', N'NV00000001', NULL),
+    (N'NV_BT_2',    N'CHINHANH',  1, N'BENTHANH', N'NV00000002', NULL),
+    (N'NV_TD',      N'CHINHANH',  1, N'TANDINH',  N'NV00000003', NULL),
+    (N'NV_TD_2',    N'CHINHANH',  1, N'TANDINH',  N'NV00000004', NULL),
+
+    (N'KH_DEMO',    N'KHACHHANG', 2, N'BENTHANH', NULL,          N'0800100001'),
+    (N'KH_BT_02',   N'KHACHHANG', 2, N'BENTHANH', NULL,          N'0800100002'),
+    (N'KH_BT_03',   N'KHACHHANG', 2, N'BENTHANH', NULL,          N'0800100003'),
+    (N'KH_BT_04',   N'KHACHHANG', 2, N'BENTHANH', NULL,          N'0800100004'),
+    (N'KH_TD_01',   N'KHACHHANG', 2, N'TANDINH',  NULL,          N'0800200001'),
+    (N'KH_TD_02',   N'KHACHHANG', 2, N'TANDINH',  NULL,          N'0800200002'),
+    (N'KH_TD_03',   N'KHACHHANG', 2, N'TANDINH',  NULL,          N'0800200003'),
+    (N'KH_TD_04',   N'KHACHHANG', 2, N'TANDINH',  NULL,          N'0800200004');
+
+IF EXISTS (
+    SELECT 1
+    FROM @Accounts a
+    LEFT JOIN dbo.NHANVIEN nv ON nv.MANV = a.EmployeeId
+    WHERE a.UserGroup = 1
+      AND (a.EmployeeId IS NULL OR nv.MANV IS NULL OR RTRIM(nv.MACN) <> RTRIM(a.DefaultBranch))
+)
+BEGIN
+    RAISERROR(N'Khong the seed login CHINHANH: EmployeeId khong hop le hoac khong khop chi nhanh.', 16, 1);
+    RETURN;
+END
+
+IF EXISTS (
+    SELECT 1
+    FROM @Accounts a
+    LEFT JOIN dbo.KHACHHANG kh ON kh.CMND = a.CustomerCMND
+    WHERE a.UserGroup = 2
+      AND (a.CustomerCMND IS NULL OR kh.CMND IS NULL OR RTRIM(kh.MACN) <> RTRIM(a.DefaultBranch))
+)
+BEGIN
+    RAISERROR(N'Khong the seed login KHACHHANG: CustomerCMND khong hop le hoac khong khop chi nhanh dang ky.', 16, 1);
+    RETURN;
+END
+
+DECLARE
+    @Username nvarchar(50),
+    @RoleName nvarchar(128),
+    @Sql      nvarchar(max);
+
+DECLARE account_cursor CURSOR FAST_FORWARD FOR
+SELECT Username, RoleName
+FROM @Accounts
+ORDER BY UserGroup, Username;
+
+OPEN account_cursor;
+FETCH NEXT FROM account_cursor INTO @Username, @RoleName;
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    SET @Sql = N'
+IF SUSER_ID(N''' + REPLACE(@Username, '''', '''''') + N''') IS NULL
+    CREATE LOGIN ' + QUOTENAME(@Username) + N' WITH PASSWORD = N''' + REPLACE(@DefaultPassword, '''', '''''') + N''', CHECK_POLICY = ON, CHECK_EXPIRATION = OFF, DEFAULT_DATABASE = [NGANHANG];
+ELSE
+    ALTER LOGIN ' + QUOTENAME(@Username) + N' WITH PASSWORD = N''' + REPLACE(@DefaultPassword, '''', '''''') + N''', CHECK_POLICY = ON, CHECK_EXPIRATION = OFF;';
+    EXEC (@Sql);
+
+    SET @Sql = N'
+IF DATABASE_PRINCIPAL_ID(N''' + REPLACE(@Username, '''', '''''') + N''') IS NULL
+    CREATE USER ' + QUOTENAME(@Username) + N' FOR LOGIN ' + QUOTENAME(@Username) + N';';
+    EXEC (@Sql);
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM sys.database_role_members rm
+        JOIN sys.database_principals u ON u.principal_id = rm.member_principal_id
+        JOIN sys.database_principals r ON r.principal_id = rm.role_principal_id
+        WHERE u.name = @Username AND r.name = @RoleName
+    )
+    BEGIN
+        SET @Sql = N'ALTER ROLE ' + QUOTENAME(@RoleName) + N' ADD MEMBER ' + QUOTENAME(@Username) + N';';
+        EXEC (@Sql);
+    END
+
+    FETCH NEXT FROM account_cursor INTO @Username, @RoleName;
+END
+
+CLOSE account_cursor;
+DEALLOCATE account_cursor;
+
+MERGE dbo.NGUOIDUNG AS target
+USING (
+    SELECT
+        a.Username,
+        N'N/A-SQL-AUTH' AS PasswordHash,
+        a.UserGroup,
+        a.DefaultBranch,
+        a.CustomerCMND,
+        a.EmployeeId,
+        CAST(0 AS tinyint) AS TrangThaiXoa
+    FROM @Accounts a
+) AS src
+ON target.Username = src.Username
+WHEN MATCHED THEN
+    UPDATE SET
+        target.PasswordHash  = src.PasswordHash,
+        target.UserGroup     = src.UserGroup,
+        target.DefaultBranch = src.DefaultBranch,
+        target.CustomerCMND  = src.CustomerCMND,
+        target.EmployeeId    = src.EmployeeId,
+        target.TrangThaiXoa  = src.TrangThaiXoa
+WHEN NOT MATCHED THEN
+    INSERT (Username, PasswordHash, UserGroup, DefaultBranch, CustomerCMND, EmployeeId, TrangThaiXoa)
+    VALUES (src.Username, src.PasswordHash, src.UserGroup, src.DefaultBranch, src.CustomerCMND, src.EmployeeId, src.TrangThaiXoa);
+GO
+
+-- 9) Tổng hợp dữ liệu sau khi seed.
 PRINT N'';
 PRINT N'=== TÓM TẮT DỮ LIỆU MẪU ===';
 
@@ -212,7 +463,36 @@ ORDER BY [Bảng], MACN;
 GO
 
 PRINT N'';
+PRINT N'=== KIEM TRA MAPPING LOGIN -> NGUOIDUNG ===';
+SELECT
+    Username,
+    UserGroup,
+    RTRIM(DefaultBranch) AS DefaultBranch,
+    RTRIM(EmployeeId)    AS EmployeeId,
+    RTRIM(CustomerCMND)  AS CustomerCMND,
+    TrangThaiXoa
+FROM dbo.NGUOIDUNG
+ORDER BY Username;
+GO
+
+PRINT N'';
+PRINT N'=== KIEM TRA NHOM CHINHANH/KHACHHANG THIEU MACN MAPPING ===';
+SELECT
+    Username,
+    UserGroup,
+    RTRIM(DefaultBranch) AS DefaultBranch,
+    RTRIM(EmployeeId)    AS EmployeeId,
+    RTRIM(CustomerCMND)  AS CustomerCMND
+FROM dbo.NGUOIDUNG
+WHERE TrangThaiXoa = 0
+  AND UserGroup IN (1, 2)
+  AND (DefaultBranch IS NULL OR LTRIM(RTRIM(DefaultBranch)) = N'');
+GO
+
+PRINT N'';
 PRINT N'=== 04b_publisher_seed_data.sql hoàn thành thành công ===';
+PRINT N'    Đã seed dữ liệu nghiệp vụ + account login test.';
+PRINT N'    Password mặc định cho account test: Password!123';
 PRINT N'    Dữ liệu sẽ được truyền đến CN1/CN2/TraCuu sau khi Snapshot Agent chạy.';
 PRINT N'    Nếu replication đã hoạt động, Merge Agent sẽ đồng bộ trong lần tiếp theo.';
 GO

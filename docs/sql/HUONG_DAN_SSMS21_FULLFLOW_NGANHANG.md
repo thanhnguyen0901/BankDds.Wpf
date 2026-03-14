@@ -102,7 +102,7 @@ Mục đích: tạo toàn bộ SP và view nghiệp vụ.
 3. `sql/04_publisher_security.sql`
 Mục đích: tạo role và grant execute cho SP.
 4. `sql/04b_publisher_seed_data.sql` (tùy chọn)
-Mục đích: nạp dữ liệu mẫu để test/demo.
+Mục đích: nạp dữ liệu mẫu nghiệp vụ + seed account login test cho đủ role.
 
 Checklist DONE cho Bước 4:
 
@@ -110,7 +110,9 @@ Checklist DONE cho Bước 4:
 2. Tab `Messages` của từng script không có lỗi SQL.
 3. Sau script `03`: có message hoàn tất tạo SP/view.
 4. Sau script `04`: có message hoàn tất role/grant và SP bảo mật.
-5. Sau script `04b` (nếu chạy): có summary số lượng dữ liệu seed.
+5. Sau script `04b` (nếu chạy): có summary số lượng dữ liệu seed, danh sách mapping `NGUOIDUNG`, và kiểm tra nhóm `CHINHANH/KHACHHANG` thiếu `MACN`.
+
+Mật khẩu mặc định account test sau `04b`: `Password!123`.
 
 Lưu ý:
 
@@ -530,11 +532,14 @@ Mục tiêu:
 
 ### 10.1 Điều kiện đầu vào
 
-1. Đã chạy xong các script ở Bước 4 trên Publisher `DESKTOP-JBB41QU`, DB `NGANHANG`.
-2. Nếu bạn đã dựng môi trường từ bản cũ, chạy lại đúng thứ tự:
+1. Da chay xong cac script o Buoc 4 tren Publisher `DESKTOP-JBB41QU`, DB `NGANHANG`.
+2. Bootstrap security one-time tren subscriber:
+- Ket noi `SQLSERVER2`, `SQLSERVER3`, `SQLSERVER4`.
+- Chay `sql/04_publisher_security.sql` tren moi instance dich (DB `NGANHANG`).
+3. Neu ban da dung moi truong tu ban cu, chay lai dung thu tu:
 - `sql/03_publisher_sp_views.sql`
 - `sql/04_publisher_security.sql`
-3. App login dùng `username/password` SQL, sau đó gọi `sp_DangNhap` để lấy session (`TENNHOM`, `MACN`, `CustomerCMND`, `EmployeeId`).
+4. App login dung `username/password` SQL, sau do goi `sp_DangNhap` de lay session (`TENNHOM`, `MACN`, `CustomerCMND`, `EmployeeId`).
 
 ### 10.2 Rule phân quyền chốt theo đề
 
@@ -564,6 +569,7 @@ Mục tiêu:
 Ghi chú:
 2 DB phân mảnh (`SQLSERVER2`, `SQLSERVER3`) không cần bảng `NGUOIDUNG` để app login;
 nguồn xác thực + mapping session nằm ở Publisher.
+Security login/user/role tren subscriber duoc sync tu dong qua linked server khi goi SP quan tri account.
 
 ### 10.4 Luồng tạo account đúng chuẩn
 
@@ -583,9 +589,12 @@ nguồn xác thực + mapping session nằm ở Publisher.
 6. Bấm `Ghi`.
 
 Khi lưu, app gọi theo chuỗi:
-1. `sp_TaoTaiKhoan` (tạo SQL login + DB user + role).
+1. `sp_TaoTaiKhoan` (tao SQL login + DB user + role tren Publisher, dong thoi sync login/user/role sang subscriber qua `LINK0/1/2`).
 2. `USP_AddUser` (ghi/upsert mapping `NGUOIDUNG`).
 
+Khi doi mat khau hoac xoa account:
+1. `sp_DoiMatKhau` tu sync mat khau xuong subscriber.
+2. `sp_XoaTaiKhoan` tu xoa login/user tren subscriber.
 ### 10.5 Tạo bằng SQL (khi cần kiểm thử thủ công)
 
 ```sql
@@ -660,6 +669,8 @@ user chưa vào đúng role SQL (`NGANHANG`/`CHINHANH`/`KHACHHANG`).
 thiếu mapping `NGUOIDUNG` hoặc mapping sai (`UserGroup/DefaultBranch/CMND/EmployeeId`).
 4. `CHINHANH` tạo account khác chi nhánh:
 bị chặn theo rule; kiểm tra lại `DefaultBranch` và session branch người tạo.
+5. Tao account tren Publisher xong nhung app van `Login failed` khi di qua tab nghiep vu:
+kiem tra Buoc 9 (LINK0/1/2), kiem tra `sp_SyncSecurityToSubscribers` va grant role tren subscriber.
 
 Checklist DONE cho Bước 10:
 
@@ -670,6 +681,7 @@ Checklist DONE cho Bước 10:
 - `KHACHHANG -> không được tạo`
 3. Mỗi account có đủ role SQL + mapping `NGUOIDUNG` tương ứng.
 4. Login app dựng đúng session theo role/scope trong đề.
+5. Account moi tao tren Publisher dung duoc ngay tren tab nghiep vu (khong can chay tay script sync tren subscriber).
 
 ### Bước 11: Kiểm tra nghiệm thu cuối
 
@@ -684,7 +696,7 @@ Checklist DONE cho Bước 10:
 
 1. Sửa cấu trúc bảng hoặc ràng buộc: chạy lại `02_publisher_schema.sql` trên Publisher.
 2. Sửa SP/view nghiệp vụ: chạy lại `03_publisher_sp_views.sql` trên Publisher.
-3. Sửa grant/role: chạy lại `04_publisher_security.sql` trên Publisher.
+3. Sua grant/role hoac SP security: chay lai `04_publisher_security.sql` tren Publisher, sau do bootstrap lai tren subscriber neu can.
 4. Muốn nạp lại dữ liệu demo: chạy `04b_publisher_seed_data.sql`.
 5. Sau khi thay đổi SP cần phát tán: vào Publication tick lại Articles SP và chạy Snapshot Agent.
 
@@ -706,4 +718,3 @@ Checklist DONE cho Bước 10:
 `SP_GetCustomersByBranch` (ORDER BY `HO`, `TEN`).
 8. Phân quyền đăng nhập:
 `sp_DangNhap`, `sp_TaoTaiKhoan`, nhóm role `NGANHANG`/`CHINHANH`/`KHACHHANG`.
-

@@ -30,13 +30,20 @@ GO
 PRINT N'>>> Đã kiểm tra xong nhóm role trong database.';
 GO
 -- Chặn truy cập trực tiếp vào bảng, chỉ cho phép qua stored procedure.
-DENY SELECT, INSERT, UPDATE, DELETE ON dbo.CHINHANH       TO NGANHANG, CHINHANH, KHACHHANG;
-DENY SELECT, INSERT, UPDATE, DELETE ON dbo.NGUOIDUNG      TO NGANHANG, CHINHANH, KHACHHANG;
-DENY SELECT, INSERT, UPDATE, DELETE ON dbo.KHACHHANG      TO NGANHANG, CHINHANH, KHACHHANG;
-DENY SELECT, INSERT, UPDATE, DELETE ON dbo.NHANVIEN       TO NGANHANG, CHINHANH, KHACHHANG;
-DENY SELECT, INSERT, UPDATE, DELETE ON dbo.TAIKHOAN       TO NGANHANG, CHINHANH, KHACHHANG;
-DENY SELECT, INSERT, UPDATE, DELETE ON dbo.GD_GOIRUT      TO NGANHANG, CHINHANH, KHACHHANG;
-DENY SELECT, INSERT, UPDATE, DELETE ON dbo.GD_CHUYENTIEN  TO NGANHANG, CHINHANH, KHACHHANG;
+IF OBJECT_ID(N'dbo.CHINHANH', N'U') IS NOT NULL
+    DENY SELECT, INSERT, UPDATE, DELETE ON dbo.CHINHANH   TO NGANHANG, CHINHANH, KHACHHANG;
+IF OBJECT_ID(N'dbo.NGUOIDUNG', N'U') IS NOT NULL
+    DENY SELECT, INSERT, UPDATE, DELETE ON dbo.NGUOIDUNG  TO NGANHANG, CHINHANH, KHACHHANG;
+IF OBJECT_ID(N'dbo.KHACHHANG', N'U') IS NOT NULL
+    DENY SELECT, INSERT, UPDATE, DELETE ON dbo.KHACHHANG  TO NGANHANG, CHINHANH, KHACHHANG;
+IF OBJECT_ID(N'dbo.NHANVIEN', N'U') IS NOT NULL
+    DENY SELECT, INSERT, UPDATE, DELETE ON dbo.NHANVIEN   TO NGANHANG, CHINHANH, KHACHHANG;
+IF OBJECT_ID(N'dbo.TAIKHOAN', N'U') IS NOT NULL
+    DENY SELECT, INSERT, UPDATE, DELETE ON dbo.TAIKHOAN   TO NGANHANG, CHINHANH, KHACHHANG;
+IF OBJECT_ID(N'dbo.GD_GOIRUT', N'U') IS NOT NULL
+    DENY SELECT, INSERT, UPDATE, DELETE ON dbo.GD_GOIRUT  TO NGANHANG, CHINHANH, KHACHHANG;
+IF OBJECT_ID(N'dbo.GD_CHUYENTIEN', N'U') IS NOT NULL
+    DENY SELECT, INSERT, UPDATE, DELETE ON dbo.GD_CHUYENTIEN TO NGANHANG, CHINHANH, KHACHHANG;
 GO
 PRINT N'>>> Đã áp dụng DENY truy cập bảng trực tiếp.';
 GO
@@ -115,6 +122,7 @@ REVOKE EXECUTE ON dbo.SP_SoftDeleteUser           FROM CHINHANH;
 REVOKE EXECUTE ON dbo.SP_RestoreUser              FROM CHINHANH;
 GO
 -- Cấp quyền EXECUTE tối thiểu cho role KHACHHANG.
+GRANT EXECUTE ON dbo.SP_GetCustomerByCMND       TO KHACHHANG;
 GRANT EXECUTE ON dbo.SP_GetAccountsByCustomer    TO KHACHHANG;
 GRANT EXECUTE ON dbo.SP_GetAccount               TO KHACHHANG;
 GRANT EXECUTE ON dbo.SP_GetTransactionsByAccount TO KHACHHANG;
@@ -126,53 +134,71 @@ PRINT N'>>> Đã cấp quyền EXECUTE theo từng role.';
 GO
 -- SP đăng nhập: trả về tài khoản, nhóm quyền và chi nhánh mặc định.
 CREATE OR ALTER PROCEDURE dbo.sp_DangNhap
+WITH EXECUTE AS OWNER
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @LOGIN    nvarchar(128) = SYSTEM_USER;
-    DECLARE @MANV     nvarchar(50)  = SYSTEM_USER;
-    DECLARE @HOTEN    nvarchar(128) = SYSTEM_USER;
-    DECLARE @TENNHOM  nvarchar(128) = NULL;
-    DECLARE @MACN     nChar(10)     = NULL;
-    DECLARE @CustomerCMND nChar(10) = NULL;
-    DECLARE @EmployeeId   nChar(10) = NULL;
+    DECLARE @ORIGINAL_LOGIN nvarchar(128) = ORIGINAL_LOGIN();
+    DECLARE @CALLER_DBUSER  nvarchar(128) = NULL;
+    DECLARE @MANV           nvarchar(50)  = @ORIGINAL_LOGIN;
+    DECLARE @HOTEN          nvarchar(128) = @ORIGINAL_LOGIN;
+    DECLARE @TENNHOM        nvarchar(128) = NULL;
+    DECLARE @MACN           nChar(10)     = NULL;
+    DECLARE @CustomerCMND   nChar(10)     = NULL;
+    DECLARE @EmployeeId     nChar(10)     = NULL;
 
-    SELECT TOP 1 @TENNHOM = r.name
-    FROM   sys.database_role_members rm
-    JOIN   sys.database_principals   u ON u.principal_id = rm.member_principal_id
-    JOIN   sys.database_principals   r ON r.principal_id = rm.role_principal_id
-    WHERE  u.name = USER_NAME()
-      AND  r.name IN (N'NGANHANG', N'CHINHANH', N'KHACHHANG')
+    SELECT TOP 1
+        @CALLER_DBUSER = dp.name
+    FROM sys.database_principals dp
+    WHERE dp.sid = SUSER_SID(@ORIGINAL_LOGIN)
+      AND dp.type IN ('S', 'U')
+    ORDER BY
+        CASE dp.type
+            WHEN 'S' THEN 1
+            ELSE 2
+        END;
+
+    IF @CALLER_DBUSER IS NULL
+        SET @CALLER_DBUSER = @ORIGINAL_LOGIN;
+
+    SELECT TOP 1
+        @TENNHOM = r.name
+    FROM sys.database_role_members rm
+    JOIN sys.database_principals u ON u.principal_id = rm.member_principal_id
+    JOIN sys.database_principals r ON r.principal_id = rm.role_principal_id
+    WHERE u.name = @CALLER_DBUSER
+      AND r.name IN (N'NGANHANG', N'CHINHANH', N'KHACHHANG')
     ORDER BY
         CASE r.name
             WHEN N'NGANHANG'  THEN 1
             WHEN N'CHINHANH'  THEN 2
             WHEN N'KHACHHANG' THEN 3
-        END ASC;
+        END;
 
     IF @TENNHOM IS NULL
     BEGIN
-        IF IS_MEMBER('db_owner') = 1 OR IS_SRVROLEMEMBER('sysadmin') = 1
+        IF IS_SRVROLEMEMBER('sysadmin', @ORIGINAL_LOGIN) = 1
             SET @TENNHOM = N'NGANHANG';
         ELSE
             SET @TENNHOM = N'KHACHHANG';
     END
 
-    IF OBJECT_ID(N'dbo.NGUOIDUNG', N'U') IS NOT NULL
-    BEGIN
-        SELECT TOP 1
-            @MACN         = NULLIF(RTRIM(DefaultBranch), N''),
-            @CustomerCMND = NULLIF(RTRIM(CustomerCMND), N''),
-            @EmployeeId   = NULLIF(RTRIM(EmployeeId), N'')
-        FROM dbo.NGUOIDUNG
-        WHERE Username = @LOGIN
-          AND TrangThaiXoa = 0;
-    END
+    SELECT TOP 1
+        @MACN         = NULLIF(RTRIM(DefaultBranch), N''),
+        @CustomerCMND = NULLIF(RTRIM(CustomerCMND), N''),
+        @EmployeeId   = NULLIF(RTRIM(EmployeeId), N'')
+    FROM dbo.NGUOIDUNG
+    WHERE TrangThaiXoa = 0
+      AND UPPER(RTRIM(Username)) IN
+      (
+          UPPER(RTRIM(@ORIGINAL_LOGIN)),
+          UPPER(RTRIM(@CALLER_DBUSER))
+      );
 
     IF @TENNHOM = N'CHINHANH'
     BEGIN
         IF @EmployeeId IS NULL
-            SET @EmployeeId = @LOGIN;
+            SET @EmployeeId = @ORIGINAL_LOGIN;
 
         SELECT TOP 1
             @MACN  = COALESCE(@MACN, MACN),
@@ -187,7 +213,7 @@ BEGIN
                 @MACN  = MACN,
                 @HOTEN = RTRIM(HO) + N' ' + RTRIM(TEN)
             FROM dbo.NHANVIEN
-            WHERE MANV = @LOGIN
+            WHERE MANV = @ORIGINAL_LOGIN
               AND TrangThaiXoa = 0;
         END
 
@@ -198,8 +224,13 @@ BEGIN
     BEGIN
         IF @CustomerCMND IS NULL
         BEGIN
-            IF EXISTS (SELECT 1 FROM dbo.KHACHHANG WHERE CMND = @LOGIN AND TrangThaiXoa = 0)
-                SET @CustomerCMND = @LOGIN;
+            IF EXISTS (
+                SELECT 1
+                FROM dbo.KHACHHANG
+                WHERE CMND = @ORIGINAL_LOGIN
+                  AND TrangThaiXoa = 0
+            )
+                SET @CustomerCMND = @ORIGINAL_LOGIN;
         END
 
         IF @CustomerCMND IS NOT NULL
@@ -228,6 +259,112 @@ GO
 PRINT N'>>> Đã tạo sp_DangNhap.';
 GO
 -- SP tạo tài khoản đăng nhập và gán role theo phân quyền người gọi.
+CREATE OR ALTER PROCEDURE dbo.sp_SyncSecurityToSubscribers
+    @LOGIN    nvarchar(50),
+    @PASS     nvarchar(128) = NULL,
+    @TENNHOM  nvarchar(128) = NULL,
+    @MODE     nvarchar(20)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF (SELECT COUNT(*) FROM sys.servers WHERE is_linked = 1 AND name IN (N'LINK0', N'LINK1', N'LINK2')) < 3
+        RETURN;
+
+    DECLARE @LinkedServer sysname;
+    DECLARE @RemoteSql    nvarchar(max);
+    DECLARE @ExecSql      nvarchar(max);
+    DECLARE @RoleName     nvarchar(128) = UPPER(LTRIM(RTRIM(ISNULL(@TENNHOM, N''))));
+
+    DECLARE link_cursor CURSOR FAST_FORWARD FOR
+    SELECT name
+    FROM sys.servers
+    WHERE is_linked = 1
+      AND name IN (N'LINK0', N'LINK1', N'LINK2')
+    ORDER BY name;
+
+    OPEN link_cursor;
+    FETCH NEXT FROM link_cursor INTO @LinkedServer;
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        BEGIN TRY
+            IF @MODE = N'UPSERT'
+            BEGIN
+                SET @RemoteSql = N'
+IF SUSER_ID(N''' + REPLACE(@LOGIN, '''', '''''') + N''') IS NULL
+    CREATE LOGIN ' + QUOTENAME(@LOGIN) + N' WITH PASSWORD = N''' + REPLACE(ISNULL(@PASS, N''), '''', '''''') + N''', CHECK_POLICY = ON, CHECK_EXPIRATION = OFF, DEFAULT_DATABASE = [NGANHANG];
+ELSE
+    ALTER LOGIN ' + QUOTENAME(@LOGIN) + N' WITH PASSWORD = N''' + REPLACE(ISNULL(@PASS, N''), '''', '''''') + N''', CHECK_POLICY = ON, CHECK_EXPIRATION = OFF;
+
+USE [NGANHANG];
+IF DATABASE_PRINCIPAL_ID(N''' + REPLACE(@LOGIN, '''', '''''') + N''') IS NULL
+    CREATE USER ' + QUOTENAME(@LOGIN) + N' FOR LOGIN ' + QUOTENAME(@LOGIN) + N';
+
+IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N''' + REPLACE(@RoleName, '''', '''''') + N''' AND type = ''R'')
+    CREATE ROLE ' + QUOTENAME(@RoleName) + N';
+
+IF NOT EXISTS
+(
+    SELECT 1
+    FROM sys.database_role_members rm
+    JOIN sys.database_principals u ON u.principal_id = rm.member_principal_id
+    JOIN sys.database_principals r ON r.principal_id = rm.role_principal_id
+    WHERE u.name = N''' + REPLACE(@LOGIN, '''', '''''') + N'''
+      AND r.name = N''' + REPLACE(@RoleName, '''', '''''') + N'''
+)
+    ALTER ROLE ' + QUOTENAME(@RoleName) + N' ADD MEMBER ' + QUOTENAME(@LOGIN) + N';';
+            END
+            ELSE IF @MODE = N'PASSWORD'
+            BEGIN
+                SET @RemoteSql = N'
+IF SUSER_ID(N''' + REPLACE(@LOGIN, '''', '''''') + N''') IS NOT NULL
+    ALTER LOGIN ' + QUOTENAME(@LOGIN) + N' WITH PASSWORD = N''' + REPLACE(ISNULL(@PASS, N''), '''', '''''') + N''', CHECK_POLICY = ON, CHECK_EXPIRATION = OFF;';
+            END
+            ELSE IF @MODE = N'DROP'
+            BEGIN
+                SET @RemoteSql = N'
+USE [NGANHANG];
+IF DATABASE_PRINCIPAL_ID(N''' + REPLACE(@LOGIN, '''', '''''') + N''') IS NOT NULL
+    DROP USER ' + QUOTENAME(@LOGIN) + N';
+
+IF SUSER_ID(N''' + REPLACE(@LOGIN, '''', '''''') + N''') IS NOT NULL
+    DROP LOGIN ' + QUOTENAME(@LOGIN) + N';';
+            END
+            ELSE
+            BEGIN
+                RAISERROR(N'Unsupported sync mode: %s', 16, 1, @MODE);
+                RETURN;
+            END
+
+            SET @ExecSql =
+                N'EXEC ' + QUOTENAME(@LinkedServer) + N'.master.dbo.sp_executesql N'''
+                + REPLACE(@RemoteSql, '''', '''''') + N''';';
+
+            EXEC (@ExecSql);
+        END TRY
+        BEGIN CATCH
+            DECLARE @Err nvarchar(4000) = ERROR_MESSAGE();
+            RAISERROR(N'Sync security to %s failed: %s', 16, 1, @LinkedServer, @Err);
+            CLOSE link_cursor;
+            DEALLOCATE link_cursor;
+            RETURN;
+        END CATCH
+
+        FETCH NEXT FROM link_cursor INTO @LinkedServer;
+    END
+
+    CLOSE link_cursor;
+    DEALLOCATE link_cursor;
+END
+GO
+
+GRANT EXECUTE ON dbo.sp_SyncSecurityToSubscribers TO NGANHANG;
+GRANT EXECUTE ON dbo.sp_SyncSecurityToSubscribers TO CHINHANH;
+GO
+PRINT N'>>> Created sp_SyncSecurityToSubscribers.';
+GO
+
 CREATE OR ALTER PROCEDURE dbo.sp_TaoTaiKhoan
     @LOGIN    nvarchar(50),
     @PASS     nvarchar(128),
@@ -315,6 +452,12 @@ BEGIN
     END
     ELSE
         PRINT N'User ' + @LOGIN + N' đã thuộc role ' + @TENNHOM;
+
+    EXEC dbo.sp_SyncSecurityToSubscribers
+        @LOGIN   = @LOGIN,
+        @PASS    = @PASS,
+        @TENNHOM = @TENNHOM,
+        @MODE    = N'UPSERT';
 END
 GO
 
@@ -348,6 +491,12 @@ BEGIN
         EXEC sp_droplogin @loginame = @LOGIN;
         PRINT N'Đã xóa login: ' + @LOGIN;
     END
+
+    EXEC dbo.sp_SyncSecurityToSubscribers
+        @LOGIN   = @LOGIN,
+        @PASS    = NULL,
+        @TENNHOM = NULL,
+        @MODE    = N'DROP';
 END
 GO
 
@@ -368,6 +517,13 @@ BEGIN
     BEGIN
         EXEC sp_password @old = @PASSCU, @new = @PASSMOI, @loginame = @LOGIN;
         PRINT N'Đã đổi mật khẩu cho: ' + @LOGIN;
+
+        EXEC dbo.sp_SyncSecurityToSubscribers
+            @LOGIN   = @LOGIN,
+            @PASS    = @PASSMOI,
+            @TENNHOM = NULL,
+            @MODE    = N'PASSWORD';
+
         RETURN;
     END
 
@@ -381,6 +537,12 @@ BEGIN
 
     EXEC sp_password @old = NULL, @new = @PASSMOI, @loginame = @LOGIN;
     PRINT N'Đã đặt lại mật khẩu cho: ' + @LOGIN;
+
+    EXEC dbo.sp_SyncSecurityToSubscribers
+        @LOGIN   = @LOGIN,
+        @PASS    = @PASSMOI,
+        @TENNHOM = NULL,
+        @MODE    = N'PASSWORD';
 END
 GO
 
@@ -417,7 +579,7 @@ GO
 -- Tạo sẵn login demo và gán role tương ứng.
 IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'ADMIN_NH')
 BEGIN
-    EXEC sp_addlogin @loginame = N'ADMIN_NH', @passwd = N'Admin@123', @defdb = N'NGANHANG';
+    EXEC sp_addlogin @loginame = N'ADMIN_NH', @passwd = N'Password!123', @defdb = N'NGANHANG';
     PRINT N'>>> Đã tạo login mẫu ADMIN_NH.';
 END
 ELSE
@@ -450,7 +612,7 @@ GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'NV_BT')
 BEGIN
-    EXEC sp_addlogin @loginame = N'NV_BT', @passwd = N'NhanVien@123', @defdb = N'NGANHANG';
+    EXEC sp_addlogin @loginame = N'NV_BT', @passwd = N'Password!123', @defdb = N'NGANHANG';
     PRINT N'>>> Đã tạo login mẫu NV_BT.';
 END
 ELSE
@@ -483,7 +645,7 @@ GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'KH_DEMO')
 BEGIN
-    EXEC sp_addlogin @loginame = N'KH_DEMO', @passwd = N'KhachHang@123', @defdb = N'NGANHANG';
+    EXEC sp_addlogin @loginame = N'KH_DEMO', @passwd = N'Password!123', @defdb = N'NGANHANG';
     PRINT N'>>> Đã tạo login mẫu KH_DEMO.';
 END
 ELSE
