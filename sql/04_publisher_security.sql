@@ -41,61 +41,26 @@ GO
 PRINT N'>>> Đã áp dụng DENY truy cập bảng trực tiếp.';
 GO
 -- Cấp quyền EXECUTE cho role NGANHANG.
-GRANT EXECUTE ON dbo.SP_GetCustomersByBranch     TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_GetCustomerByCMND        TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_AddCustomer              TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_UpdateCustomer           TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_DeleteCustomer           TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_RestoreCustomer          TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_GetAllCustomers          TO NGANHANG;
-
-GRANT EXECUTE ON dbo.SP_GetEmployeesByBranch     TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_GetEmployee              TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_AddEmployee              TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_UpdateEmployee           TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_DeleteEmployee           TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_RestoreEmployee          TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_TransferEmployee         TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_EmployeeExists           TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_GetAllEmployees          TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_GetNextManv              TO NGANHANG;
-
-GRANT EXECUTE ON dbo.SP_GetAccountsByBranch      TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_GetAccountsByCustomer    TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_GetAccount               TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_AddAccount               TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_UpdateAccount            TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_DeleteAccount            TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_CloseAccount             TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_ReopenAccount            TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_DeductFromAccount        TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_AddToAccount             TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_GetAllAccounts           TO NGANHANG;
-
-GRANT EXECUTE ON dbo.SP_GetTransactionsByAccount TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_GetTransactionsByBranch  TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_GetDailyWithdrawalTotal  TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_GetDailyTransferTotal    TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_Deposit                  TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_Withdraw                 TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_CreateTransferTransaction TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_CrossBranchTransfer      TO NGANHANG;
-
-GRANT EXECUTE ON dbo.SP_GetAccountStatement      TO NGANHANG;
+GRANT EXECUTE ON dbo.SP_GetCustomersByBranch      TO NGANHANG;
+GRANT EXECUTE ON dbo.SP_GetCustomerByCMND         TO NGANHANG;
+GRANT EXECUTE ON dbo.SP_GetAllCustomers           TO NGANHANG;
+GRANT EXECUTE ON dbo.SP_GetAccount                TO NGANHANG;
+GRANT EXECUTE ON dbo.SP_GetAccountStatement       TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_GetAccountsOpenedInPeriod TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_GetTransactionSummary    TO NGANHANG;
+GRANT EXECUTE ON dbo.SP_GetTransactionSummary     TO NGANHANG;
 
-GRANT EXECUTE ON dbo.SP_GetUser                  TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_GetAllUsers              TO NGANHANG;
-GRANT EXECUTE ON dbo.USP_AddUser                 TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_UpdateUser               TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_SoftDeleteUser           TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_RestoreUser              TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_GetBranches              TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_GetBranch                TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_AddBranch                TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_UpdateBranch             TO NGANHANG;
-GRANT EXECUTE ON dbo.SP_DeleteBranch             TO NGANHANG;
+GRANT EXECUTE ON dbo.SP_GetUser                   TO NGANHANG;
+GRANT EXECUTE ON dbo.SP_GetAllUsers               TO NGANHANG;
+GRANT EXECUTE ON dbo.USP_AddUser                  TO NGANHANG;
+GRANT EXECUTE ON dbo.SP_UpdateUser                TO NGANHANG;
+GRANT EXECUTE ON dbo.SP_SoftDeleteUser            TO NGANHANG;
+GRANT EXECUTE ON dbo.SP_RestoreUser               TO NGANHANG;
+
+GRANT EXECUTE ON dbo.SP_GetBranches               TO NGANHANG;
+GRANT EXECUTE ON dbo.SP_GetBranch                 TO NGANHANG;
+GRANT EXECUTE ON dbo.SP_AddBranch                 TO NGANHANG;
+GRANT EXECUTE ON dbo.SP_UpdateBranch              TO NGANHANG;
+GRANT EXECUTE ON dbo.SP_DeleteBranch              TO NGANHANG;
 GO
 -- Cấp quyền EXECUTE cho role CHINHANH.
 GRANT EXECUTE ON dbo.SP_GetCustomersByBranch     TO CHINHANH;
@@ -111,6 +76,7 @@ GRANT EXECUTE ON dbo.SP_AddEmployee              TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_UpdateEmployee           TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_DeleteEmployee           TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_RestoreEmployee          TO CHINHANH;
+GRANT EXECUTE ON dbo.SP_TransferEmployee         TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_EmployeeExists           TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_GetNextManv              TO CHINHANH;
 
@@ -141,11 +107,12 @@ GRANT EXECUTE ON dbo.SP_GetTransactionSummary    TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_GetUser                  TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_GetAllUsers              TO CHINHANH;
 GRANT EXECUTE ON dbo.USP_AddUser                 TO CHINHANH;
-GRANT EXECUTE ON dbo.SP_UpdateUser               TO CHINHANH;
-GRANT EXECUTE ON dbo.SP_SoftDeleteUser           TO CHINHANH;
-GRANT EXECUTE ON dbo.SP_RestoreUser              TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_GetBranches              TO CHINHANH;
 GRANT EXECUTE ON dbo.SP_GetBranch                TO CHINHANH;
+GO
+REVOKE EXECUTE ON dbo.SP_UpdateUser               FROM CHINHANH;
+REVOKE EXECUTE ON dbo.SP_SoftDeleteUser           FROM CHINHANH;
+REVOKE EXECUTE ON dbo.SP_RestoreUser              FROM CHINHANH;
 GO
 -- Cấp quyền EXECUTE tối thiểu cho role KHACHHANG.
 GRANT EXECUTE ON dbo.SP_GetAccountsByCustomer    TO KHACHHANG;
@@ -322,7 +289,10 @@ BEGIN
         PRINT N'Đã tạo login: ' + @LOGIN;
     END
     ELSE
-        PRINT N'Login đã tồn tại: ' + @LOGIN;
+    BEGIN
+        RAISERROR(N'Login %s da ton tai. Khong duoc phep tao de ghi de account hien co.', 16, 1, @LOGIN);
+        RETURN;
+    END
 
     IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = @LOGIN AND type IN ('S', 'U'))
     BEGIN
@@ -588,4 +558,3 @@ PRINT N'               sp_DoiMatKhau, sp_DanhSachNhanVien';
 PRINT N'    Login mẫu: ADMIN_NH (NGANHANG), NV_BT (CHINHANH), KH_DEMO (KHACHHANG)';
 PRINT N'    Bước tiếp theo: setup hạ tầng theo SSMS UI runbook (không dùng script 05/06/08 làm flow chính).';
 GO
-

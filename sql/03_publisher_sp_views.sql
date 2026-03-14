@@ -199,7 +199,61 @@ CREATE OR ALTER PROCEDURE dbo.SP_TransferEmployee
 AS
 BEGIN
     SET NOCOUNT OFF;
-    UPDATE dbo.NHANVIEN SET MACN = @MACN_MOI WHERE MANV = @MANV;
+
+    DECLARE @CurrentBranch nChar(10) = NULL;
+    DECLARE @CallerBranch  nChar(10) = NULL;
+
+    SELECT @CurrentBranch = MACN
+    FROM dbo.NHANVIEN
+    WHERE MANV = @MANV;
+
+    IF @CurrentBranch IS NULL
+    BEGIN
+        RAISERROR(N'Không tìm thấy nhân viên cần chuyển.', 16, 1);
+        RETURN;
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.CHINHANH WHERE MACN = @MACN_MOI)
+    BEGIN
+        RAISERROR(N'Chi nhánh đích không tồn tại.', 16, 1);
+        RETURN;
+    END
+
+    IF IS_MEMBER('CHINHANH') = 1
+    BEGIN
+        IF OBJECT_ID(N'dbo.NGUOIDUNG', N'U') IS NOT NULL
+        BEGIN
+            SELECT TOP 1 @CallerBranch = NULLIF(RTRIM(DefaultBranch), N'')
+            FROM dbo.NGUOIDUNG
+            WHERE Username = SYSTEM_USER
+              AND TrangThaiXoa = 0;
+        END
+
+        IF @CallerBranch IS NULL
+        BEGIN
+            SELECT TOP 1 @CallerBranch = MACN
+            FROM dbo.NHANVIEN
+            WHERE MANV = SYSTEM_USER
+              AND TrangThaiXoa = 0;
+        END
+
+        IF @CallerBranch IS NULL
+        BEGIN
+            RAISERROR(N'Không xác định được chi nhánh của người dùng CHINHANH.', 16, 1);
+            RETURN;
+        END
+
+        IF RTRIM(@CurrentBranch) <> RTRIM(@CallerBranch)
+        BEGIN
+            RAISERROR(N'CHINHANH chỉ được chuyển nhân viên thuộc chi nhánh đang đăng nhập.', 16, 1);
+            RETURN;
+        END
+    END
+
+    UPDATE dbo.NHANVIEN
+    SET MACN = @MACN_MOI
+    WHERE MANV = @MANV
+      AND RTRIM(MACN) <> RTRIM(@MACN_MOI);
 END
 GO
 
@@ -1177,22 +1231,14 @@ BEGIN
 
     IF EXISTS (SELECT 1 FROM dbo.NGUOIDUNG WHERE Username = @Username)
     BEGIN
-        UPDATE dbo.NGUOIDUNG
-        SET PasswordHash  = @PasswordHash,
-            UserGroup     = @UserGroup,
-            DefaultBranch = @DefaultBranch,
-            CustomerCMND  = @CustomerCMND,
-            EmployeeId    = @EmployeeId,
-            TrangThaiXoa  = 0
-        WHERE Username = @Username;
+        RAISERROR(N'Username %s da ton tai trong NGUOIDUNG. Vui long dung chuc nang cap nhat phu hop.', 16, 1, @Username);
+        RETURN;
     END
-    ELSE
-    BEGIN
-        INSERT INTO dbo.NGUOIDUNG
-            (Username, PasswordHash, UserGroup, DefaultBranch, CustomerCMND, EmployeeId, TrangThaiXoa)
-        VALUES
-            (@Username, @PasswordHash, @UserGroup, @DefaultBranch, @CustomerCMND, @EmployeeId, 0);
-    END
+
+    INSERT INTO dbo.NGUOIDUNG
+        (Username, PasswordHash, UserGroup, DefaultBranch, CustomerCMND, EmployeeId, TrangThaiXoa)
+    VALUES
+        (@Username, @PasswordHash, @UserGroup, @DefaultBranch, @CustomerCMND, @EmployeeId, 0);
 END
 GO
 
@@ -1324,4 +1370,3 @@ PRINT N'    Đối tượng đã tạo: 1 view + 50 stored procedure = 51';
 PRINT N'    Cơ sở dữ liệu: NGANHANG';
 PRINT N'    Bước tiếp theo: 04_publisher_security.sql (bước 4/8)';
 GO
-

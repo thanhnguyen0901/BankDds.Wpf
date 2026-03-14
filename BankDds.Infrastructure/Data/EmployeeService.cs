@@ -102,7 +102,14 @@ namespace BankDds.Infrastructure.Data
 
         public async Task<bool> TransferEmployeeAsync(string manv, string newBranch)
         {
-            // Logic: transfer requires modify permission in both source and target branch.
+            // Logic: ChiNhanh can transfer an employee from its current branch to another branch.
+            // Authorization is enforced on source branch ownership; target is validated as an input value.
+            if (string.IsNullOrWhiteSpace(newBranch))
+            {
+                throw new ArgumentException("Chi nhánh đích không được để trống.", nameof(newBranch));
+            }
+
+            newBranch = newBranch.Trim().ToUpperInvariant();
             var employee = await _employeeRepository.GetEmployeeAsync(manv);
 
             if (employee == null)
@@ -111,7 +118,12 @@ namespace BankDds.Infrastructure.Data
             }
 
             _authorizationService.RequireCanModifyBranch(employee.MACN);
-            _authorizationService.RequireCanModifyBranch(newBranch);
+
+            if (string.Equals(employee.MACN, newBranch, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
             return await _employeeRepository.TransferEmployeeAsync(manv, newBranch);
         }
 

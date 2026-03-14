@@ -118,7 +118,7 @@ namespace BankDds.Wpf.ViewModels
         public bool CanRestore => CanModifyEmployees && SelectedEmployee != null && !IsEditing && SelectedEmployee.TrangThaiXoa == 1;
         public bool CanSave => IsEditing && !string.IsNullOrWhiteSpace(EditingEmployee.HO) && !string.IsNullOrWhiteSpace(EditingEmployee.TEN);
         public bool CanCancel => IsEditing;
-        public bool CanExecuteTransferBranch => CanModifyEmployees && SelectedEmployee != null && !IsEditing && SelectedEmployee.TrangThaiXoa == 0 && !string.IsNullOrWhiteSpace(TransferBranch);
+        public bool CanExecuteTransferBranch => CanModifyEmployees && SelectedEmployee != null && IsEditing && SelectedEmployee.TrangThaiXoa == 0 && !string.IsNullOrWhiteSpace(TransferBranch);
 
         protected override async Task OnActivateAsync(CancellationToken cancellationToken)
         {

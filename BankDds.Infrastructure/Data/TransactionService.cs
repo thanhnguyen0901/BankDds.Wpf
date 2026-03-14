@@ -127,12 +127,8 @@ namespace BankDds.Infrastructure.Data
             }
 
             _authorizationService.RequireCanPerformTransactions(accountFrom.MACN);
-
-            // Logic: transfer destination branch must be accessible for cross-branch validation path.
-            if (accountFrom.MACN != accountTo.MACN)
-            {
-                _authorizationService.RequireCanAccessBranch(accountTo.MACN);
-            }
+            // Logic: source-branch authorization is sufficient for transfer posting.
+            // Cross-branch credit path is handled inside SP_CrossBranchTransfer.
 
             return await _transactionRepository.TransferAsync(sotkFrom, sotkTo, amount, manv);
         }
