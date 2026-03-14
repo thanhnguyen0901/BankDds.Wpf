@@ -1,4 +1,4 @@
-﻿using BankDds.Core.Interfaces;
+using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
 
 namespace BankDds.Infrastructure.Security;

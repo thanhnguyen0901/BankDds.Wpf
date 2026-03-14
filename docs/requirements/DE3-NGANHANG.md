@@ -1,4 +1,4 @@
-﻿```md
+```md
 # ĐỀ TÀI MÔN CƠ SỞ DỮ LIỆU PHÂN TÁN
 
 ## ĐỀ TÀI SỐ 3 – NGÂN HÀNG

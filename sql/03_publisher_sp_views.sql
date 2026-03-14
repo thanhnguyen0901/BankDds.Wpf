@@ -1,4 +1,4 @@
-﻿USE NGANHANG;
+USE NGANHANG;
 GO
 -- Tạo view ánh xạ chi nhánh và server phân mảnh.
 CREATE OR ALTER VIEW dbo.view_DanhSachPhanManh

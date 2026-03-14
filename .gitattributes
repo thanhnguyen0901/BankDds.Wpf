@@ -1,0 +1,15 @@
+* text=auto eol=lf
+
+*.sln text eol=lf
+*.cs text eol=lf
+*.xaml text eol=lf
+*.sql text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.xml text eol=lf
+*.config text eol=lf
+*.ps1 text eol=lf
+*.txt text eol=lf
+*.csproj text eol=lf
+*.props text eol=lf
+*.targets text eol=lf

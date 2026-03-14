@@ -1,4 +1,4 @@
-﻿﻿# Hướng Dẫn SSMS 21: Full Flow NGANHANG
+# Hướng Dẫn SSMS 21: Full Flow NGANHANG
 
 Áp dụng: SQL Server + SSMS 21  
 

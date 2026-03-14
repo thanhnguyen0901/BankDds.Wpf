@@ -1,4 +1,4 @@
-﻿USE NGANHANG;
+USE NGANHANG;
 GO
 -- Tạo các role nghiệp vụ nếu chưa tồn tại.
 IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'NGANHANG' AND type = 'R')

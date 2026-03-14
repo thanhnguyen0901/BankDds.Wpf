@@ -1,4 +1,4 @@
-﻿using BankDds.Core.Interfaces;
+using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;

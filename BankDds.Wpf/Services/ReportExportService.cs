@@ -1,4 +1,4 @@
-﻿using BankDds.Core.Models;
+using BankDds.Core.Models;
 using ClosedXML.Excel;
 using iText.IO.Font;
 using iText.Kernel.Colors;
