@@ -16,7 +16,7 @@ public class BranchService : IBranchService
         _authorizationService = authorizationService;
     }
 
-    // Read-only operations — all roles can query branches (needed for login dropdown, validators, etc.)
+    // Read-only operations - all roles can query branches (needed for login dropdown, validators, etc.)
     public Task<List<Branch>> GetAllBranchesAsync() =>
         _branchRepository.GetAllBranchesAsync();
 
@@ -26,25 +26,26 @@ public class BranchService : IBranchService
     public Task<bool> BranchExistsAsync(string macn) =>
         _branchRepository.BranchExistsAsync(macn);
 
-    // Write operations — NganHang only
+    // Write operations - NganHang only
     public Task<bool> AddBranchAsync(Branch branch)
     {
         if (!_authorizationService.CanAccessBranch("ALL"))
-            throw new UnauthorizedAccessException("Only bank-level administrators can add branches.");
+            throw new UnauthorizedAccessException("Chỉ quản trị viên nhóm NganHang mới được thêm chi nhánh.");
         return _branchRepository.AddBranchAsync(branch);
     }
 
     public Task<bool> UpdateBranchAsync(Branch branch)
     {
         if (!_authorizationService.CanAccessBranch("ALL"))
-            throw new UnauthorizedAccessException("Only bank-level administrators can update branches.");
+            throw new UnauthorizedAccessException("Chỉ quản trị viên nhóm NganHang mới được cập nhật chi nhánh.");
         return _branchRepository.UpdateBranchAsync(branch);
     }
 
     public Task<bool> DeleteBranchAsync(string macn)
     {
         if (!_authorizationService.CanAccessBranch("ALL"))
-            throw new UnauthorizedAccessException("Only bank-level administrators can delete branches.");
+            throw new UnauthorizedAccessException("Chỉ quản trị viên nhóm NganHang mới được xóa chi nhánh.");
         return _branchRepository.DeleteBranchAsync(macn);
     }
 }
+

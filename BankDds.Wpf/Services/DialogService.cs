@@ -6,7 +6,7 @@ namespace BankDds.Wpf.Services;
 
 public class DialogService : IDialogService
 {
-    public Task<bool> ShowConfirmationAsync(string message, string title = "Confirmation")
+    public Task<bool> ShowConfirmationAsync(string message, string title = "Xác nhận")
     {
         var result = MessageBox.Show(
             message,
@@ -18,21 +18,22 @@ public class DialogService : IDialogService
         return Task.FromResult(result == MessageBoxResult.Yes);
     }
 
-    public Task ShowErrorAsync(string message, string title = "Error")
+    public Task ShowErrorAsync(string message, string title = "Lỗi")
     {
         MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
         return Task.CompletedTask;
     }
 
-    public Task ShowInformationAsync(string message, string title = "Information")
+    public Task ShowInformationAsync(string message, string title = "Thông báo")
     {
         MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
         return Task.CompletedTask;
     }
 
-    public Task ShowWarningAsync(string message, string title = "Warning")
+    public Task ShowWarningAsync(string message, string title = "Cảnh báo")
     {
         MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
         return Task.CompletedTask;
     }
 }
+

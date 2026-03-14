@@ -30,7 +30,7 @@ public class AccountsViewModel : BaseViewModel
         _userSession = userSession;
         _dialogService = dialogService;
         _validator = validator;
-        DisplayName = "Account Management";
+        DisplayName = "Quản lý tài khoản";
     }
 
     public ObservableCollection<Customer> Customers
@@ -241,7 +241,7 @@ public class AccountsViewModel : BaseViewModel
             }
             else
             {
-                ErrorMessage = "Failed to save account.";
+                ErrorMessage = "Không thể lưu tài khoản.";
             }
         });
     }
@@ -252,14 +252,14 @@ public class AccountsViewModel : BaseViewModel
 
         if (SelectedAccount.SODU != 0)
         {
-            await _dialogService.ShowWarningAsync("Cannot delete account with non-zero balance.", "Delete Account");
+            await _dialogService.ShowWarningAsync("Không thể xóa tài khoản có số dư khác 0.", "Xóa tài khoản");
             return;
         }
 
         // Show confirmation dialog
         var confirmed = await _dialogService.ShowConfirmationAsync(
-            $"Are you sure you want to delete account '{SelectedAccount.SOTK}'?",
-            "Delete Confirmation"
+            $"Bạn có chắc muốn xóa tài khoản '{SelectedAccount.SOTK}'?",
+            "Xác nhận xóa"
         );
 
         if (!confirmed) return;
@@ -275,7 +275,7 @@ public class AccountsViewModel : BaseViewModel
             }
             else
             {
-                ErrorMessage = "Failed to delete account.";
+                ErrorMessage = "Không thể xóa tài khoản.";
             }
         });
     }
@@ -293,13 +293,13 @@ public class AccountsViewModel : BaseViewModel
 
         if (SelectedAccount.SODU != 0)
         {
-            await _dialogService.ShowWarningAsync("Cannot close account with non-zero balance.", "Close Account");
+            await _dialogService.ShowWarningAsync("Không thể đóng tài khoản có số dư khác 0.", "Đóng tài khoản");
             return;
         }
 
         var confirmed = await _dialogService.ShowConfirmationAsync(
-            $"Are you sure you want to close account '{SelectedAccount.SOTK}'?",
-            "Close Account Confirmation"
+            $"Bạn có chắc muốn đóng tài khoản '{SelectedAccount.SOTK}'?",
+            "Xác nhận đóng tài khoản"
         );
 
         if (!confirmed) return;
@@ -315,7 +315,7 @@ public class AccountsViewModel : BaseViewModel
             }
             else
             {
-                ErrorMessage = "Failed to close account.";
+                ErrorMessage = "Không thể đóng tài khoản.";
             }
         });
     }
@@ -325,8 +325,8 @@ public class AccountsViewModel : BaseViewModel
         if (SelectedAccount == null) return;
 
         var confirmed = await _dialogService.ShowConfirmationAsync(
-            $"Are you sure you want to reopen account '{SelectedAccount.SOTK}'?",
-            "Reopen Account Confirmation"
+            $"Bạn có chắc muốn mở lại tài khoản '{SelectedAccount.SOTK}'?",
+            "Xác nhận mở lại tài khoản"
         );
 
         if (!confirmed) return;
@@ -342,7 +342,7 @@ public class AccountsViewModel : BaseViewModel
             }
             else
             {
-                ErrorMessage = "Failed to reopen account.";
+                ErrorMessage = "Không thể mở lại tài khoản.";
             }
         });
     }
@@ -357,3 +357,4 @@ public class AccountsViewModel : BaseViewModel
         return $"TK{DateTime.Now.Ticks % 10_000_000:D7}";
     }
 }
+

@@ -7,16 +7,6 @@ using System.Linq;
 
 namespace BankDds.Infrastructure.Data;
 
-/// <summary>
-/// SQL Server implementation of IUserRepository using runtime auth/account SPs
-/// plus NGUOIDUNG mapping persistence.
-/// UI-first topology:
-///   - Create account:      sp_TaoTaiKhoan
-///   - Create app mapping:  USP_AddUser
-///   - Delete account:      sp_XoaTaiKhoan
-///   - Reset password:      sp_DoiMatKhau
-///   - List mappings:       SP_GetAllUsers
-/// </summary>
 public class UserRepository : IUserRepository
 {
     private readonly IConnectionStringProvider _connectionStringProvider;
@@ -70,7 +60,7 @@ public class UserRepository : IUserRepository
         }
         catch (SqlException ex)
         {
-            throw new InvalidOperationException($"Database error creating login '{user.Username}': {ex.Message}", ex);
+            throw new InvalidOperationException($"Lỗi cơ sở dữ liệu khi tạo đăng nhập '{user.Username}': {ex.Message}", ex);
         }
     }
 
@@ -82,8 +72,6 @@ public class UserRepository : IUserRepository
             await connection.OpenAsync();
             using var command = new SqlCommand("sp_DoiMatKhau", connection) { CommandType = CommandType.StoredProcedure };
             command.Parameters.AddWithValue("@LOGIN", user.Username);
-            // Password reset path (NGANHANG role). Caller self-change with old password
-            // is not modeled in this admin repository.
             command.Parameters.AddWithValue("@PASSCU", DBNull.Value);
             command.Parameters.AddWithValue("@PASSMOI", user.PasswordHash);
 
@@ -92,7 +80,7 @@ public class UserRepository : IUserRepository
         }
         catch (SqlException ex)
         {
-            throw new InvalidOperationException($"Database error resetting password for '{user.Username}': {ex.Message}", ex);
+            throw new InvalidOperationException($"Lỗi cơ sở dữ liệu khi đặt lại mật khẩu cho '{user.Username}': {ex.Message}", ex);
         }
     }
 
@@ -109,8 +97,6 @@ public class UserRepository : IUserRepository
                 await deleteLoginCommand.ExecuteNonQueryAsync();
             }
 
-            // Keep NGUOIDUNG state consistent with SQL login lifecycle.
-            using (var softDeleteMappingCommand = new SqlCommand("SP_SoftDeleteUser", connection) { CommandType = CommandType.StoredProcedure })
             {
                 softDeleteMappingCommand.Parameters.AddWithValue("@Username", username);
                 await softDeleteMappingCommand.ExecuteNonQueryAsync();
@@ -120,7 +106,7 @@ public class UserRepository : IUserRepository
         }
         catch (SqlException ex)
         {
-            throw new InvalidOperationException($"Database error deleting login '{username}': {ex.Message}", ex);
+            throw new InvalidOperationException($"Lỗi cơ sở dữ liệu khi xóa đăng nhập '{username}': {ex.Message}", ex);
         }
     }
 
@@ -158,7 +144,7 @@ public class UserRepository : IUserRepository
         }
         catch (SqlException ex)
         {
-            throw new InvalidOperationException($"Database error retrieving logins: {ex.Message}", ex);
+            throw new InvalidOperationException($"Lỗi cơ sở dữ liệu khi lấy danh sách đăng nhập: {ex.Message}", ex);
         }
         return users;
     }
@@ -170,7 +156,7 @@ public class UserRepository : IUserRepository
             UserGroup.NganHang => "NGANHANG",
             UserGroup.ChiNhanh => "CHINHANH",
             UserGroup.KhachHang => "KHACHHANG",
-            _ => throw new InvalidOperationException($"Unsupported user group: {group}")
+            _ => throw new InvalidOperationException($"Nhóm người dùng không được hỗ trợ: {group}")
         };
     }
 
@@ -191,7 +177,7 @@ public class UserRepository : IUserRepository
             0 => UserGroup.NganHang,
             1 => UserGroup.ChiNhanh,
             2 => UserGroup.KhachHang,
-            _ => throw new InvalidOperationException($"Unknown UserGroup code '{userGroupCode}'.")
+            _ => throw new InvalidOperationException($"Mã UserGroup không hợp lệ '{userGroupCode}'.")
         };
     }
 
@@ -219,4 +205,5 @@ public class UserRepository : IUserRepository
         };
     }
 }
+
 

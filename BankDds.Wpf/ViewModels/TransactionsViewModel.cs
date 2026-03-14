@@ -39,7 +39,7 @@ public class TransactionsViewModel : BaseViewModel
         _userSession = userSession;
         _configuration = configuration;
         _validator = validator;
-        DisplayName = "Transactions";
+        DisplayName = "Giao dịch";
 
         // Load transaction limits from configuration
         _minAmount = decimal.Parse(_configuration["TransactionLimits:MinTransactionAmount"] ?? "100000");
@@ -151,7 +151,7 @@ public class TransactionsViewModel : BaseViewModel
     {
         var txn = new Transaction
         {
-            MAGD     = 0,   // placeholder – MAGD is assigned by DB IDENTITY on insert
+            MAGD     = 0,   // placeholder - MAGD is assigned by DB IDENTITY on insert
             SOTK     = SelectedAccountNumber,
             LOAIGD   = transactionType,
             SOTIEN   = amount,
@@ -191,27 +191,27 @@ public class TransactionsViewModel : BaseViewModel
 
         if (!decimal.TryParse(Amount, out var amount))
         {
-            ErrorMessage = "Invalid amount format.";
+            ErrorMessage = "Định dạng số tiền không hợp lệ.";
             return;
         }
 
         // Validate amount limits before transaction
         if (amount < _minAmount)
         {
-            ErrorMessage = $"Minimum deposit amount is {_minAmount:N0} VND.";
+            ErrorMessage = $"Số tiền gửi tối thiểu là {_minAmount:N0} VND.";
             return;
         }
 
         if (amount > _maxSingleAmount)
         {
-            ErrorMessage = $"Maximum single transaction amount is {_maxSingleAmount:N0} VND.";
+            ErrorMessage = $"Số tiền tối đa cho một giao dịch là {_maxSingleAmount:N0} VND.";
             return;
         }
 
         // Get employee ID from session
         if (string.IsNullOrEmpty(_userSession.EmployeeId))
         {
-            ErrorMessage = "Employee ID not found in session. Please log in again.";
+            ErrorMessage = "Không tìm thấy mã nhân viên trong phiên đăng nhập. Vui lòng đăng nhập lại.";
             return;
         }
 
@@ -225,13 +225,13 @@ public class TransactionsViewModel : BaseViewModel
 
             if (result)
             {
-                SuccessMessage = $"Successfully deposited {amount:N0} VND.";
+                SuccessMessage = $"Gửi tiền thành công: {amount:N0} VND.";
                 Amount = string.Empty;
                 await LoadTransactionsAsync();
             }
             else
             {
-                ErrorMessage = "Failed to process deposit. Check transaction history for details.";
+                ErrorMessage = "Không thể xử lý giao dịch gửi tiền. Vui lòng kiểm tra lịch sử giao dịch.";
             }
         });
     }
@@ -242,20 +242,20 @@ public class TransactionsViewModel : BaseViewModel
 
         if (!decimal.TryParse(Amount, out var amount))
         {
-            ErrorMessage = "Invalid amount format.";
+            ErrorMessage = "Định dạng số tiền không hợp lệ.";
             return;
         }
 
         // Validate amount limits before transaction
         if (amount < _minAmount)
         {
-            ErrorMessage = $"Minimum withdrawal amount is {_minAmount:N0} VND.";
+            ErrorMessage = $"Số tiền rút tối thiểu là {_minAmount:N0} VND.";
             return;
         }
 
         if (amount > _maxSingleAmount)
         {
-            ErrorMessage = $"Maximum single transaction amount is {_maxSingleAmount:N0} VND.";
+            ErrorMessage = $"Số tiền tối đa cho một giao dịch là {_maxSingleAmount:N0} VND.";
             return;
         }
 
@@ -263,16 +263,16 @@ public class TransactionsViewModel : BaseViewModel
         var dailyTotal = await _transactionService.GetDailyWithdrawalTotalAsync(SelectedAccountNumber, DateTime.Today);
         if (dailyTotal + amount > _maxDailyWithdrawal)
         {
-            ErrorMessage = $"Daily withdrawal limit exceeded. Today's total: {dailyTotal:N0} VND. " +
-                          $"Limit: {_maxDailyWithdrawal:N0} VND. " +
-                          $"Available: {_maxDailyWithdrawal - dailyTotal:N0} VND.";
+            ErrorMessage = $"Vượt hạn mức rút tiền trong ngày. Tổng hôm nay: {dailyTotal:N0} VND. " +
+                          $"Hạn mức: {_maxDailyWithdrawal:N0} VND. " +
+                          $"Còn lại có thể rút: {_maxDailyWithdrawal - dailyTotal:N0} VND.";
             return;
         }
 
         // Get employee ID from session
         if (string.IsNullOrEmpty(_userSession.EmployeeId))
         {
-            ErrorMessage = "Employee ID not found in session. Please log in again.";
+            ErrorMessage = "Không tìm thấy mã nhân viên trong phiên đăng nhập. Vui lòng đăng nhập lại.";
             return;
         }
 
@@ -286,13 +286,13 @@ public class TransactionsViewModel : BaseViewModel
 
             if (result)
             {
-                SuccessMessage = $"Successfully withdrew {amount:N0} VND.";
+                SuccessMessage = $"Rút tiền thành công: {amount:N0} VND.";
                 Amount = string.Empty;
                 await LoadTransactionsAsync();
             }
             else
             {
-                ErrorMessage = "Failed to process withdrawal. Check transaction history for details.";
+                ErrorMessage = "Không thể xử lý giao dịch rút tiền. Vui lòng kiểm tra lịch sử giao dịch.";
             }
         });
     }
@@ -303,26 +303,26 @@ public class TransactionsViewModel : BaseViewModel
 
         if (!decimal.TryParse(Amount, out var amount))
         {
-            ErrorMessage = "Invalid amount format.";
+            ErrorMessage = "Định dạng số tiền không hợp lệ.";
             return;
         }
 
         // Validate amount limits before transaction
         if (amount < _minAmount)
         {
-            ErrorMessage = $"Minimum transfer amount is {_minAmount:N0} VND.";
+            ErrorMessage = $"Số tiền chuyển tối thiểu là {_minAmount:N0} VND.";
             return;
         }
 
         if (amount > _maxSingleAmount)
         {
-            ErrorMessage = $"Maximum single transaction amount is {_maxSingleAmount:N0} VND.";
+            ErrorMessage = $"Số tiền tối đa cho một giao dịch là {_maxSingleAmount:N0} VND.";
             return;
         }
 
         if (SelectedAccountNumber == TransferToAccount)
         {
-            ErrorMessage = "Cannot transfer to the same account.";
+            ErrorMessage = "Không thể chuyển đến cùng một tài khoản.";
             return;
         }
 
@@ -330,16 +330,16 @@ public class TransactionsViewModel : BaseViewModel
         var dailyTotal = await _transactionService.GetDailyTransferTotalAsync(SelectedAccountNumber, DateTime.Today);
         if (dailyTotal + amount > _maxDailyTransfer)
         {
-            ErrorMessage = $"Daily transfer limit exceeded. Today's total: {dailyTotal:N0} VND. " +
-                          $"Limit: {_maxDailyTransfer:N0} VND. " +
-                          $"Available: {_maxDailyTransfer - dailyTotal:N0} VND.";
+            ErrorMessage = $"Vượt hạn mức chuyển tiền trong ngày. Tổng hôm nay: {dailyTotal:N0} VND. " +
+                          $"Hạn mức: {_maxDailyTransfer:N0} VND. " +
+                          $"Còn lại có thể chuyển: {_maxDailyTransfer - dailyTotal:N0} VND.";
             return;
         }
 
         // Get employee ID from session
         if (string.IsNullOrEmpty(_userSession.EmployeeId))
         {
-            ErrorMessage = "Employee ID not found in session. Please log in again.";
+            ErrorMessage = "Không tìm thấy mã nhân viên trong phiên đăng nhập. Vui lòng đăng nhập lại.";
             return;
         }
 
@@ -353,7 +353,7 @@ public class TransactionsViewModel : BaseViewModel
 
             if (result)
             {
-                SuccessMessage = $"Transfer complete: {amount:N0} VND from {SelectedAccountNumber} → {TransferToAccount}.";
+                SuccessMessage = $"Chuyển tiền thành công: {amount:N0} VND từ {SelectedAccountNumber} sang {TransferToAccount}.";
                 Amount = string.Empty;
                 TransferToAccount = string.Empty;
                 await LoadTransactionsAsync();
@@ -364,8 +364,9 @@ public class TransactionsViewModel : BaseViewModel
                 // Specific business failures (insufficient balance, closed account, etc.)
                 // throw InvalidOperationException, which BaseViewModel.ExecuteWithLoadingAsync
                 // catches and displays directly as ErrorMessage.
-                ErrorMessage = "Transfer could not be completed. Please retry or check the transaction history.";
+                ErrorMessage = "Không thể hoàn tất chuyển tiền. Vui lòng thử lại hoặc kiểm tra lịch sử giao dịch.";
             }
         });
     }
 }
+

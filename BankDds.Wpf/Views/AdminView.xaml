@@ -11,6 +11,7 @@
     mc:Ignorable="d">
     <UserControl.Resources>
         <converters:BoolToVisibilityConverter x:Key="BoolToVisConverter" />
+        <converters:UserGroupDisplayConverter x:Key="UserGroupDisplayConverter" />
     </UserControl.Resources>
 
     <Grid Margin="20">
@@ -24,7 +25,7 @@
         <TextBlock
             Grid.Row="0"
             Style="{StaticResource PageTitleStyle}"
-            Text="Quan tri Nguoi dung" />
+            Text="Quản trị Người dùng" />
 
         <StackPanel
             Grid.Row="1"
@@ -32,15 +33,15 @@
             Orientation="Horizontal">
             <Button
                 x:Name="Add"
-                Content="Them nguoi dung"
+                Content="Thêm người dùng"
                 Style="{StaticResource PrimaryButtonStyle}" />
             <Button
                 x:Name="Edit"
-                Content="Sua"
+                Content="Sửa"
                 Style="{StaticResource WarningButtonStyle}" />
             <Button
                 x:Name="Delete"
-                Content="Xoa login"
+                Content="Xóa login"
                 Style="{StaticResource DangerButtonStyle}" />
         </StackPanel>
 
@@ -60,12 +61,12 @@
                 </Style>
             </DataGrid.RowStyle>
             <DataGrid.Columns>
-                <DataGridTextColumn Width="150" Binding="{Binding Username}" Header="Ten dang nhap" />
-                <DataGridTextColumn Width="120" Binding="{Binding UserGroup}" Header="Vai tro" />
-                <DataGridTextColumn Width="150" Binding="{Binding DefaultBranch}" Header="Chi nhanh" />
-                <DataGridTextColumn Width="130" Binding="{Binding EmployeeId}" Header="Ma NV" />
+                <DataGridTextColumn Width="150" Binding="{Binding Username}" Header="Tên đăng nhập" />
+                <DataGridTextColumn Width="120" Binding="{Binding UserGroup, Converter={StaticResource UserGroupDisplayConverter}}" Header="Vai trò" />
+                <DataGridTextColumn Width="150" Binding="{Binding DefaultBranch}" Header="Chi nhánh" />
+                <DataGridTextColumn Width="130" Binding="{Binding EmployeeId}" Header="Mã NV" />
                 <DataGridTextColumn Width="150" Binding="{Binding CustomerCMND}" Header="CMND KH" />
-                <DataGridTextColumn Width="*" Binding="{Binding StatusText}" Header="Trang thai" />
+                <DataGridTextColumn Width="*" Binding="{Binding StatusText}" Header="Trạng thái" />
             </DataGrid.Columns>
         </DataGrid>
 
@@ -75,22 +76,22 @@
             Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisConverter}}">
             <ScrollViewer Padding="20" VerticalScrollBarVisibility="Auto">
                 <StackPanel>
-                    <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Thong tin Nguoi dung" />
+                    <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Thông tin Người dùng" />
 
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Ten dang nhap:" />
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Tên đăng nhập:" />
                     <TextBox
                         Margin="0,0,0,12"
                         Style="{StaticResource StandardTextBoxStyle}"
                         Text="{Binding EditingUser.Username, UpdateSourceTrigger=PropertyChanged}" />
 
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Mat khau moi:" />
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Mật khẩu mới:" />
                     <PasswordBox
                         x:Name="NewPasswordBox"
                         Margin="0,0,0,12"
                         PasswordChanged="OnNewPasswordChanged"
                         Style="{StaticResource StandardPasswordBoxStyle}" />
 
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Xac nhan mat khau:" />
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Xác nhận mật khẩu:" />
                     <PasswordBox
                         x:Name="ConfirmPasswordBox"
                         Margin="0,0,0,12"
@@ -113,17 +114,23 @@
                         </TextBlock.Style>
                     </TextBlock>
 
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Nhom nguoi dung:" />
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Nhóm người dùng:" />
                     <ComboBox
                         Margin="0,0,0,12"
                         ItemsSource="{Binding AvailableUserGroups}"
                         SelectedItem="{Binding SelectedEditingUserGroup, Mode=TwoWay}"
                         IsEnabled="{Binding CanChangeTargetUserGroup}"
-                        Style="{StaticResource StandardComboBoxStyle}" />
+                        Style="{StaticResource StandardComboBoxStyle}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Converter={StaticResource UserGroupDisplayConverter}}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
 
                     <TextBlock
                         Style="{StaticResource StandardLabelStyle}"
-                        Text="Ma nhan vien (NVxxxxxxxx):"
+                        Text="Mã nhân viên (NVxxxxxxxx):"
                         Visibility="{Binding ShowEmployeeIdField, Converter={StaticResource BoolToVisConverter}}" />
                     <TextBox
                         Margin="0,0,0,12"
@@ -131,7 +138,7 @@
                         Text="{Binding EditingUser.EmployeeId, UpdateSourceTrigger=PropertyChanged}"
                         Visibility="{Binding ShowEmployeeIdField, Converter={StaticResource BoolToVisConverter}}" />
 
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Chi nhanh mac dinh:" />
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Chi nhánh mặc định:" />
                     <ComboBox
                         Margin="0,0,0,12"
                         ItemsSource="{Binding AvailableBranches}"
@@ -141,7 +148,7 @@
 
                     <TextBlock
                         Style="{StaticResource StandardLabelStyle}"
-                        Text="CMND khach hang:"
+                        Text="CMND khách hàng:"
                         Visibility="{Binding ShowCustomerCmndField, Converter={StaticResource BoolToVisConverter}}" />
                     <TextBox
                         Margin="0,0,0,20"
@@ -157,7 +164,7 @@
                                 Margin="0,0,0,4"
                                 FontWeight="SemiBold"
                                 Foreground="#8B0000"
-                                Text="Vui long sua cac loi sau:" />
+                                Text="Vui lòng sửa các lỗi sau:" />
                             <TextBlock
                                 Foreground="#8B0000"
                                 Text="{Binding ErrorMessage}"
@@ -173,7 +180,7 @@
                         <Button
                             x:Name="Cancel"
                             Margin="0"
-                            Content="Thoat"
+                            Content="Thoát"
                             Style="{StaticResource SecondaryButtonStyle}" />
                     </StackPanel>
                 </StackPanel>
@@ -216,7 +223,7 @@
                     HorizontalAlignment="Center"
                     FontSize="14"
                     Foreground="White"
-                    Text="Dang tai..." />
+                    Text="Đang tải..." />
             </StackPanel>
         </Grid>
     </Grid>

@@ -6,7 +6,7 @@ public class MainShellViewModel : Conductor<Screen>.Collection.OneActive
 {
     public MainShellViewModel()
     {
-        DisplayName = "Distributed Banking System";
+        DisplayName = "Hệ thống ngân hàng phân tán";
     }
 
     protected override async Task OnInitializeAsync(CancellationToken cancellationToken)
@@ -29,3 +29,4 @@ public class MainShellViewModel : Conductor<Screen>.Collection.OneActive
         await ActivateItemAsync(homeViewModel, cancellationToken: default);
     }
 }
+

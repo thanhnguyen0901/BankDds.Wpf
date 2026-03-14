@@ -54,7 +54,7 @@ public abstract class BaseViewModel : Screen
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"Error: {ex.Message}";
+            ErrorMessage = $"Lỗi: {ex.Message}";
         }
         finally
         {
@@ -62,3 +62,4 @@ public abstract class BaseViewModel : Screen
         }
     }
 }
+

@@ -23,8 +23,6 @@ public class ConnectionStringProvider : IConnectionStringProvider
         _configuration = configuration;
     }
 
-    // ───────────────────────── credential management ─────────────────────────
-
     /// <inheritdoc />
     public void SetSqlLoginCredentials(string sqlLogin, string sqlPassword)
     {
@@ -39,15 +37,13 @@ public class ConnectionStringProvider : IConnectionStringProvider
         _sqlPassword = null;
     }
 
-    // ───────────────────────── Publisher ─────────────────────────
-
     /// <inheritdoc />
     public string GetPublisherConnection()
     {
         var template = GetPublisherTemplate();
         if (_sqlLogin is null || _sqlPassword is null)
             throw new InvalidOperationException(
-                "SQL login credentials have not been set. Call SetSqlLoginCredentials first.");
+                "Chưa thiết lập thông tin đăng nhập SQL. Hãy gọi SetSqlLoginCredentials trước.");
 
         return InjectCredentials(template, _sqlLogin, _sqlPassword);
     }
@@ -63,28 +59,24 @@ public class ConnectionStringProvider : IConnectionStringProvider
     [Obsolete("Use GetPublisherConnection() instead.")]
     public string GetBankConnection() => GetPublisherConnection();
 
-    // ───────────────────────── Branch subscriber ─────────────────────────
-
     /// <inheritdoc />
     public string GetConnectionStringForBranch(string branch)
     {
         var normalizedBranch = (branch ?? string.Empty).Trim().ToUpperInvariant();
         if (string.IsNullOrWhiteSpace(normalizedBranch))
-            throw new InvalidOperationException("Branch code cannot be empty when resolving connection string.");
+            throw new InvalidOperationException("Mã chi nhánh không được để trống khi lấy chuỗi kết nối.");
 
         var key = $"ConnectionStrings:Branch_{normalizedBranch}";
         var template = _configuration[key]
             ?? throw new InvalidOperationException(
-                $"Connection string not found for branch: {normalizedBranch}");
+                $"Không tìm thấy chuỗi kết nối cho chi nhánh: {normalizedBranch}");
 
         if (_sqlLogin is null || _sqlPassword is null)
             throw new InvalidOperationException(
-                "SQL login credentials have not been set. Call SetSqlLoginCredentials first.");
+                "Chưa thiết lập thông tin đăng nhập SQL. Hãy gọi SetSqlLoginCredentials trước.");
 
         return InjectCredentials(template, _sqlLogin, _sqlPassword);
     }
-
-    // ───────────────────────── Lookup (read-only lookup subscriber) ─────────────────────────
 
     /// <inheritdoc />
     public string? GetLookupConnection()
@@ -94,7 +86,7 @@ public class ConnectionStringProvider : IConnectionStringProvider
 
         if (_sqlLogin is null || _sqlPassword is null)
             throw new InvalidOperationException(
-                "SQL login credentials have not been set. Call SetSqlLoginCredentials first.");
+                "Chưa thiết lập thông tin đăng nhập SQL. Hãy gọi SetSqlLoginCredentials trước.");
 
         return InjectCredentials(template, _sqlLogin, _sqlPassword);
     }
@@ -116,18 +108,14 @@ public class ConnectionStringProvider : IConnectionStringProvider
         return branchCodes;
     }
 
-    // ───────────────────────── misc ─────────────────────────
-
     public string DefaultBranch =>
         _configuration["DatabaseSettings:DefaultBranch"] ?? "BENTHANH";
-
-    // ───────────────────────── helpers ─────────────────────────
 
     private string GetPublisherTemplate()
     {
         return _configuration["ConnectionStrings:Publisher"]
             ?? throw new InvalidOperationException(
-                "Publisher connection string not found in configuration.");
+                "Không tìm thấy chuỗi kết nối Publisher trong cấu hình.");
     }
 
     /// <summary>
@@ -144,3 +132,4 @@ public class ConnectionStringProvider : IConnectionStringProvider
         return builder.ConnectionString;
     }
 }
+

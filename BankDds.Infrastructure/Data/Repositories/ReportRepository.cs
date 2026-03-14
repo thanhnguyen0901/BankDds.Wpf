@@ -24,58 +24,17 @@ public class ReportRepository : IReportRepository
 
     private string GetConnectionString()
     {
-        // Account statements are resolved on Publisher so KH can view own accounts
-        // even when those accounts are opened at a different branch.
         return _connectionStringProvider.GetPublisherConnection();
     }
 
-    /// <summary>
-    /// Gets an account statement matching the DE3 requirement (SP_GetAccountStatement).
-    ///
-    /// SP contract — the stored procedure must accept:
-    ///   @SOTK    nChar(9)
-    ///   @TuNgay  DateTime   — start of period (calendar day, time stripped by caller)
-    ///   @DenNgay DateTime   — end of period (end-of-day: date + 23:59:59.997, set by caller)
-    ///
-    /// SP must return TWO result sets:
-    ///
-    ///   Result set 1 (single row):
-    ///     SOTK          nChar(9)
-    ///     OpeningBalance money       — balance at end of (@TuNgay − 1 day), i.e. just before period starts
-    ///
-    ///   Result set 2 (one row per transaction, sorted NGAYGD ASC):
-    ///     MAGD          nvarchar     — transaction ID
-    ///     NGAYGD        DateTime
-    ///     LOAIGD        nChar(2)     — GT / RT / CT  (SP must normalise CK → CT)
-    ///     SOTIEN        money        — absolute transaction amount (always positive)
-    ///     OpeningBal    money        — balance BEFORE this transaction ("Số dư đầu")
-    ///     RunningBalance money       — balance AFTER  this transaction ("Số dư sau")
-    ///     Description   nvarchar     — human-readable description
-    ///     IsDebit       bit          — 1 for RT and outgoing CT
-    ///
-    /// Reference logic for SP_GetAccountStatement (T-SQL outline):
-    ///
-    ///   DECLARE @OpeningBal money =
-    ///     (SELECT SODU FROM TAIKHOAN WHERE SOTK = @SOTK)
-    ///     -- subtract every completed transaction >= @TuNgay that affected this account:
-    ///     + ISNULL((SELECT SUM(SOTIEN) FROM GD_GOIRUT  WHERE SOTK=@SOTK AND LOAIGD='RT' AND NGAYGD>=@TuNgay AND Status='Completed'),0)
-    ///     + ISNULL((SELECT SUM(SOTIEN) FROM GD_CHUYENTIEN WHERE SOTK_CHUYEN=@SOTK AND NGAYGD>=@TuNgay AND Status='Completed'),0)
-    ///     - ISNULL((SELECT SUM(SOTIEN) FROM GD_GOIRUT  WHERE SOTK=@SOTK AND LOAIGD='GT' AND NGAYGD>=@TuNgay AND Status='Completed'),0)
-    ///     - ISNULL((SELECT SUM(SOTIEN) FROM GD_CHUYENTIEN WHERE SOTK_NHAN=@SOTK AND NGAYGD>=@TuNgay AND Status='Completed'),0);
-    ///
-    ///   SELECT @SOTK AS SOTK, @OpeningBal AS OpeningBalance;
-    ///
-    ///   -- Then build the per-row running balance using a window function or cursor.
-    /// </summary>
     public async Task<AccountStatement?> GetAccountStatementAsync(string accountNumber, DateTime fromDate, DateTime toDate)
     {
         accountNumber = accountNumber.Trim();
-        _logger.LogInformation("Report: AccountStatement SOTK={SOTK} period={From:yyyy-MM-dd}→{To:yyyy-MM-dd}",
+        _logger.LogInformation("Report: AccountStatement SOTK={SOTK} period={From:yyyy-MM-dd}->{To:yyyy-MM-dd}",
                                accountNumber, fromDate, toDate);
         if (fromDate.Date > toDate.Date)
-            throw new ArgumentException("FromDate must be less than or equal to ToDate.");
+            throw new ArgumentException("Từ ngày phải nhỏ hơn hoặc bằng đến ngày.");
 
-        // End-of-day: include every transaction with time up to 23:59:59.997 on toDate.
         var endOfDay = toDate.Date.AddDays(1).AddMilliseconds(-3);
 
         try
@@ -94,7 +53,6 @@ public class ReportRepository : IReportRepository
 
             using var reader = await command.ExecuteReaderAsync();
 
-            // ── Result set 1: account info + opening balance ───────────────────
             if (!await reader.ReadAsync())
                 return null;
 
@@ -106,7 +64,6 @@ public class ReportRepository : IReportRepository
                 OpeningBalance = reader.GetDecimal(reader.GetOrdinal("OpeningBalance"))
             };
 
-            // ── Result set 2: per-transaction lines (sorted ASC by SP) ─────────
             if (await reader.NextResultAsync())
             {
                 var lines = new List<StatementLine>();
@@ -134,19 +91,18 @@ public class ReportRepository : IReportRepository
         }
         catch (SqlException ex)
         {
-            throw new InvalidOperationException($"Database error generating account statement: {ex.Message}", ex);
+            throw new InvalidOperationException($"Lỗi cơ sở dữ liệu khi tạo sao kê tài khoản: {ex.Message}", ex);
         }
     }
 
     public async Task<List<Account>> GetAccountsOpenedInPeriodAsync(DateTime fromDate, DateTime toDate, string? branchCode = null)
     {
-        _logger.LogInformation("Report: AccountsOpenedInPeriod branch={Branch} period={From:yyyy-MM-dd}→{To:yyyy-MM-dd}",
+        _logger.LogInformation("Report: AccountsOpenedInPeriod branch={Branch} period={From:yyyy-MM-dd}->{To:yyyy-MM-dd}",
                                branchCode ?? "ALL", fromDate, toDate);
         var accounts = new List<Account>();
 
         try
         {
-            // Publisher has aggregate data; branch subscriber for branch-scoped queries.
             var connStr = (string.IsNullOrEmpty(branchCode) || branchCode == "ALL")
                 ? _connectionStringProvider.GetPublisherConnection()
                 : _connectionStringProvider.GetConnectionStringForBranch(branchCode);
@@ -170,7 +126,7 @@ public class ReportRepository : IReportRepository
         }
         catch (SqlException ex)
         {
-            throw new InvalidOperationException($"Database error retrieving accounts: {ex.Message}", ex);
+            throw new InvalidOperationException($"Lỗi cơ sở dữ liệu khi lấy danh sách tài khoản: {ex.Message}", ex);
         }
 
         return accounts;
@@ -179,19 +135,10 @@ public class ReportRepository : IReportRepository
     public async Task<List<Customer>> GetCustomersByBranchAsync(string? branchCode = null)
     {
         _logger.LogInformation("Report: CustomersByBranch branch={Branch}", branchCode ?? "ALL");
-        // GAP-06: SP_GetCustomersByBranch MUST include ORDER BY HO ASC, TEN ASC
-        // so that the result set remains deterministically sorted by Ho then Ten.
-        // Expected SP signature:
-        //   CREATE PROCEDURE SP_GetCustomersByBranch @BranchCode NVARCHAR(10) = NULL
-        //   AS
-        //     SELECT * FROM KHACHHANG
-        //     WHERE (@BranchCode IS NULL OR MACN = @BranchCode)
-        //     ORDER BY HO ASC, TEN ASC
         var customers = new List<Customer>();
 
         try
         {
-            // Publisher for aggregate / cross-branch; subscriber for branch-scoped.
             var connStr = (string.IsNullOrEmpty(branchCode) || branchCode == "ALL")
                 ? _connectionStringProvider.GetPublisherConnection()
                 : _connectionStringProvider.GetConnectionStringForBranch(branchCode);
@@ -213,7 +160,7 @@ public class ReportRepository : IReportRepository
         }
         catch (SqlException ex)
         {
-            throw new InvalidOperationException($"Database error retrieving customers: {ex.Message}", ex);
+            throw new InvalidOperationException($"Lỗi cơ sở dữ liệu khi lấy danh sách khách hàng: {ex.Message}", ex);
         }
 
         return customers;
@@ -221,11 +168,10 @@ public class ReportRepository : IReportRepository
 
     public async Task<TransactionSummary?> GetTransactionSummaryAsync(DateTime fromDate, DateTime toDate, string? branchCode = null)
     {
-        _logger.LogInformation("Report: TransactionSummary branch={Branch} period={From:yyyy-MM-dd}→{To:yyyy-MM-dd}",
+        _logger.LogInformation("Report: TransactionSummary branch={Branch} period={From:yyyy-MM-dd}->{To:yyyy-MM-dd}",
                                branchCode ?? "ALL", fromDate, toDate);
         try
         {
-            // Publisher for aggregate / cross-branch; subscriber for branch-scoped.
             var connStr = (string.IsNullOrEmpty(branchCode) || branchCode == "ALL")
                 ? _connectionStringProvider.GetPublisherConnection()
                 : _connectionStringProvider.GetConnectionStringForBranch(branchCode);
@@ -277,7 +223,7 @@ public class ReportRepository : IReportRepository
         }
         catch (SqlException ex)
         {
-            throw new InvalidOperationException($"Database error generating transaction summary: {ex.Message}", ex);
+            throw new InvalidOperationException($"Lỗi cơ sở dữ liệu khi tạo tổng hợp giao dịch: {ex.Message}", ex);
         }
     }
 
@@ -285,7 +231,6 @@ public class ReportRepository : IReportRepository
     {
         return new Account
         {
-            // nChar columns space-padded — Trim() normalises for model comparisons.
             SOTK = reader.GetString(reader.GetOrdinal("SOTK")).Trim(),
             CMND = reader.GetString(reader.GetOrdinal("CMND")).Trim(),
             SODU = reader.GetDecimal(reader.GetOrdinal("SODU")),
@@ -299,7 +244,6 @@ public class ReportRepository : IReportRepository
     {
         return new Customer
         {
-            // nChar columns space-padded — Trim() normalises for model comparisons.
             CMND = reader.GetString(reader.GetOrdinal("CMND")).Trim(),
             Ho = reader.GetString(reader.GetOrdinal("HO")),
             Ten = reader.GetString(reader.GetOrdinal("TEN")),
@@ -317,7 +261,6 @@ public class ReportRepository : IReportRepository
     {
         return new Transaction
         {
-            // nChar columns space-padded — Trim() normalises for model comparisons.
             MAGD = reader.GetInt32(reader.GetOrdinal("MAGD")),
             SOTK = reader.GetString(reader.GetOrdinal("SOTK")).Trim(),
             LOAIGD = reader.GetString(reader.GetOrdinal("LOAIGD")).Trim(),
@@ -330,6 +273,7 @@ public class ReportRepository : IReportRepository
         };
     }
 }
+
 
 
 

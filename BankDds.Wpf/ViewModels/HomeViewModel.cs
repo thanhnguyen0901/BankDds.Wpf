@@ -16,10 +16,8 @@ public class HomeViewModel : Conductor<Screen>.Collection.OneActive
     public HomeViewModel(IUserSession userSession)
     {
         _userSession = userSession;
-        base.DisplayName = "Home";
+        base.DisplayName = "Trang chủ";
     }
-
-    // ─────────────────────── Branch switching (NGANHANG only) ───────────────────────
 
     /// <summary>
     /// Branch codes available in the dropdown. Populated from
@@ -48,7 +46,7 @@ public class HomeViewModel : Conductor<Screen>.Collection.OneActive
             _selectedBranchCode = value;
             NotifyOfPropertyChange(() => SelectedBranchCode);
 
-            // Propagate to session — this triggers SelectedBranchChanged event
+            // Propagate to session - this triggers SelectedBranchChanged event
             // which is handled by OnBranchChanged below.
             if (!string.IsNullOrEmpty(value) && _userSession.PermittedBranches.Contains(value))
             {
@@ -56,8 +54,6 @@ public class HomeViewModel : Conductor<Screen>.Collection.OneActive
             }
         }
     }
-
-    // ─────────────────────── User info ───────────────────────
 
     public string Username => _userSession.Username;
     public string UserDisplayName => _userSession.DisplayName;
@@ -69,10 +65,10 @@ public class HomeViewModel : Conductor<Screen>.Collection.OneActive
         {
             return _userSession.UserGroup switch
             {
-                UserGroup.NganHang => "Ngan Hang (Bank Level)",
-                UserGroup.ChiNhanh => $"Chi Nhanh ({SelectedBranch})",
-                UserGroup.KhachHang => "Khach Hang (Customer)",
-                _ => "Unknown"
+                UserGroup.NganHang => "Ngân hàng (toàn hệ thống)",
+                UserGroup.ChiNhanh => $"Chi nhánh ({SelectedBranch})",
+                UserGroup.KhachHang => "Khách hàng",
+                _ => "Không xác định"
             };
         }
     }
@@ -83,15 +79,13 @@ public class HomeViewModel : Conductor<Screen>.Collection.OneActive
     public bool CanViewEmployees => _userSession.UserGroup == UserGroup.ChiNhanh;
     public bool CanViewTransactions => _userSession.UserGroup == UserGroup.ChiNhanh;
     public bool CanViewReports => true; // All users can view reports (filtered by role)
-    // GAP-01: ChiNhanh must also reach Admin to create logins in the same group (DE3 §IV.2)
+    // GAP-01: ChiNhanh must also reach Admin to create logins in the same group (DE3 Â§IV.2)
     public bool CanViewAdmin => _userSession.UserGroup is UserGroup.NganHang or UserGroup.ChiNhanh;
-    // GAP-04: Branch management — NganHang only
+    // GAP-04: Branch management - NganHang only
     public bool CanViewBranches => _userSession.UserGroup == UserGroup.NganHang;
-    // Cross-branch customer lookup — NganHang only
+    // Cross-branch customer lookup - NganHang only
     public bool CanViewCustomerLookup => _userSession.UserGroup == UserGroup.NganHang;
     public bool IsCustomerMode => _userSession.UserGroup == UserGroup.KhachHang;
-
-    // ─────────────────────── Lifecycle ───────────────────────
 
     protected override Task OnActivateAsync(CancellationToken cancellationToken)
     {
@@ -132,7 +126,7 @@ public class HomeViewModel : Conductor<Screen>.Collection.OneActive
 
         // Refresh the active child screen by closing it and re-invoking
         // the same Show* action, which creates a new VM instance and
-        // triggers OnActivateAsync → fresh data load.
+        // triggers OnActivateAsync -> fresh data load.
         if (_lastShowAction != null)
         {
             var action = _lastShowAction;
@@ -158,8 +152,6 @@ public class HomeViewModel : Conductor<Screen>.Collection.OneActive
         NotifyOfPropertyChange(() => CanSwitchBranch);
         NotifyOfPropertyChange(() => IsCustomerMode);
     }
-
-    // ─────────────────────── Navigation actions ───────────────────────
 
     public async Task ShowCustomers()
     {
@@ -235,5 +227,6 @@ public class HomeViewModel : Conductor<Screen>.Collection.OneActive
         }
     }
 }
+
 
 

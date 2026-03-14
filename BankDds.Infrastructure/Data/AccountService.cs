@@ -37,7 +37,7 @@ public class AccountService : IAccountService
         // Only NganHang can get all accounts
         if (!_authorizationService.CanAccessBranch("ALL"))
         {
-            throw new UnauthorizedAccessException("Only bank-level users can access all accounts.");
+            throw new UnauthorizedAccessException("Chỉ người dùng NganHang mới được truy cập toàn bộ tài khoản.");
         }
         return _accountRepository.GetAllAccountsAsync();
     }
@@ -81,7 +81,7 @@ public class AccountService : IAccountService
         // Verify customer exists and user can access
         var customer = await _customerRepository.GetCustomerByCMNDAsync(account.CMND);
         if (customer == null)
-            throw new InvalidOperationException("Customer not found");
+            throw new InvalidOperationException("Không tìm thấy khách hàng.");
         
         _authorizationService.RequireCanAccessCustomer(account.CMND);
         
@@ -136,3 +136,4 @@ public class AccountService : IAccountService
         return await _accountRepository.ReopenAccountAsync(sotk);
     }
 }
+

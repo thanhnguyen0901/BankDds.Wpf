@@ -7,7 +7,7 @@ namespace BankDds.Infrastructure.Security;
 /// <summary>
 /// Banking authentication: connects to Publisher with the entered SQL login/password
 /// and calls sp_DangNhap to resolve role (NGANHANG / CHINHANH / KHACHHANG).
-/// No BCrypt, no NGUOIDUNG table — SQL Server handles credential verification.
+/// No BCrypt, no NGUOIDUNG table - SQL Server handles credential verification.
 /// </summary>
 public class AuthService : IAuthService
 {
@@ -48,7 +48,7 @@ public class AuthService : IAuthService
                 return new AuthResult
                 {
                     Success = false,
-                    ErrorMessage = "sp_DangNhap returned no rows."
+                    ErrorMessage = "sp_DangNhap không trả về dữ liệu."
                 };
             }
 
@@ -73,7 +73,7 @@ public class AuthService : IAuthService
                 return new AuthResult
                 {
                     Success = false,
-                    ErrorMessage = $"Unknown role '{tenNhom}' returned by sp_DangNhap."
+                    ErrorMessage = $"Vai trò '{tenNhom}' trả về từ sp_DangNhap không hợp lệ."
                 };
             }
 
@@ -90,7 +90,7 @@ public class AuthService : IAuthService
                     return new AuthResult
                     {
                         Success = false,
-                        ErrorMessage = "Login account is missing branch mapping (MACN)."
+                        ErrorMessage = "Tài khoản đăng nhập chưa được gán chi nhánh (MACN)."
                     };
                 }
 
@@ -108,7 +108,7 @@ public class AuthService : IAuthService
                     return new AuthResult
                     {
                         Success = false,
-                        ErrorMessage = "Branch account is missing EmployeeId mapping."
+                        ErrorMessage = "Tài khoản ChiNhanh chưa được gán EmployeeId."
                     };
                 }
             }
@@ -123,7 +123,7 @@ public class AuthService : IAuthService
                     return new AuthResult
                     {
                         Success = false,
-                        ErrorMessage = "Customer account is missing CustomerCMND mapping."
+                        ErrorMessage = "Tài khoản KhachHang chưa được gán CustomerCMND."
                     };
                 }
             }
@@ -148,7 +148,7 @@ public class AuthService : IAuthService
             return new AuthResult
             {
                 Success = false,
-                ErrorMessage = $"Login failed: {ex.Message}"
+                ErrorMessage = $"Đăng nhập thất bại: {ex.Message}"
             };
         }
         catch (Exception ex)
@@ -157,7 +157,7 @@ public class AuthService : IAuthService
             return new AuthResult
             {
                 Success = false,
-                ErrorMessage = $"Error: {ex.Message}"
+                ErrorMessage = $"Lỗi: {ex.Message}"
             };
         }
     }
@@ -184,4 +184,5 @@ public class AuthService : IAuthService
         }
     }
 }
+
 

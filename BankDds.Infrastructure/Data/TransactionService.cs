@@ -26,7 +26,7 @@ public class TransactionService : ITransactionService
     {
         var account = await _accountRepository.GetAccountAsync(sotk);
         if (account == null)
-            throw new InvalidOperationException("Account not found");
+            throw new InvalidOperationException("Không tìm thấy tài khoản.");
 
         _authorizationService.RequireCanAccessAccount(account.CMND);
         if (_userSession.UserGroup != UserGroup.KhachHang)
@@ -47,7 +47,7 @@ public class TransactionService : ITransactionService
     {
         var account = await _accountRepository.GetAccountAsync(accountNumber);
         if (account == null)
-            throw new InvalidOperationException("Account not found");
+            throw new InvalidOperationException("Không tìm thấy tài khoản.");
 
         _authorizationService.RequireCanAccessAccount(account.CMND);
         return await _transactionRepository.GetDailyWithdrawalTotalAsync(accountNumber, date);
@@ -57,7 +57,7 @@ public class TransactionService : ITransactionService
     {
         var account = await _accountRepository.GetAccountAsync(accountNumber);
         if (account == null)
-            throw new InvalidOperationException("Account not found");
+            throw new InvalidOperationException("Không tìm thấy tài khoản.");
 
         _authorizationService.RequireCanAccessAccount(account.CMND);
         return await _transactionRepository.GetDailyTransferTotalAsync(accountNumber, date);
@@ -89,11 +89,11 @@ public class TransactionService : ITransactionService
     {
         var accountFrom = await _accountRepository.GetAccountAsync(sotkFrom);
         if (accountFrom == null)
-            throw new InvalidOperationException($"Source account '{sotkFrom}' not found.");
+            throw new InvalidOperationException($"Không tìm thấy tài khoản nguồn '{sotkFrom}'.");
 
         var accountTo = await _accountRepository.GetAccountAsync(sotkTo);
         if (accountTo == null)
-            throw new InvalidOperationException($"Destination account '{sotkTo}' not found.");
+            throw new InvalidOperationException($"Không tìm thấy tài khoản đích '{sotkTo}'.");
 
         _authorizationService.RequireCanPerformTransactions(accountFrom.MACN);
 
@@ -106,3 +106,4 @@ public class TransactionService : ITransactionService
         return await _transactionRepository.TransferAsync(sotkFrom, sotkTo, amount, manv);
     }
 }
+

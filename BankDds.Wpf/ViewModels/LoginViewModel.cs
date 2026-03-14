@@ -36,7 +36,7 @@ public class LoginViewModel : Screen
         _userSession = userSession;
         _connectionStringProvider = connectionStringProvider;
 
-        DisplayName = "Bank DDS - Login";
+        DisplayName = "Đăng nhập hệ thống ngân hàng";
     }
 
     public string UserName
@@ -141,7 +141,7 @@ public class LoginViewModel : Screen
 
             if (!result.Success)
             {
-                ErrorMessage = result.ErrorMessage ?? "Login failed";
+                ErrorMessage = result.ErrorMessage ?? "Đăng nhập thất bại.";
                 return;
             }
 
@@ -166,7 +166,7 @@ public class LoginViewModel : Screen
                     userGroup = UserGroup.ChiNhanh;
                     if (string.IsNullOrWhiteSpace(result.DefaultBranch))
                     {
-                        ErrorMessage = "Account is missing branch mapping (MACN). Please contact administrator.";
+                        ErrorMessage = "Tài khoản chưa được gán chi nhánh (MACN). Vui lòng liên hệ quản trị.";
                         return;
                     }
                     selectedBranch = result.DefaultBranch.Trim().ToUpperInvariant();
@@ -177,12 +177,12 @@ public class LoginViewModel : Screen
                     userGroup = UserGroup.KhachHang;
                     if (string.IsNullOrWhiteSpace(result.DefaultBranch))
                     {
-                        ErrorMessage = "Customer account is missing branch mapping (MACN). Please contact administrator.";
+                        ErrorMessage = "Tài khoản khách hàng chưa được gán chi nhánh (MACN). Vui lòng liên hệ quản trị.";
                         return;
                     }
                     if (string.IsNullOrWhiteSpace(result.CustomerCMND))
                     {
-                        ErrorMessage = "Customer account is missing CMND mapping. Please contact administrator.";
+                        ErrorMessage = "Tài khoản khách hàng chưa được gán CMND. Vui lòng liên hệ quản trị.";
                         return;
                     }
                     selectedBranch = result.DefaultBranch.Trim().ToUpperInvariant();
@@ -190,7 +190,7 @@ public class LoginViewModel : Screen
                     break;
 
                 default:
-                    ErrorMessage = "Unknown user group";
+                    ErrorMessage = "Nhóm người dùng không hợp lệ.";
                     return;
             }
 
@@ -212,7 +212,8 @@ public class LoginViewModel : Screen
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"Error: {ex.Message}";
+            ErrorMessage = $"Lỗi: {ex.Message}";
         }
     }
 }
+

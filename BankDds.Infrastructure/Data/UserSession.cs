@@ -14,7 +14,6 @@ public class UserSession : IUserSession
     public string? EmployeeId { get; private set; }
     public bool IsAuthenticated { get; private set; }
 
-    /// <inheritdoc />
     public event Action? SelectedBranchChanged;
 
     public void SetSession(
@@ -43,14 +42,13 @@ public class UserSession : IUserSession
         IsAuthenticated = true;
     }
 
-    /// <inheritdoc />
     public void SetSelectedBranch(string branchCode)
     {
         var normalizedBranchCode = NormalizeBranchCode(branchCode);
 
         if (!PermittedBranches.Contains(normalizedBranchCode, StringComparer.OrdinalIgnoreCase))
             throw new InvalidOperationException(
-                $"Branch '{normalizedBranchCode}' is not in the permitted list for this session.");
+                $"Chi nhánh '{normalizedBranchCode}' không nằm trong danh sách được phép của phiên làm việc này.");
 
         if (string.Equals(SelectedBranch, normalizedBranchCode, StringComparison.OrdinalIgnoreCase))
             return;
@@ -74,8 +72,9 @@ public class UserSession : IUserSession
     private static string NormalizeBranchCode(string branchCode)
     {
         if (string.IsNullOrWhiteSpace(branchCode))
-            throw new ArgumentException("Branch code cannot be empty.", nameof(branchCode));
+            throw new ArgumentException("Mã chi nhánh không được để trống.", nameof(branchCode));
 
         return branchCode.Trim().ToUpperInvariant();
     }
 }
+

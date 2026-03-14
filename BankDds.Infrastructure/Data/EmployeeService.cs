@@ -24,7 +24,7 @@ public class EmployeeService : IEmployeeService
     {
         if (!_authorizationService.CanAccessBranch("ALL"))
         {
-            throw new UnauthorizedAccessException("Only bank-level users can access all employees.");
+            throw new UnauthorizedAccessException("Chỉ người dùng NganHang mới được xem toàn bộ nhân viên.");
         }
         return _employeeRepository.GetAllEmployeesAsync();
     }
@@ -87,17 +87,10 @@ public class EmployeeService : IEmployeeService
         return await _employeeRepository.TransferEmployeeAsync(manv, newBranch);
     }
 
-    /// <summary>
-    /// Delegates to the repository for collision-free MANV generation.
-    /// No auth check — this is a metadata operation, not a data read.
-    /// </summary>
     public Task<string> GenerateEmployeeIdAsync() =>
         _employeeRepository.GenerateEmployeeIdAsync();
 
-    /// <summary>
-    /// Returns true when a MANV is already taken (active or soft-deleted).
-    /// Used by the ViewModel to provide an early uniqueness error before hitting the DB.
-    /// </summary>
     public Task<bool> EmployeeExistsAsync(string manv) =>
         _employeeRepository.EmployeeExistsAsync(manv);
 }
+

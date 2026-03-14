@@ -56,7 +56,7 @@ public class AuthorizationService : IAuthorizationService
 
     public bool CanModifyBranch(string branchCode)
     {
-        // Banking rule: NganHang is view-only — can choose branch to view data/reports
+        // Banking rule: NganHang is view-only - can choose branch to view data/reports
         // but CANNOT perform CRUD operations.
         if (_userSession.UserGroup == UserGroup.NganHang)
             return false;
@@ -109,7 +109,7 @@ public class AuthorizationService : IAuthorizationService
             return true;
 
         // ChiNhanh can access reports for their own branch only.
-        // Passing branchCode="ALL" is a cross-branch read — ChiNhanh must not see it.
+        // Passing branchCode="ALL" is a cross-branch read - ChiNhanh must not see it.
         if (_userSession.UserGroup == UserGroup.ChiNhanh)
             return branchCode == null || branchCode == _userSession.SelectedBranch;
 
@@ -122,7 +122,7 @@ public class AuthorizationService : IAuthorizationService
         if (!CanAccessAdmin())
         {
             throw new UnauthorizedAccessException(
-                $"User group '{_userSession.UserGroup}' does not have permission to access user administration.");
+                $"Nhóm người dùng '{_userSession.UserGroup}' không có quyền truy cập quản trị người dùng.");
         }
     }
 
@@ -131,7 +131,7 @@ public class AuthorizationService : IAuthorizationService
         if (!CanCreateUser(targetUserGroup))
         {
             throw new UnauthorizedAccessException(
-                $"User group '{_userSession.UserGroup}' does not have permission to create users of type '{targetUserGroup}'.");
+                $"Nhóm người dùng '{_userSession.UserGroup}' không có quyền tạo tài khoản loại '{targetUserGroup}'.");
         }
     }
 
@@ -140,7 +140,7 @@ public class AuthorizationService : IAuthorizationService
         if (!CanAccessBranch(branchCode))
         {
             throw new UnauthorizedAccessException(
-                $"User does not have permission to access branch '{branchCode}'.");
+                $"Bạn không có quyền truy cập chi nhánh '{branchCode}'.");
         }
     }
 
@@ -149,7 +149,7 @@ public class AuthorizationService : IAuthorizationService
         if (!CanModifyBranch(branchCode))
         {
             throw new UnauthorizedAccessException(
-                $"User does not have permission to modify data in branch '{branchCode}'.");
+                $"Bạn không có quyền cập nhật dữ liệu tại chi nhánh '{branchCode}'.");
         }
     }
 
@@ -158,7 +158,7 @@ public class AuthorizationService : IAuthorizationService
         if (!CanAccessCustomer(cmnd))
         {
             throw new UnauthorizedAccessException(
-                "User does not have permission to access this customer's data.");
+                "Bạn không có quyền truy cập dữ liệu khách hàng này.");
         }
     }
 
@@ -167,11 +167,9 @@ public class AuthorizationService : IAuthorizationService
         if (!CanAccessAccount(cmnd))
         {
             throw new UnauthorizedAccessException(
-                "User does not have permission to access this account.");
+                "Bạn không có quyền truy cập tài khoản này.");
         }
     }
-
-    // ── Branch-scoped user management ────────────────────────────────────────
 
     public bool CanManageUserInBranch(string userDefaultBranch)
     {
@@ -192,38 +190,32 @@ public class AuthorizationService : IAuthorizationService
         if (!CanManageUserInBranch(userDefaultBranch))
         {
             throw new UnauthorizedAccessException(
-                $"User does not have permission to manage logins for branch '{userDefaultBranch}'.");
+                $"Bạn không có quyền quản lý đăng nhập cho chi nhánh '{userDefaultBranch}'.");
         }
     }
-
-    // ── Transaction enforcement ──────────────────────────────────────────────
 
     public void RequireCanPerformTransactions(string branchCode)
     {
         if (!CanPerformTransactions(branchCode))
         {
             throw new UnauthorizedAccessException(
-                $"User does not have permission to perform transactions in branch '{branchCode}'.");
+                $"Bạn không có quyền thực hiện giao dịch tại chi nhánh '{branchCode}'.");
         }
     }
-
-    // ── Report enforcement ───────────────────────────────────────────────────
 
     public void RequireCanAccessReports(string? branchCode = null)
     {
         if (!CanAccessReports(branchCode))
         {
-            string scope = branchCode == null ? "all branches" : $"branch '{branchCode}'";
+            string scope = branchCode == null ? "tất cả chi nhánh" : $"chi nhánh '{branchCode}'";
             throw new UnauthorizedAccessException(
-                $"User does not have permission to access reports for {scope}.");
+                $"Bạn không có quyền truy cập báo cáo cho phạm vi {scope}.");
         }
     }
 
-    // ── Branch filter helper ─────────────────────────────────────────────────
-
     public string? GetEffectiveBranchFilter()
     {
-        // NganHang sees everything — no filter
+        // NganHang sees everything - no filter
         if (_userSession.UserGroup == UserGroup.NganHang)
             return null;
 
@@ -231,5 +223,6 @@ public class AuthorizationService : IAuthorizationService
         return _userSession.SelectedBranch;
     }
 }
+
 
 

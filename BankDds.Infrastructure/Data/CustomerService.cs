@@ -29,7 +29,7 @@ public class CustomerService : ICustomerService
         // Only NganHang can get all customers across branches
         if (!_authorizationService.CanAccessBranch("ALL"))
         {
-            throw new UnauthorizedAccessException("Only bank-level users can access all customers.");
+            throw new UnauthorizedAccessException("Chỉ người dùng NganHang mới được xem toàn bộ khách hàng.");
         }
         return _customerRepository.GetAllCustomersAsync();
     }
@@ -96,3 +96,4 @@ public class CustomerService : ICustomerService
         return await _customerRepository.RestoreCustomerAsync(cmnd);
     }
 }
+

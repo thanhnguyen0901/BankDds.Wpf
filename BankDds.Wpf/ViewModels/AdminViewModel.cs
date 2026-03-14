@@ -36,7 +36,7 @@ public class AdminViewModel : BaseViewModel
         _dialogService = dialogService;
         _validator = validator;
         _branchService = branchService;
-        DisplayName = "User Administration";
+        DisplayName = "Quản trị người dùng";
     }
 
     public ObservableCollection<User> Users
@@ -151,7 +151,7 @@ public class AdminViewModel : BaseViewModel
         }
     }
 
-    public bool IsPasswordValid => PasswordValidationMessage.StartsWith("?");
+    public bool IsPasswordValid => PasswordValidationMessage.StartsWith("✓");
 
     public ObservableCollection<UserGroup> AvailableUserGroups { get; } = new();
 
@@ -179,41 +179,41 @@ public class AdminViewModel : BaseViewModel
     {
         if (string.IsNullOrEmpty(NewPassword))
         {
-            PasswordValidationMessage = "Password is required";
+            PasswordValidationMessage = "Mật khẩu là bắt buộc.";
             return;
         }
 
         if (NewPassword.Length < 8)
         {
-            PasswordValidationMessage = "Password must be at least 8 characters";
+            PasswordValidationMessage = "Mật khẩu phải có ít nhất 8 ký tự.";
             return;
         }
 
         if (!NewPassword.Any(char.IsUpper))
         {
-            PasswordValidationMessage = "Password must contain at least one uppercase letter";
+            PasswordValidationMessage = "Mật khẩu phải có ít nhất 1 chữ in hoa.";
             return;
         }
 
         if (!NewPassword.Any(char.IsLower))
         {
-            PasswordValidationMessage = "Password must contain at least one lowercase letter";
+            PasswordValidationMessage = "Mật khẩu phải có ít nhất 1 chữ thường.";
             return;
         }
 
         if (!NewPassword.Any(char.IsDigit))
         {
-            PasswordValidationMessage = "Password must contain at least one number";
+            PasswordValidationMessage = "Mật khẩu phải có ít nhất 1 chữ số.";
             return;
         }
 
         if (NewPassword != ConfirmPassword)
         {
-            PasswordValidationMessage = "Passwords do not match";
+            PasswordValidationMessage = "Mật khẩu xác nhận không khớp.";
             return;
         }
 
-        PasswordValidationMessage = "? Password meets requirements";
+        PasswordValidationMessage = "✓ Mật khẩu hợp lệ.";
     }
 
     protected override async Task OnActivateAsync(CancellationToken cancellationToken)
@@ -222,7 +222,7 @@ public class AdminViewModel : BaseViewModel
 
         if (_userSession.UserGroup != UserGroup.NganHang && _userSession.UserGroup != UserGroup.ChiNhanh)
         {
-            ErrorMessage = "Access denied: only NganHang and ChiNhanh users can open this module.";
+            ErrorMessage = "Không có quyền: chỉ người dùng Ngân hàng hoặc Chi nhánh được mở màn hình này.";
             return;
         }
 
@@ -272,7 +272,7 @@ public class AdminViewModel : BaseViewModel
     {
         if (!AvailableUserGroups.Any())
         {
-            ErrorMessage = "No user group is available for the current login.";
+            ErrorMessage = "Không có nhóm người dùng hợp lệ cho tài khoản hiện tại.";
             return;
         }
 
@@ -300,7 +300,7 @@ public class AdminViewModel : BaseViewModel
 
         if (_userSession.UserGroup != UserGroup.NganHang)
         {
-            ErrorMessage = "Only NganHang users can reset other users' passwords.";
+            ErrorMessage = "Chỉ người dùng Ngân hàng mới được đặt lại mật khẩu cho tài khoản khác.";
             return;
         }
 
@@ -321,7 +321,7 @@ public class AdminViewModel : BaseViewModel
         SuccessMessage = string.Empty;
         NewPassword = string.Empty;
         ConfirmPassword = string.Empty;
-        PasswordValidationMessage = "Enter new password for reset.";
+        PasswordValidationMessage = "Nhập mật khẩu mới để đặt lại.";
     }
 
     public async Task Save()
@@ -329,14 +329,14 @@ public class AdminViewModel : BaseViewModel
         if (_userSession.UserGroup == UserGroup.NganHang &&
             EditingUser.UserGroup != UserGroup.NganHang)
         {
-            ErrorMessage = "NganHang accounts can only create NganHang accounts.";
+            ErrorMessage = "Tài khoản Ngân hàng chỉ được tạo tài khoản cùng nhóm Ngân hàng.";
             return;
         }
 
         if (_userSession.UserGroup == UserGroup.ChiNhanh &&
             EditingUser.UserGroup == UserGroup.NganHang)
         {
-            ErrorMessage = "ChiNhanh accounts cannot create NganHang accounts.";
+            ErrorMessage = "Tài khoản Chi nhánh không được tạo tài khoản nhóm Ngân hàng.";
             return;
         }
 
@@ -361,21 +361,21 @@ public class AdminViewModel : BaseViewModel
                 result = await _userService.AddUserAsync(EditingUser);
                 if (result)
                 {
-                    SuccessMessage = $"Login '{EditingUser.Username}' created successfully.";
+                    SuccessMessage = $"Tạo tài khoản đăng nhập '{EditingUser.Username}' thành công.";
                 }
             }
             else
             {
                 if (_userSession.UserGroup != UserGroup.NganHang)
                 {
-                    ErrorMessage = "Only NganHang users can reset passwords.";
+                    ErrorMessage = "Chỉ người dùng Ngân hàng mới được đặt lại mật khẩu.";
                     return;
                 }
 
                 result = await _userService.UpdateUserAsync(EditingUser);
                 if (result)
                 {
-                    SuccessMessage = $"Password for '{EditingUser.Username}' has been reset.";
+                    SuccessMessage = $"Đã đặt lại mật khẩu cho tài khoản '{EditingUser.Username}'.";
                 }
             }
 
@@ -386,7 +386,7 @@ public class AdminViewModel : BaseViewModel
             }
             else
             {
-                ErrorMessage = "Failed to save login changes.";
+                ErrorMessage = "Không thể lưu thay đổi tài khoản đăng nhập.";
             }
         });
     }
@@ -397,19 +397,19 @@ public class AdminViewModel : BaseViewModel
 
         if (SelectedUser.Username.Equals(_userSession.Username, StringComparison.OrdinalIgnoreCase))
         {
-            await _dialogService.ShowWarningAsync("Cannot delete your own account.", "Delete User");
+            await _dialogService.ShowWarningAsync("Bạn không thể tự xóa chính tài khoản của mình.", "Xóa người dùng");
             return;
         }
 
         if (_userSession.UserGroup != UserGroup.NganHang)
         {
-            await _dialogService.ShowWarningAsync("Only NganHang users can delete logins.", "Delete Login");
+            await _dialogService.ShowWarningAsync("Chỉ người dùng Ngân hàng mới được xóa tài khoản đăng nhập.", "Xóa đăng nhập");
             return;
         }
 
         var confirmed = await _dialogService.ShowConfirmationAsync(
-            $"Are you sure you want to delete login '{SelectedUser.Username}'?",
-            "Confirm delete login");
+            $"Bạn có chắc muốn xóa tài khoản đăng nhập '{SelectedUser.Username}'?",
+            "Xác nhận xóa đăng nhập");
 
         if (!confirmed) return;
 
@@ -420,11 +420,11 @@ public class AdminViewModel : BaseViewModel
             {
                 await LoadUsersAsync();
                 SelectedUser = null;
-                SuccessMessage = "Login deleted.";
+                SuccessMessage = "Đã xóa tài khoản đăng nhập.";
             }
             else
             {
-                ErrorMessage = "Cannot delete login.";
+                ErrorMessage = "Không thể xóa tài khoản đăng nhập.";
             }
         });
     }
@@ -432,8 +432,8 @@ public class AdminViewModel : BaseViewModel
     public async Task Restore()
     {
         await _dialogService.ShowWarningAsync(
-            "Restore is not supported in SQL-login mode. Recreate the login if needed.",
-            "Restore Not Supported");
+            "Chế độ SQL-login không hỗ trợ khôi phục. Hãy tạo lại tài khoản nếu cần.",
+            "Không hỗ trợ khôi phục");
     }
 
     public void Cancel()
@@ -480,3 +480,4 @@ public class AdminViewModel : BaseViewModel
         }
     }
 }
+

@@ -5,11 +5,6 @@ using System.Collections.ObjectModel;
 
 namespace BankDds.Wpf.ViewModels;
 
-/// <summary>
-/// ViewModel for the cross-branch customer lookup screen.
-/// Visible only to NGANHANG-role users.  Queries the NGANHANG
-/// subscriber which holds a read-only replica of KHACHHANG from all branches.
-/// </summary>
 public class CustomerLookupViewModel : Screen
 {
     private readonly ICustomerLookupService _customerLookupService;
@@ -19,13 +14,10 @@ public class CustomerLookupViewModel : Screen
     {
         _customerLookupService = customerLookupService;
         _dialogService = dialogService;
-        DisplayName = "CustomerLookup";
+        DisplayName = "Tra cứu khách hàng";
     }
 
-    // ─────────────────── Bindable properties ───────────────────
-
     private string _searchText = string.Empty;
-    /// <summary>User input — interpreted as CMND (exact) or name keyword (LIKE).</summary>
     public string SearchText
     {
         get => _searchText;
@@ -38,7 +30,6 @@ public class CustomerLookupViewModel : Screen
     }
 
     private bool _searchByCmnd = true;
-    /// <summary>True = exact CMND lookup. False = name keyword search.</summary>
     public bool SearchByCmnd
     {
         get => _searchByCmnd;
@@ -51,7 +42,6 @@ public class CustomerLookupViewModel : Screen
         }
     }
 
-    /// <summary>Inverse of <see cref="SearchByCmnd"/> for radio button binding.</summary>
     public bool SearchByName
     {
         get => !_searchByCmnd;
@@ -97,8 +87,6 @@ public class CustomerLookupViewModel : Screen
             NotifyOfPropertyChange();
         }
     }
-
-    // ─────────────────── Commands ───────────────────
 
     public bool CanSearch => !IsSearching && !string.IsNullOrWhiteSpace(SearchText);
 

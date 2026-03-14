@@ -53,7 +53,7 @@ public class TransactionRepository : ITransactionRepository
         }
         catch (SqlException ex)
         {
-            throw new InvalidOperationException($"Database error retrieving transactions: {ex.Message}", ex);
+            throw new InvalidOperationException($"Lỗi cơ sở dữ liệu khi lấy giao dịch: {ex.Message}", ex);
         }
 
         return transactions;
@@ -86,7 +86,7 @@ public class TransactionRepository : ITransactionRepository
         }
         catch (SqlException ex)
         {
-            throw new InvalidOperationException($"Database error retrieving transactions: {ex.Message}", ex);
+            throw new InvalidOperationException($"Lỗi cơ sở dữ liệu khi lấy giao dịch: {ex.Message}", ex);
         }
 
         return transactions;
@@ -111,7 +111,7 @@ public class TransactionRepository : ITransactionRepository
         }
         catch (SqlException ex)
         {
-            throw new InvalidOperationException($"Database error getting daily withdrawal total: {ex.Message}", ex);
+            throw new InvalidOperationException($"Lỗi cơ sở dữ liệu khi lấy tổng rút tiền trong ngày: {ex.Message}", ex);
         }
     }
 
@@ -134,7 +134,7 @@ public class TransactionRepository : ITransactionRepository
         }
         catch (SqlException ex)
         {
-            throw new InvalidOperationException($"Database error getting daily transfer total: {ex.Message}", ex);
+            throw new InvalidOperationException($"Lỗi cơ sở dữ liệu khi lấy tổng chuyển tiền trong ngày: {ex.Message}", ex);
         }
     }
 
@@ -160,7 +160,7 @@ public class TransactionRepository : ITransactionRepository
         }
         catch (SqlException ex)
         {
-            throw new InvalidOperationException($"Database error performing deposit: {ex.Message}", ex);
+            throw new InvalidOperationException($"Lỗi cơ sở dữ liệu khi gửi tiền: {ex.Message}", ex);
         }
     }
 
@@ -186,37 +186,22 @@ public class TransactionRepository : ITransactionRepository
         }
         catch (SqlException ex)
         {
-            throw new InvalidOperationException($"Database error performing withdrawal: {ex.Message}", ex);
+            throw new InvalidOperationException($"Lỗi cơ sở dữ liệu khi rút tiền: {ex.Message}", ex);
         }
     }
 
-    /// <summary>
-    /// Unified transfer — delegates 100% to SP_CrossBranchTransfer on the
-    /// source-branch subscriber.  The SP handles both same-branch (local TXN)
-    /// and cross-branch (DISTRIBUTED TRANSACTION via LINK1) paths internally.
-    /// <para>
-    /// Banking rule: C# calls ONE SP on the source branch; no pre-validation of
-    /// the destination account that would incorrectly block remote accounts.
-    /// </para>
-    /// </summary>
     public async Task<bool> TransferAsync(string sotkFrom, string sotkTo, decimal amount, string manv)
     {
         sotkFrom = sotkFrom.Trim(); sotkTo = sotkTo.Trim(); manv = manv.Trim();
         _logger.LogInformation("Transfer: From={SotkFrom} To={SotkTo} Amount={Amount} MANV={MANV}",
                                sotkFrom, sotkTo, amount, manv);
 
-        // ── Minimal pre-validation (no DB round-trip) ────────────────────────
         if (amount <= 0)
-            throw new InvalidOperationException("Transfer amount must be greater than 0.");
+            throw new InvalidOperationException("Số tiền chuyển phải lớn hơn 0.");
 
         if (sotkFrom == sotkTo)
-            throw new InvalidOperationException("Cannot transfer to the same account.");
+            throw new InvalidOperationException("Không thể chuyển đến cùng một tài khoản.");
 
-        // ── Single SP call on source branch ──────────────────────────────────
-        // SP_CrossBranchTransfer validates source & destination, detects
-        // same-branch vs cross-branch, and executes the appropriate transaction
-        // (local or distributed via LINK1).  All error codes are returned as
-        // RAISERROR/THROW which surface as SqlException in C#.
         try
         {
             using var connection = new SqlConnection(GetConnectionString());
@@ -225,7 +210,6 @@ public class TransactionRepository : ITransactionRepository
             using var cmd = new SqlCommand("SP_CrossBranchTransfer", connection)
             {
                 CommandType    = CommandType.StoredProcedure,
-                // Distributed transactions via MSDTC can take longer than local
                 CommandTimeout = 60
             };
             cmd.Parameters.AddWithValue("@SOTK_CHUYEN", sotkFrom);
@@ -238,35 +222,31 @@ public class TransactionRepository : ITransactionRepository
         }
         catch (SqlException ex) when (ex.Number == 2812)
         {
-            // 2812: stored procedure not found
             _logger.LogError(ex, "SP_CrossBranchTransfer not found on branch {Branch}",
                              _userSession.SelectedBranch);
             throw new InvalidOperationException(
-                $"SP_CrossBranchTransfer not found on branch '{_userSession.SelectedBranch}'. " +
-                "Ensure the SP has been replicated from the Publisher.",
+                 $"Không tìm thấy SP_CrossBranchTransfer tại chi nhánh '{_userSession.SelectedBranch}'. " +
+                "Hãy đảm bảo SP đã được replicate từ Publisher.",
                 ex);
         }
         catch (SqlException ex) when (ex.Number is 8501 or 8517 or 7391)
         {
-            // 8501/8517: MSDTC unavailable; 7391: distributed TX not supported
             _logger.LogError(ex, "MSDTC error during cross-branch transfer");
             throw new InvalidOperationException(
-                "MSDTC is not available for cross-branch transfer. " +
-                "Ensure the Distributed Transaction Coordinator service is running on both servers.",
+                "MSDTC chưa sẵn sàng cho chuyển khoản liên chi nhánh. " +
+                "Hãy đảm bảo dịch vụ Distributed Transaction Coordinator đang chạy trên cả hai server.",
                 ex);
         }
         catch (SqlException ex) when (ex.Number is 7202 or 7399 or 7312)
         {
-            // 7202: linked server not found; 7399: provider error; 7312: access denied
             _logger.LogError(ex, "Linked Server (LINK1) error during cross-branch transfer");
             throw new InvalidOperationException(
-                "Linked Server LINK1 is not configured. " +
-                "Configure Linked Server LINK1 via SSMS UI runbook (docs/sql/SETUP_SSMS_UI_FIRST_RUNBOOK.md) or refer to sql/archive/06_linked_servers.sql (legacy).",
+                "Linked Server LINK1 chưa được cấu hình. " +
+                "Hãy cấu hình Linked Server LINK1 theo hướng dẫn SSMS UI trong tài liệu dự án.",
                 ex);
         }
         catch (SqlException ex) when (ex.Number >= 50000)
         {
-            // SP user-defined errors (RAISERROR / THROW 50001–50007)
             _logger.LogWarning(ex, "Transfer business rule violation: {Message}", ex.Message);
             throw new InvalidOperationException(ex.Message, ex);
         }
@@ -282,7 +262,6 @@ public class TransactionRepository : ITransactionRepository
     {
         return new Transaction
         {
-            // nChar columns space-padded — Trim() normalises for model comparisons.
             MAGD = reader.GetInt32(reader.GetOrdinal("MAGD")),
             SOTK = reader.GetString(reader.GetOrdinal("SOTK")).Trim(),
             LOAIGD = reader.GetString(reader.GetOrdinal("LOAIGD")).Trim(),
@@ -295,4 +274,5 @@ public class TransactionRepository : ITransactionRepository
         };
     }
 }
+
 

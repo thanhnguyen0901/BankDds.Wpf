@@ -25,7 +25,7 @@ public class BranchesViewModel : BaseViewModel
         _branchService = branchService;
         _userSession   = userSession;
         _validator     = validator;
-        DisplayName    = "Branch Management";
+        DisplayName    = "Quản lý chi nhánh";
     }
 
     public ObservableCollection<Branch> Branches
@@ -86,7 +86,7 @@ public class BranchesViewModel : BaseViewModel
 
         if (_userSession.UserGroup != UserGroup.NganHang)
         {
-            ErrorMessage = "Access Denied: Only Bank-level administrators can manage branches.";
+            ErrorMessage = "Không có quyền: chỉ nhóm Ngân hàng mới được quản lý chi nhánh.";
             return;
         }
 
@@ -146,18 +146,18 @@ public class BranchesViewModel : BaseViewModel
                 // Adding new branch
                 result = await _branchService.AddBranchAsync(EditingBranch);
                 if (result)
-                    SuccessMessage = $"Branch '{EditingBranch.MACN}' added successfully.";
+                    SuccessMessage = $"Thêm chi nhánh '{EditingBranch.MACN}' thành công.";
                 else
-                    ErrorMessage = $"Failed to add branch — code '{EditingBranch.MACN}' may already exist.";
+                    ErrorMessage = $"Không thể thêm chi nhánh - mã '{EditingBranch.MACN}' có thể đã tồn tại.";
             }
             else
             {
                 // Updating existing branch (MACN is the PK, cannot be changed here)
                 result = await _branchService.UpdateBranchAsync(EditingBranch);
                 if (result)
-                    SuccessMessage = $"Branch '{EditingBranch.MACN}' updated successfully.";
+                    SuccessMessage = $"Cập nhật chi nhánh '{EditingBranch.MACN}' thành công.";
                 else
-                    ErrorMessage = "Failed to update branch.";
+                    ErrorMessage = "Không thể cập nhật chi nhánh.";
             }
 
             if (result)
@@ -179,11 +179,11 @@ public class BranchesViewModel : BaseViewModel
             {
                 await LoadBranchesAsync();
                 SelectedBranch = null;
-                SuccessMessage = "Branch deleted successfully.";
+                SuccessMessage = "Xóa chi nhánh thành công.";
             }
             else
             {
-                ErrorMessage = "Failed to delete branch — it may have linked accounts or customers.";
+                ErrorMessage = "Không thể xóa chi nhánh - có thể đang có tài khoản hoặc khách hàng liên kết.";
             }
         });
     }
@@ -196,3 +196,4 @@ public class BranchesViewModel : BaseViewModel
         SuccessMessage = string.Empty;
     }
 }
+

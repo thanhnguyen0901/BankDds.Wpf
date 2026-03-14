@@ -8,39 +8,40 @@ public class UserValidator : AbstractValidator<Models.User>
     {
         // SQL login name validation
         RuleFor(x => x.Username)
-            .NotEmpty().WithMessage("Username is required")
-            .Length(3, 50).WithMessage("Username must be between 3 and 50 characters")
-            .Matches(@"^[a-zA-Z0-9_]+$").WithMessage("Username can only contain letters, numbers, and underscores");
+            .NotEmpty().WithMessage("Tên đăng nhập là bắt buộc.")
+            .Length(3, 50).WithMessage("Tên đăng nhập phải có từ 3 đến 50 ký tự.")
+            .Matches(@"^[a-zA-Z0-9_]+$").WithMessage("Tên đăng nhập chỉ được chứa chữ cái, chữ số và dấu gạch dưới.");
 
         // In SQL-login mode this field carries the plain password input for SP calls.
         RuleFor(x => x.PasswordHash)
-            .NotEmpty().WithMessage("Password is required")
+            .NotEmpty().WithMessage("Mật khẩu là bắt buộc.")
             .Unless((user, ctx) => ctx.RootContextData.ContainsKey("SkipPasswordValidation"));
 
         // NGUOIDUNG.DefaultBranch is mandatory and must be a real branch code.
         RuleFor(x => x.DefaultBranch)
-            .NotEmpty().WithMessage("Default branch is required")
+            .NotEmpty().WithMessage("Chi nhánh mặc định là bắt buộc.")
             .Must(x => x == "BENTHANH" || x == "TANDINH")
-            .WithMessage("Default branch must be 'BENTHANH' or 'TANDINH'");
+            .WithMessage("Chi nhánh mặc định phải là 'BENTHANH' hoặc 'TANDINH'.");
 
         // CustomerCMND is mandatory for KHACHHANG accounts.
         RuleFor(x => x.CustomerCMND)
-            .NotEmpty().WithMessage("Customer CMND is required for customer users")
+            .NotEmpty().WithMessage("CMND khách hàng là bắt buộc với tài khoản nhóm KhachHang.")
             .When(x => x.UserGroup == Models.UserGroup.KhachHang);
 
         RuleFor(x => x.CustomerCMND)
-            .Length(10).WithMessage("Customer CMND must be exactly 10 digits")
-            .Matches(@"^\d+$").WithMessage("Customer CMND must contain only numeric digits")
+            .Length(10).WithMessage("CMND khách hàng phải đúng 10 chữ số.")
+            .Matches(@"^\d+$").WithMessage("CMND khách hàng chỉ được chứa chữ số.")
             .When(x => x.UserGroup == Models.UserGroup.KhachHang && !string.IsNullOrEmpty(x.CustomerCMND));
 
         // EmployeeId is mandatory for CHINHANH accounts.
         RuleFor(x => x.EmployeeId)
-            .NotEmpty().WithMessage("Employee ID is required for branch users")
+            .NotEmpty().WithMessage("Mã nhân viên là bắt buộc với tài khoản nhóm ChiNhanh.")
             .When(x => x.UserGroup == Models.UserGroup.ChiNhanh);
 
         RuleFor(x => x.EmployeeId)
-            .Length(10).WithMessage("Employee ID must be exactly 10 characters (NVxxxxxxxx)")
-            .Matches(@"^NV\d{8}$").WithMessage("Employee ID format must be NVxxxxxxxx")
+            .Length(10).WithMessage("Mã nhân viên phải đúng 10 ký tự (NVxxxxxxxx).")
+            .Matches(@"^NV\d{8}$").WithMessage("Định dạng mã nhân viên phải là NVxxxxxxxx.")
             .When(x => x.UserGroup == Models.UserGroup.ChiNhanh && !string.IsNullOrWhiteSpace(x.EmployeeId));
     }
 }
+

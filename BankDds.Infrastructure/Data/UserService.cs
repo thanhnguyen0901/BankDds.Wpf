@@ -49,30 +49,25 @@ public class UserService : IUserService
 
     public Task<bool> UpdateUserAsync(User user)
     {
-        // Admin access required
         _authorizationService.RequireAdminAccess();
 
-        // In SQL-login mode, password reset in admin flow is NGANHANG-only.
         if (_userSession.UserGroup != UserGroup.NganHang)
         {
             throw new UnauthorizedAccessException(
-                "Only Bank administrators can reset other users' passwords.");
+                "Chỉ quản trị viên NganHang mới được đặt lại mật khẩu cho tài khoản khác.");
         }
 
-        // Password reset path in this module is NGANHANG-only and does not
-        // change business mapping/scope; repository only calls sp_DoiMatKhau.
         return _userRepository.UpdateUserAsync(user);
     }
 
     public Task<bool> DeleteUserAsync(string username)
     {
-        // Admin access required
         _authorizationService.RequireAdminAccess();
 
         if (_userSession.UserGroup != UserGroup.NganHang)
         {
             throw new UnauthorizedAccessException(
-                "Only Bank administrators can delete SQL logins.");
+                "Chỉ quản trị viên NganHang mới được xóa SQL login.");
         }
         
         return _userRepository.DeleteUserAsync(username);
@@ -80,14 +75,12 @@ public class UserService : IUserService
 
     public Task<bool> RestoreUserAsync(string username)
     {
-        // Legacy operation retained for compatibility.
         _authorizationService.RequireAdminAccess();
         return _userRepository.RestoreUserAsync(username);
     }
 
     public async Task<List<User>> GetAllUsersAsync()
     {
-        // Admin access required to list all users
         _authorizationService.RequireAdminAccess();
 
         var users = await _userRepository.GetAllUsersAsync();
@@ -95,7 +88,6 @@ public class UserService : IUserService
         if (_userSession.UserGroup == UserGroup.NganHang)
             return users;
 
-        // ChiNhanh: only users in own branch and only manageable groups.
         var branch = _userSession.SelectedBranch.Trim().ToUpperInvariant();
         return users
             .Where(u => u.DefaultBranch.Trim().ToUpperInvariant() == branch)
@@ -140,3 +132,4 @@ public class UserService : IUserService
         return prepared;
     }
 }
+

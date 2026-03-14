@@ -42,7 +42,7 @@ public class CustomersViewModel : BaseViewModel
         _dialogService = dialogService;
         _validator = validator;
         _accountValidator = accountValidator;
-        DisplayName = "Customer Management";
+        DisplayName = "Quản lý khách hàng";
     }
 
     #region Customer Properties
@@ -266,8 +266,8 @@ public class CustomersViewModel : BaseViewModel
         if (SelectedCustomer == null) return;
 
         var confirmed = await _dialogService.ShowConfirmationAsync(
-            $"Are you sure you want to delete customer '{SelectedCustomer.FullName}'?",
-            "Delete Confirmation"
+            $"Bạn có chắc muốn xóa khách hàng '{SelectedCustomer.FullName}'?",
+            "Xác nhận xóa"
         );
 
         if (!confirmed) return;
@@ -279,11 +279,11 @@ public class CustomersViewModel : BaseViewModel
             {
                 await LoadCustomersAsync();
                 SelectedCustomer = null;
-                SuccessMessage = "Customer deleted successfully.";
+                SuccessMessage = "Xóa khách hàng thành công.";
             }
             else
             {
-                ErrorMessage = "Failed to delete customer";
+                ErrorMessage = "Không thể xóa khách hàng.";
             }
         });
     }
@@ -293,8 +293,8 @@ public class CustomersViewModel : BaseViewModel
         if (SelectedCustomer == null) return;
 
         var confirmed = await _dialogService.ShowConfirmationAsync(
-            $"Are you sure you want to restore customer '{SelectedCustomer.FullName}'?",
-            "Restore Confirmation"
+            $"Bạn có chắc muốn khôi phục khách hàng '{SelectedCustomer.FullName}'?",
+            "Xác nhận khôi phục"
         );
 
         if (!confirmed) return;
@@ -305,11 +305,11 @@ public class CustomersViewModel : BaseViewModel
             if (result)
             {
                 await LoadCustomersAsync();
-                SuccessMessage = "Customer restored successfully.";
+                SuccessMessage = "Khôi phục khách hàng thành công.";
             }
             else
             {
-                ErrorMessage = "Failed to restore customer";
+                ErrorMessage = "Không thể khôi phục khách hàng.";
             }
         });
     }
@@ -342,11 +342,11 @@ public class CustomersViewModel : BaseViewModel
                 IsEditing = false;
                 await LoadCustomersAsync();
                 SelectedCustomer = null;
-                SuccessMessage = "Customer saved successfully.";
+                SuccessMessage = "Lưu khách hàng thành công.";
             }
             else
             {
-                ErrorMessage = "Failed to save customer";
+                ErrorMessage = "Không thể lưu khách hàng.";
             }
         });
     }
@@ -442,11 +442,11 @@ public class CustomersViewModel : BaseViewModel
                 await LoadCustomerAccountsAsync();
                 SelectedAccount = null;
                 AccountErrorMessage = string.Empty;
-                SuccessMessage = "Account saved successfully.";
+                SuccessMessage = "Lưu tài khoản thành công.";
             }
             else
             {
-                AccountErrorMessage = "Failed to save account.";
+                AccountErrorMessage = "Không thể lưu tài khoản.";
             }
         });
     }
@@ -465,14 +465,14 @@ public class CustomersViewModel : BaseViewModel
         if (SelectedAccount.SODU != 0)
         {
             await _dialogService.ShowWarningAsync(
-                "Cannot close account with non-zero balance.",
-                "Close Account");
+                "Không thể đóng tài khoản có số dư khác 0.",
+                "Đóng tài khoản");
             return;
         }
 
         var confirmed = await _dialogService.ShowConfirmationAsync(
-            $"Are you sure you want to close account '{SelectedAccount.SOTK}'?",
-            "Close Account Confirmation"
+            $"Bạn có chắc muốn đóng tài khoản '{SelectedAccount.SOTK}'?",
+            "Xác nhận đóng tài khoản"
         );
 
         if (!confirmed) return;
@@ -484,11 +484,11 @@ public class CustomersViewModel : BaseViewModel
             {
                 await LoadCustomerAccountsAsync();
                 SelectedAccount = null;
-                SuccessMessage = "Account closed successfully.";
+                SuccessMessage = "Đóng tài khoản thành công.";
             }
             else
             {
-                AccountErrorMessage = "Failed to close account.";
+                AccountErrorMessage = "Không thể đóng tài khoản.";
             }
         });
     }
@@ -498,8 +498,8 @@ public class CustomersViewModel : BaseViewModel
         if (SelectedAccount == null) return;
 
         var confirmed = await _dialogService.ShowConfirmationAsync(
-            $"Are you sure you want to reopen account '{SelectedAccount.SOTK}'?",
-            "Reopen Account Confirmation"
+            $"Bạn có chắc muốn mở lại tài khoản '{SelectedAccount.SOTK}'?",
+            "Xác nhận mở lại tài khoản"
         );
 
         if (!confirmed) return;
@@ -511,11 +511,11 @@ public class CustomersViewModel : BaseViewModel
             {
                 await LoadCustomerAccountsAsync();
                 SelectedAccount = null;
-                SuccessMessage = "Account reopened successfully.";
+                SuccessMessage = "Mở lại tài khoản thành công.";
             }
             else
             {
-                AccountErrorMessage = "Failed to reopen account.";
+                AccountErrorMessage = "Không thể mở lại tài khoản.";
             }
         });
     }
@@ -531,3 +531,4 @@ public class CustomersViewModel : BaseViewModel
 
     #endregion
 }
+

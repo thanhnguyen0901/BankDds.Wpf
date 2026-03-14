@@ -30,7 +30,7 @@ public class EmployeesViewModel : Screen
         _userSession = userSession;
         _dialogService = dialogService;
         _validator = validator;
-        DisplayName = "Employee Management";
+        DisplayName = "Quản lý nhân viên";
     }
 
     public ObservableCollection<Employee> Employees
@@ -147,7 +147,7 @@ public class EmployeesViewModel : Screen
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"Error loading employees: {ex.Message}";
+            ErrorMessage = $"Lỗi tải danh sách nhân viên: {ex.Message}";
         }
     }
 
@@ -224,12 +224,12 @@ public class EmployeesViewModel : Screen
             }
             else
             {
-                ErrorMessage = "Failed to save employee.";
+                ErrorMessage = "Không thể lưu nhân viên.";
             }
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"Error saving employee: {ex.Message}";
+            ErrorMessage = $"Lỗi lưu nhân viên: {ex.Message}";
         }
     }
 
@@ -238,8 +238,8 @@ public class EmployeesViewModel : Screen
         if (SelectedEmployee == null) return;
 
         var confirmed = await _dialogService.ShowConfirmationAsync(
-            $"Are you sure you want to delete employee '{SelectedEmployee.FullName}'?",
-            "Delete Confirmation"
+            $"Bạn có chắc muốn xóa nhân viên '{SelectedEmployee.FullName}'?",
+            "Xác nhận xóa"
         );
 
         if (!confirmed) return;
@@ -255,12 +255,12 @@ public class EmployeesViewModel : Screen
             }
             else
             {
-                ErrorMessage = "Failed to delete employee.";
+                ErrorMessage = "Không thể xóa nhân viên.";
             }
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"Error deleting employee: {ex.Message}";
+            ErrorMessage = $"Lỗi xóa nhân viên: {ex.Message}";
         }
     }
 
@@ -269,8 +269,8 @@ public class EmployeesViewModel : Screen
         if (SelectedEmployee == null) return;
 
         var confirmed = await _dialogService.ShowConfirmationAsync(
-            $"Are you sure you want to restore employee '{SelectedEmployee.FullName}'?",
-            "Restore Confirmation"
+            $"Bạn có chắc muốn khôi phục nhân viên '{SelectedEmployee.FullName}'?",
+            "Xác nhận khôi phục"
         );
 
         if (!confirmed) return;
@@ -286,12 +286,12 @@ public class EmployeesViewModel : Screen
             }
             else
             {
-                ErrorMessage = "Failed to restore employee.";
+                ErrorMessage = "Không thể khôi phục nhân viên.";
             }
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"Error restoring employee: {ex.Message}";
+            ErrorMessage = $"Lỗi khôi phục nhân viên: {ex.Message}";
         }
     }
 
@@ -307,8 +307,8 @@ public class EmployeesViewModel : Screen
         if (SelectedEmployee == null || string.IsNullOrWhiteSpace(TransferBranch)) return;
 
         var confirmed = await _dialogService.ShowConfirmationAsync(
-            $"Are you sure you want to transfer employee '{SelectedEmployee.FullName}' to branch '{TransferBranch}'?",
-            "Transfer Confirmation"
+            $"Bạn có chắc muốn chuyển nhân viên '{SelectedEmployee.FullName}' sang chi nhánh '{TransferBranch}'?",
+            "Xác nhận chuyển chi nhánh"
         );
 
         if (!confirmed) return;
@@ -325,12 +325,13 @@ public class EmployeesViewModel : Screen
             }
             else
             {
-                ErrorMessage = "Failed to transfer employee.";
+                ErrorMessage = "Không thể chuyển nhân viên.";
             }
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"Error transferring employee: {ex.Message}";
+            ErrorMessage = $"Lỗi chuyển nhân viên: {ex.Message}";
         }
     }
 }
+

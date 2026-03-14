@@ -9,28 +9,29 @@ public class AccountValidator : AbstractValidator<Models.Account>
     {
         // Account number validation - must be exactly 9 characters (nChar(9))
         RuleFor(x => x.SOTK)
-            .NotEmpty().WithMessage("Account number (SOTK) is required")
-            .Length(9).WithMessage("Account number must be exactly 9 characters")
-            .Matches(@"^[A-Z0-9]+$").WithMessage("Account number must contain only uppercase letters and digits");
+            .NotEmpty().WithMessage("Số tài khoản (SOTK) là bắt buộc.")
+            .Length(9).WithMessage("Số tài khoản phải đúng 9 ký tự.")
+            .Matches(@"^[A-Z0-9]+$").WithMessage("Số tài khoản chỉ được chứa chữ in hoa và chữ số.");
 
-        // Customer CMND validation: exactly 10 digits (nChar(10) in DB — GAP-08)
+        // Customer CMND validation: exactly 10 digits (nChar(10) in DB â€” GAP-08)
         RuleFor(x => x.CMND)
-            .NotEmpty().WithMessage("Customer CMND is required")
-            .Length(10).WithMessage("CMND must be exactly 10 digits")
-            .Matches(@"^\d+$").WithMessage("CMND must contain only numeric digits");
+            .NotEmpty().WithMessage("CMND khách hàng là bắt buộc.")
+            .Length(10).WithMessage("CMND phải đúng 10 chữ số.")
+            .Matches(@"^\d+$").WithMessage("CMND chỉ được chứa chữ số.");
 
         // Balance validation: Must be >= 0
         RuleFor(x => x.SODU)
-            .GreaterThanOrEqualTo(0).WithMessage("Balance (SODU) cannot be negative");
+            .GreaterThanOrEqualTo(0).WithMessage("Số dư (SODU) không được âm.");
 
         // Branch code validation: required and must exist in the branch repository
         RuleFor(x => x.MACN)
-            .NotEmpty().WithMessage("Branch code (MACN) is required")
+            .NotEmpty().WithMessage("Mã chi nhánh (MACN) là bắt buộc.")
             .MustAsync((macn, ct) => branchRepository.BranchExistsAsync(macn))
-            .WithMessage("Branch code does not match any registered branch");
+            .WithMessage("Mã chi nhánh không tồn tại trong hệ thống.");
 
         // Opening date validation: Cannot be in the future
         RuleFor(x => x.NGAYMOTK)
-            .LessThanOrEqualTo(DateTime.Now).WithMessage("Opening date cannot be in the future");
+            .LessThanOrEqualTo(DateTime.Now).WithMessage("Ngày mở tài khoản không được lớn hơn ngày hiện tại.");
     }
 }
+

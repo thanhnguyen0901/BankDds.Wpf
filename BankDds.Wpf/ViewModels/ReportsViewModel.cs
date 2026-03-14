@@ -44,7 +44,7 @@ public class ReportsViewModel : Screen
         _userSession = userSession;
         _accountService = accountService;
         _exportService = exportService;
-        DisplayName = "Reports";
+        DisplayName = "Báo cáo";
     }
 
     // Account Statement Properties
@@ -291,7 +291,7 @@ public class ReportsViewModel : Screen
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"Error loading accounts: {ex.Message}";
+            ErrorMessage = $"Lỗi tải danh sách tài khoản: {ex.Message}";
         }
     }
 
@@ -302,7 +302,7 @@ public class ReportsViewModel : Screen
         // Validate date range before calling the service.
         if (StatementFromDate.Date > StatementToDate.Date)
         {
-            ErrorMessage = "From Date must be on or before To Date.";
+            ErrorMessage = "Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc.";
             AccountStatement = null;
             return;
         }
@@ -315,7 +315,7 @@ public class ReportsViewModel : Screen
                 var customerAccounts = await _accountService.GetAccountsByCustomerAsync(_userSession.CustomerCMND ?? "");
                 if (!customerAccounts.Any(a => a.SOTK == StatementAccountNumber))
                 {
-                    ErrorMessage = "You are not authorized to view this account statement.";
+                    ErrorMessage = "Bạn không có quyền xem sao kê của tài khoản này.";
                     return;
                 }
             }
@@ -328,13 +328,13 @@ public class ReportsViewModel : Screen
             AccountStatement = statement;
 
             // DE3-style summary: show opening, line count, closing.
-            ErrorMessage = $"Statement generated — {statement.Lines.Count} transaction(s). " +
-                           $"Opening: {statement.OpeningBalance:N0} VND  →  " +
-                           $"Closing: {statement.ClosingBalance:N0} VND";
+            ErrorMessage = $"Đã tạo sao kê - {statement.Lines.Count} giao dịch. " +
+                           $"Số dư đầu: {statement.OpeningBalance:N0} VND -> " +
+                           $"Số dư cuối: {statement.ClosingBalance:N0} VND";
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"Error generating statement: {ex.Message}";
+            ErrorMessage = $"Lỗi tạo sao kê: {ex.Message}";
             AccountStatement = null;
         }
     }
@@ -355,11 +355,11 @@ public class ReportsViewModel : Screen
                 SelectedBranchForAccounts);
 
             AccountsOpened = new ObservableCollection<Account>(accounts);
-            ErrorMessage = $"Found {accounts.Count} accounts opened in the period.";
+            ErrorMessage = $"Tìm thấy {accounts.Count} tài khoản mở trong khoảng thời gian đã chọn.";
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"Error generating accounts opened report: {ex.Message}";
+            ErrorMessage = $"Lỗi tạo báo cáo tài khoản mở: {ex.Message}";
         }
     }
 
@@ -383,11 +383,11 @@ public class ReportsViewModel : Screen
 
             var customers = await _reportService.GetCustomersByBranchReportAsync(branchFilter);
             CustomersByBranch = new ObservableCollection<Customer>(customers);
-            ErrorMessage = $"Found {customers.Count} customers.";
+            ErrorMessage = $"Tìm thấy {customers.Count} khách hàng.";
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"Error generating customers per branch report: {ex.Message}";
+            ErrorMessage = $"Lỗi tạo báo cáo khách hàng theo chi nhánh: {ex.Message}";
         }
     }
 
@@ -415,12 +415,12 @@ public class ReportsViewModel : Screen
                 branchFilter);
             
             TransactionSummary = summary;
-            ErrorMessage = $"Transaction Summary: {summary.TotalTransactionCount} transactions found " +
-                          $"({summary.DepositCount} deposits, {summary.WithdrawalCount} withdrawals, {summary.TransferCount} transfers).";
+            ErrorMessage = $"Tổng hợp giao dịch: tìm thấy {summary.TotalTransactionCount} giao dịch " +
+                          $"({summary.DepositCount} gửi tiền, {summary.WithdrawalCount} rút tiền, {summary.TransferCount} chuyển tiền).";
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"Error generating transaction summary report: {ex.Message}";
+            ErrorMessage = $"Lỗi tạo báo cáo tổng hợp giao dịch: {ex.Message}";
         }
     }
 
@@ -430,9 +430,9 @@ public class ReportsViewModel : Screen
 
         var dialog = new SaveFileDialog
         {
-            Filter = "PDF Files (*.pdf)|*.pdf",
+            Filter = "Tệp PDF (*.pdf)|*.pdf",
             FileName = $"AccountStatement_{AccountStatement.SOTK}_{DateTime.Now:yyyyMMdd}.pdf",
-            Title = "Export Account Statement to PDF"
+            Title = "Xuất sao kê tài khoản ra PDF"
         };
 
         if (dialog.ShowDialog() == true)
@@ -440,11 +440,11 @@ public class ReportsViewModel : Screen
             try
             {
                 await _exportService.ExportStatementToPdfAsync(AccountStatement, dialog.FileName);
-                ErrorMessage = $"? Statement exported successfully to {Path.GetFileName(dialog.FileName)}";
+                ErrorMessage = $"Xuất sao kê thành công: {Path.GetFileName(dialog.FileName)}";
             }
             catch (Exception ex)
             {
-                ErrorMessage = $"Error exporting to PDF: {ex.Message}";
+                ErrorMessage = $"Lỗi xuất PDF: {ex.Message}";
             }
         }
     }
@@ -455,9 +455,9 @@ public class ReportsViewModel : Screen
 
         var dialog = new SaveFileDialog
         {
-            Filter = "Excel Files (*.xlsx)|*.xlsx",
+            Filter = "Tệp Excel (*.xlsx)|*.xlsx",
             FileName = $"AccountStatement_{AccountStatement.SOTK}_{DateTime.Now:yyyyMMdd}.xlsx",
-            Title = "Export Account Statement to Excel"
+            Title = "Xuất sao kê tài khoản ra Excel"
         };
 
         if (dialog.ShowDialog() == true)
@@ -465,11 +465,11 @@ public class ReportsViewModel : Screen
             try
             {
                 await _exportService.ExportStatementToExcelAsync(AccountStatement, dialog.FileName);
-                ErrorMessage = $"? Statement exported successfully to {Path.GetFileName(dialog.FileName)}";
+                ErrorMessage = $"Xuất sao kê thành công: {Path.GetFileName(dialog.FileName)}";
             }
             catch (Exception ex)
             {
-                ErrorMessage = $"Error exporting to Excel: {ex.Message}";
+                ErrorMessage = $"Lỗi xuất Excel: {ex.Message}";
             }
         }
     }
@@ -480,9 +480,9 @@ public class ReportsViewModel : Screen
 
         var dialog = new SaveFileDialog
         {
-            Filter = "PDF Files (*.pdf)|*.pdf",
+            Filter = "Tệp PDF (*.pdf)|*.pdf",
             FileName = $"AccountsOpened_{DateTime.Now:yyyyMMdd}.pdf",
-            Title = "Export Accounts Report to PDF"
+            Title = "Xuất báo cáo tài khoản ra PDF"
         };
 
         if (dialog.ShowDialog() == true)
@@ -494,11 +494,11 @@ public class ReportsViewModel : Screen
                     AccountsOpenedFromDate, 
                     AccountsOpenedToDate, 
                     dialog.FileName);
-                ErrorMessage = $"? Report exported successfully to {Path.GetFileName(dialog.FileName)}";
+                ErrorMessage = $"Xuất báo cáo thành công: {Path.GetFileName(dialog.FileName)}";
             }
             catch (Exception ex)
             {
-                ErrorMessage = $"Error exporting to PDF: {ex.Message}";
+                ErrorMessage = $"Lỗi xuất PDF: {ex.Message}";
             }
         }
     }
@@ -509,9 +509,9 @@ public class ReportsViewModel : Screen
 
         var dialog = new SaveFileDialog
         {
-            Filter = "Excel Files (*.xlsx)|*.xlsx",
+            Filter = "Tệp Excel (*.xlsx)|*.xlsx",
             FileName = $"AccountsOpened_{DateTime.Now:yyyyMMdd}.xlsx",
-            Title = "Export Accounts Report to Excel"
+            Title = "Xuất báo cáo tài khoản ra Excel"
         };
 
         if (dialog.ShowDialog() == true)
@@ -523,11 +523,11 @@ public class ReportsViewModel : Screen
                     AccountsOpenedFromDate, 
                     AccountsOpenedToDate, 
                     dialog.FileName);
-                ErrorMessage = $"? Report exported successfully to {Path.GetFileName(dialog.FileName)}";
+                ErrorMessage = $"Xuất báo cáo thành công: {Path.GetFileName(dialog.FileName)}";
             }
             catch (Exception ex)
             {
-                ErrorMessage = $"Error exporting to Excel: {ex.Message}";
+                ErrorMessage = $"Lỗi xuất Excel: {ex.Message}";
             }
         }
     }
@@ -538,9 +538,9 @@ public class ReportsViewModel : Screen
 
         var dialog = new SaveFileDialog
         {
-            Filter = "PDF Files (*.pdf)|*.pdf",
+            Filter = "Tệp PDF (*.pdf)|*.pdf",
             FileName = $"CustomersByBranch_{DateTime.Now:yyyyMMdd}.pdf",
-            Title = "Export Customers Report to PDF"
+            Title = "Xuất báo cáo khách hàng ra PDF"
         };
 
         if (dialog.ShowDialog() == true)
@@ -551,11 +551,11 @@ public class ReportsViewModel : Screen
                     CustomersByBranch.ToList(), 
                     SelectedBranchForCustomers == "ALL" ? null : SelectedBranchForCustomers, 
                     dialog.FileName);
-                ErrorMessage = $"? Report exported successfully to {Path.GetFileName(dialog.FileName)}";
+                ErrorMessage = $"Xuất báo cáo thành công: {Path.GetFileName(dialog.FileName)}";
             }
             catch (Exception ex)
             {
-                ErrorMessage = $"Error exporting to PDF: {ex.Message}";
+                ErrorMessage = $"Lỗi xuất PDF: {ex.Message}";
             }
         }
     }
@@ -566,9 +566,9 @@ public class ReportsViewModel : Screen
 
         var dialog = new SaveFileDialog
         {
-            Filter = "Excel Files (*.xlsx)|*.xlsx",
+            Filter = "Tệp Excel (*.xlsx)|*.xlsx",
             FileName = $"CustomersByBranch_{DateTime.Now:yyyyMMdd}.xlsx",
-            Title = "Export Customers Report to Excel"
+            Title = "Xuất báo cáo khách hàng ra Excel"
         };
 
         if (dialog.ShowDialog() == true)
@@ -579,11 +579,11 @@ public class ReportsViewModel : Screen
                     CustomersByBranch.ToList(), 
                     SelectedBranchForCustomers == "ALL" ? null : SelectedBranchForCustomers, 
                     dialog.FileName);
-                ErrorMessage = $"? Report exported successfully to {Path.GetFileName(dialog.FileName)}";
+                ErrorMessage = $"Xuất báo cáo thành công: {Path.GetFileName(dialog.FileName)}";
             }
             catch (Exception ex)
             {
-                ErrorMessage = $"Error exporting to Excel: {ex.Message}";
+                ErrorMessage = $"Lỗi xuất Excel: {ex.Message}";
             }
         }
     }
@@ -594,9 +594,9 @@ public class ReportsViewModel : Screen
 
         var dialog = new SaveFileDialog
         {
-            Filter = "PDF Files (*.pdf)|*.pdf",
+            Filter = "Tệp PDF (*.pdf)|*.pdf",
             FileName = $"TransactionSummary_{DateTime.Now:yyyyMMdd}.pdf",
-            Title = "Export Transaction Summary to PDF"
+            Title = "Xuất tổng hợp giao dịch ra PDF"
         };
 
         if (dialog.ShowDialog() == true)
@@ -604,11 +604,11 @@ public class ReportsViewModel : Screen
             try
             {
                 await _exportService.ExportTransactionSummaryToPdfAsync(TransactionSummary, dialog.FileName);
-                ErrorMessage = $"? Report exported successfully to {Path.GetFileName(dialog.FileName)}";
+                ErrorMessage = $"Xuất báo cáo thành công: {Path.GetFileName(dialog.FileName)}";
             }
             catch (Exception ex)
             {
-                ErrorMessage = $"Error exporting to PDF: {ex.Message}";
+                ErrorMessage = $"Lỗi xuất PDF: {ex.Message}";
             }
         }
     }
@@ -619,9 +619,9 @@ public class ReportsViewModel : Screen
 
         var dialog = new SaveFileDialog
         {
-            Filter = "Excel Files (*.xlsx)|*.xlsx",
+            Filter = "Tệp Excel (*.xlsx)|*.xlsx",
             FileName = $"TransactionSummary_{DateTime.Now:yyyyMMdd}.xlsx",
-            Title = "Export Transaction Summary to Excel"
+            Title = "Xuất tổng hợp giao dịch ra Excel"
         };
 
         if (dialog.ShowDialog() == true)
@@ -629,14 +629,15 @@ public class ReportsViewModel : Screen
             try
             {
                 await _exportService.ExportTransactionSummaryToExcelAsync(TransactionSummary, dialog.FileName);
-                ErrorMessage = $"? Report exported successfully to {Path.GetFileName(dialog.FileName)}";
+                ErrorMessage = $"Xuất báo cáo thành công: {Path.GetFileName(dialog.FileName)}";
             }
             catch (Exception ex)
             {
-                ErrorMessage = $"Error exporting to Excel: {ex.Message}";
+                ErrorMessage = $"Lỗi xuất Excel: {ex.Message}";
             }
         }
     }
 }
+
 
 
