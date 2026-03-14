@@ -5,11 +5,19 @@ using System.Collections.ObjectModel;
 
 namespace BankDds.Wpf.ViewModels
 {
+    /// <summary>
+    /// Handles CustomerLookupViewModel responsibilities in the application.
+    /// </summary>
     public class CustomerLookupViewModel : Screen
     {
         private readonly ICustomerLookupService _customerLookupService;
         private readonly IDialogService _dialogService;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CustomerLookupViewModel"/> class.
+        /// </summary>
+        /// <param name="customerLookupService"></param>
+        /// <param name="dialogService"></param>
         public CustomerLookupViewModel(ICustomerLookupService customerLookupService, IDialogService dialogService)
         {
             _customerLookupService = customerLookupService;

@@ -2,8 +2,14 @@ using Caliburn.Micro;
 
 namespace BankDds.Wpf.ViewModels
 {
+    /// <summary>
+    /// Handles MainShellViewModel responsibilities in the application.
+    /// </summary>
     public class MainShellViewModel : Conductor<Screen>.Collection.OneActive
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MainShellViewModel"/> class.
+        /// </summary>
         public MainShellViewModel()
         {
             DisplayName = "Hệ thống ngân hàng phân tán";

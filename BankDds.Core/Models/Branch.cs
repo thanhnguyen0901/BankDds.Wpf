@@ -1,5 +1,8 @@
 namespace BankDds.Core.Models
 {
+    /// <summary>
+    /// Represents a bank branch master record used for branch routing and ownership.
+    /// </summary>
     public class Branch
     {
         public string MACN { get; set; } = string.Empty;

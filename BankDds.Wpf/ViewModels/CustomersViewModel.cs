@@ -6,6 +6,9 @@ using System.Collections.ObjectModel;
 
 namespace BankDds.Wpf.ViewModels
 {
+    /// <summary>
+    /// Handles CustomersViewModel responsibilities in the application.
+    /// </summary>
     public class CustomersViewModel : BaseViewModel
     {
         private readonly ICustomerService _customerService;
@@ -24,6 +27,16 @@ namespace BankDds.Wpf.ViewModels
         private Account _editingAccount = new();
         private bool _isEditingAccount;
         private string _accountErrorMessage = string.Empty;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CustomersViewModel"/> class.
+        /// </summary>
+        /// <param name="customerService"></param>
+        /// <param name="accountService"></param>
+        /// <param name="userSession"></param>
+        /// <param name="dialogService"></param>
+        /// <param name="validator"></param>
+        /// <param name="accountValidator"></param>
         public CustomersViewModel(
             ICustomerService customerService,
             IAccountService accountService,

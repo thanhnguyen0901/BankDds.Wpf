@@ -6,6 +6,9 @@ using System.Collections.ObjectModel;
 
 namespace BankDds.Wpf.ViewModels
 {
+    /// <summary>
+    /// Handles BranchesViewModel responsibilities in the application.
+    /// </summary>
     public class BranchesViewModel : BaseViewModel
     {
         private readonly IBranchService _branchService;
@@ -15,6 +18,13 @@ namespace BankDds.Wpf.ViewModels
         private Branch? _selectedBranch;
         private Branch _editingBranch = new();
         private bool _isEditing;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BranchesViewModel"/> class.
+        /// </summary>
+        /// <param name="branchService"></param>
+        /// <param name="userSession"></param>
+        /// <param name="validator"></param>
         public BranchesViewModel(
             IBranchService branchService,
             IUserSession userSession,

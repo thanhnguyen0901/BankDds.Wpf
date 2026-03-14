@@ -6,10 +6,19 @@ using System.Data;
 
 namespace BankDds.Infrastructure.Data
 {
+    /// <summary>
+    /// Handles branch master-data persistence for create, update, and lookup operations.
+    /// </summary>
     public class BranchRepository : IBranchRepository
     {
         private readonly IConnectionStringProvider _connectionStringProvider;
         private readonly ILogger<BranchRepository> _logger;
+
+        /// <summary>
+        /// Initializes BranchRepository with required infrastructure dependencies.
+        /// </summary>
+        /// <param name="connectionStringProvider">Connection provider for resolving target SQL instances.</param>
+        /// <param name="logger">Logger instance for repository diagnostics.</param>
         public BranchRepository(
             IConnectionStringProvider connectionStringProvider,
             ILogger<BranchRepository> logger)

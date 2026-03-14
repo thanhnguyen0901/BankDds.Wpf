@@ -7,6 +7,9 @@ using System.Linq;
 
 namespace BankDds.Wpf.ViewModels
 {
+    /// <summary>
+    /// Handles AdminViewModel responsibilities in the application.
+    /// </summary>
     public class AdminViewModel : BaseViewModel
     {
         private readonly IUserService _userService;
@@ -22,6 +25,15 @@ namespace BankDds.Wpf.ViewModels
         private string _newPassword = string.Empty;
         private string _confirmPassword = string.Empty;
         private string _passwordValidationMessage = string.Empty;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AdminViewModel"/> class.
+        /// </summary>
+        /// <param name="userService"></param>
+        /// <param name="userSession"></param>
+        /// <param name="dialogService"></param>
+        /// <param name="validator"></param>
+        /// <param name="branchService"></param>
         public AdminViewModel(
             IUserService userService,
             IUserSession userSession,

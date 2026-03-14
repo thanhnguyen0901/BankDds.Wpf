@@ -1,5 +1,8 @@
 namespace BankDds.Core.Models
 {
+    /// <summary>
+    /// Represents a posted deposit, withdrawal, or transfer transaction entry.
+    /// </summary>
     public class Transaction
     {
         public int MAGD { get; set; }

@@ -6,10 +6,19 @@ using System.Data;
 
 namespace BankDds.Infrastructure.Data
 {
+    /// <summary>
+    /// Handles cross-branch customer lookup queries used by bank-level search features.
+    /// </summary>
     public class CustomerLookupRepository : ICustomerLookupRepository
     {
         private readonly IConnectionStringProvider _connectionStringProvider;
         private readonly ILogger<CustomerLookupRepository> _logger;
+
+        /// <summary>
+        /// Initializes CustomerLookupRepository with required infrastructure dependencies.
+        /// </summary>
+        /// <param name="connectionStringProvider">Connection provider for resolving target SQL instances.</param>
+        /// <param name="logger">Logger instance for repository diagnostics.</param>
         public CustomerLookupRepository(
             IConnectionStringProvider connectionStringProvider,
             ILogger<CustomerLookupRepository> logger)

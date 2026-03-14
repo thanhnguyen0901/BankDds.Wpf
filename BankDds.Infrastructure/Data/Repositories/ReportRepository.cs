@@ -6,10 +6,19 @@ using System.Data;
 
 namespace BankDds.Infrastructure.Data
 {
+    /// <summary>
+    /// Handles report data queries for statements, account listings, and transaction summaries.
+    /// </summary>
     public class ReportRepository : IReportRepository
     {
         private readonly IConnectionStringProvider _connectionStringProvider;
         private readonly ILogger<ReportRepository> _logger;
+
+        /// <summary>
+        /// Initializes ReportRepository with required infrastructure dependencies.
+        /// </summary>
+        /// <param name="connectionStringProvider">Connection provider for resolving target SQL instances.</param>
+        /// <param name="logger">Logger instance for repository diagnostics.</param>
         public ReportRepository(
             IConnectionStringProvider connectionStringProvider,
             ILogger<ReportRepository> logger)

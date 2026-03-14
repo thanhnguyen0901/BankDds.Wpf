@@ -6,11 +6,21 @@ using System.Data;
 
 namespace BankDds.Infrastructure.Data
 {
+    /// <summary>
+    /// Handles transaction persistence for deposit, withdrawal, transfer, and daily totals.
+    /// </summary>
     public class TransactionRepository : ITransactionRepository
     {
         private readonly IConnectionStringProvider _connectionStringProvider;
         private readonly IUserSession _userSession;
         private readonly ILogger<TransactionRepository> _logger;
+
+        /// <summary>
+        /// Initializes TransactionRepository with required infrastructure dependencies.
+        /// </summary>
+        /// <param name="connectionStringProvider">Connection provider for resolving target SQL instances.</param>
+        /// <param name="userSession">Current user session for branch-scoped connections.</param>
+        /// <param name="logger">Logger instance for repository diagnostics.</param>
         public TransactionRepository(
             IConnectionStringProvider connectionStringProvider,
             IUserSession userSession,

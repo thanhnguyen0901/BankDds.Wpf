@@ -6,11 +6,21 @@ using System.Data;
 
 namespace BankDds.Infrastructure.Data
 {
+    /// <summary>
+    /// Handles customer profile persistence and branch-scoped customer queries.
+    /// </summary>
     public class CustomerRepository : ICustomerRepository
     {
         private readonly IConnectionStringProvider _connectionStringProvider;
         private readonly IUserSession _userSession;
         private readonly ILogger<CustomerRepository> _logger;
+
+        /// <summary>
+        /// Initializes CustomerRepository with required infrastructure dependencies.
+        /// </summary>
+        /// <param name="connectionStringProvider">Connection provider for resolving target SQL instances.</param>
+        /// <param name="userSession">Current user session for branch-scoped connections.</param>
+        /// <param name="logger">Logger instance for repository diagnostics.</param>
         public CustomerRepository(
             IConnectionStringProvider connectionStringProvider,
             IUserSession userSession,

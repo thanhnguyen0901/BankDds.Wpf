@@ -4,6 +4,9 @@ using BankDds.Core.Interfaces;
 
 namespace BankDds.Wpf.Services
 {
+    /// <summary>
+    /// Handles DialogService responsibilities in the application.
+    /// </summary>
     public class DialogService : IDialogService
     {
         public Task<bool> ShowConfirmationAsync(string message, string title = "Xác nhận")

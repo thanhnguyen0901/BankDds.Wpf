@@ -6,11 +6,21 @@ using System.Data;
 
 namespace BankDds.Infrastructure.Data
 {
+    /// <summary>
+    /// Handles account persistence via stored procedures for branch and publisher data sources.
+    /// </summary>
     public class AccountRepository : IAccountRepository
     {
         private readonly IConnectionStringProvider _connectionStringProvider;
         private readonly IUserSession _userSession;
         private readonly ILogger<AccountRepository> _logger;
+
+        /// <summary>
+        /// Initializes AccountRepository with required infrastructure dependencies.
+        /// </summary>
+        /// <param name="connectionStringProvider">Connection provider for resolving target SQL instances.</param>
+        /// <param name="userSession">Current user session for branch-scoped connections.</param>
+        /// <param name="logger">Logger instance for repository diagnostics.</param>
         public AccountRepository(
             IConnectionStringProvider connectionStringProvider,
             IUserSession userSession,

@@ -5,11 +5,18 @@ using System.Collections.ObjectModel;
 
 namespace BankDds.Wpf.ViewModels
 {
+    /// <summary>
+    /// Handles HomeViewModel responsibilities in the application.
+    /// </summary>
     public class HomeViewModel : Conductor<Screen>.Collection.OneActive
     {
         private readonly IUserSession _userSession;
         private Func<Task>? _lastShowAction;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HomeViewModel"/> class.
+        /// </summary>
+        /// <param name="userSession"></param>
         public HomeViewModel(IUserSession userSession)
         {
             _userSession = userSession;

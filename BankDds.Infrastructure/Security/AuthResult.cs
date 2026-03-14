@@ -1,5 +1,8 @@
 namespace BankDds.Infrastructure.Security
 {
+    /// <summary>
+    /// Represents authentication output used to build runtime user session.
+    /// </summary>
     public class AuthResult
     {
         public bool Success { get; set; }

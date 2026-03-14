@@ -1,5 +1,8 @@
 namespace BankDds.Core.Models
 {
+    /// <summary>
+    /// Represents a branch employee who performs operations and transactions in the system.
+    /// </summary>
     public class Employee
     {
         public string MANV { get; set; } = string.Empty;

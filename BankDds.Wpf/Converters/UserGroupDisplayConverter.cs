@@ -5,6 +5,9 @@ using BankDds.Core.Models;
 
 namespace BankDds.Wpf.Converters
 {
+    /// <summary>
+    /// Handles UserGroupDisplayConverter responsibilities in the application.
+    /// </summary>
     public class UserGroupDisplayConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)

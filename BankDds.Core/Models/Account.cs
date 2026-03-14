@@ -1,5 +1,8 @@
 namespace BankDds.Core.Models
 {
+    /// <summary>
+    /// Represents a customer bank account used for balance and transaction operations.
+    /// </summary>
     public class Account
     {
         public string SOTK { get; set; } = string.Empty;

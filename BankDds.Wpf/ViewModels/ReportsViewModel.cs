@@ -8,6 +8,9 @@ using System.IO;
 
 namespace BankDds.Wpf.ViewModels
 {
+    /// <summary>
+    /// Handles ReportsViewModel responsibilities in the application.
+    /// </summary>
     public class ReportsViewModel : Screen
     {
         private readonly IReportService _reportService;
@@ -30,6 +33,13 @@ namespace BankDds.Wpf.ViewModels
         private string _selectedBranchForTransactionSummary = "ALL";
         private TransactionSummary? _transactionSummary;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ReportsViewModel"/> class.
+        /// </summary>
+        /// <param name="reportService"></param>
+        /// <param name="userSession"></param>
+        /// <param name="accountService"></param>
+        /// <param name="exportService"></param>
         public ReportsViewModel(IReportService reportService, IUserSession userSession, IAccountService accountService, IReportExportService exportService)
         {
             _reportService = reportService;

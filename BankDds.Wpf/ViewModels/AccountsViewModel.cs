@@ -1,4 +1,3 @@
-using Caliburn.Micro;
 using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
 using BankDds.Core.Validators;
@@ -6,6 +5,9 @@ using System.Collections.ObjectModel;
 
 namespace BankDds.Wpf.ViewModels
 {
+    /// <summary>
+    /// Handles AccountsViewModel responsibilities in the application.
+    /// </summary>
     public class AccountsViewModel : BaseViewModel
     {
         private readonly IAccountService _accountService;
@@ -13,14 +15,23 @@ namespace BankDds.Wpf.ViewModels
         private readonly IUserSession _userSession;
         private readonly IDialogService _dialogService;
         private readonly AccountValidator _validator;
+
         private ObservableCollection<Customer> _customers = new();
-        private Customer? _selectedCustomer;
         private ObservableCollection<Account> _accounts = new();
+        private Customer? _selectedCustomer;
         private Account? _selectedAccount;
         private Account _editingAccount = new();
         private bool _isEditing;
         private string _errorMessage = string.Empty;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AccountsViewModel"/> class.
+        /// </summary>
+        /// <param name="accountService"></param>
+        /// <param name="customerService"></param>
+        /// <param name="userSession"></param>
+        /// <param name="dialogService"></param>
+        /// <param name="validator"></param>
         public AccountsViewModel(IAccountService accountService, ICustomerService customerService, IUserSession userSession, IDialogService dialogService, AccountValidator validator)
         {
             _accountService = accountService;
@@ -30,6 +41,7 @@ namespace BankDds.Wpf.ViewModels
             _validator = validator;
             DisplayName = "Quản lý tài khoản";
         }
+
         public ObservableCollection<Customer> Customers
         {
             get => _customers;
@@ -39,6 +51,7 @@ namespace BankDds.Wpf.ViewModels
                 NotifyOfPropertyChange(() => Customers);
             }
         }
+
         public Customer? SelectedCustomer
         {
             get => _selectedCustomer;
@@ -50,6 +63,7 @@ namespace BankDds.Wpf.ViewModels
                 _ = LoadAccountsForCustomerAsync();
             }
         }
+
         public ObservableCollection<Account> Accounts
         {
             get => _accounts;
@@ -59,6 +73,7 @@ namespace BankDds.Wpf.ViewModels
                 NotifyOfPropertyChange(() => Accounts);
             }
         }
+
         public Account? SelectedAccount
         {
             get => _selectedAccount;
@@ -72,6 +87,7 @@ namespace BankDds.Wpf.ViewModels
                 NotifyOfPropertyChange(() => CanReopen);
             }
         }
+
         public Account EditingAccount
         {
             get => _editingAccount;
@@ -82,6 +98,7 @@ namespace BankDds.Wpf.ViewModels
                 NotifyOfPropertyChange(() => CanSave);
             }
         }
+
         public bool IsEditing
         {
             get => _isEditing;
@@ -96,6 +113,7 @@ namespace BankDds.Wpf.ViewModels
                 NotifyOfPropertyChange(() => CanCancel);
             }
         }
+
         public new string ErrorMessage
         {
             get => _errorMessage;
@@ -106,6 +124,7 @@ namespace BankDds.Wpf.ViewModels
                 NotifyOfPropertyChange(() => HasError);
             }
         }
+
         public new bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
         private bool CanModifyAccountData => _userSession.UserGroup == UserGroup.ChiNhanh;
         public bool CanAdd => CanModifyAccountData && SelectedCustomer != null && !IsEditing;

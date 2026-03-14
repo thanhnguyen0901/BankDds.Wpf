@@ -7,10 +7,19 @@ using System.Linq;
 
 namespace BankDds.Infrastructure.Data
 {
+    /// <summary>
+    /// Handles user login/profile persistence including SQL login procedures and mappings.
+    /// </summary>
     public class UserRepository : IUserRepository
     {
         private readonly IConnectionStringProvider _connectionStringProvider;
         private readonly ILogger<UserRepository> _logger;
+
+        /// <summary>
+        /// Initializes UserRepository with required infrastructure dependencies.
+        /// </summary>
+        /// <param name="connectionStringProvider">Connection provider for resolving target SQL instances.</param>
+        /// <param name="logger">Logger instance for repository diagnostics.</param>
         public UserRepository(
             IConnectionStringProvider connectionStringProvider,
             ILogger<UserRepository> logger)
@@ -87,6 +96,7 @@ namespace BankDds.Infrastructure.Data
                     deleteLoginCommand.Parameters.AddWithValue("@LOGIN", username);
                     await deleteLoginCommand.ExecuteNonQueryAsync();
                 }
+                using (var softDeleteMappingCommand = new SqlCommand("SP_SoftDeleteUser", connection) { CommandType = CommandType.StoredProcedure })
                 {
                     softDeleteMappingCommand.Parameters.AddWithValue("@Username", username);
                     await softDeleteMappingCommand.ExecuteNonQueryAsync();

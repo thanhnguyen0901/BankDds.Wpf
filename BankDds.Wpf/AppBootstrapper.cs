@@ -15,10 +15,16 @@ using System.Windows;
 
 namespace BankDds.Wpf
 {
+    /// <summary>
+    /// Handles AppBootstrapper responsibilities in the application.
+    /// </summary>
     public class AppBootstrapper : BootstrapperBase
     {
         private IContainer? _container;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AppBootstrapper"/> class.
+        /// </summary>
         public AppBootstrapper()
         {
             Initialize();

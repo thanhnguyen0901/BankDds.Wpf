@@ -4,12 +4,19 @@ using Microsoft.Extensions.Configuration;
 
 namespace BankDds.Infrastructure.Configuration
 {
+    /// <summary>
+    /// Provides SQL Server connection strings for publisher, branch shards, and lookup database.
+    /// </summary>
     public class ConnectionStringProvider : IConnectionStringProvider
     {
         private readonly IConfiguration _configuration;
         private string? _sqlLogin;
         private string? _sqlPassword;
 
+        /// <summary>
+        /// Initializes provider with application configuration source.
+        /// </summary>
+        /// <param name="configuration">Application configuration source.</param>
         public ConnectionStringProvider(IConfiguration configuration)
         {
             _configuration = configuration;
@@ -30,9 +37,14 @@ namespace BankDds.Infrastructure.Configuration
         public string GetPublisherConnection()
         {
             var template = GetPublisherTemplate();
+
+            // Logic: runtime SQL credentials are mandatory because login flow can switch user identity.
             if (_sqlLogin is null || _sqlPassword is null)
+            {
                 throw new InvalidOperationException(
                     "Chưa thiết lập thông tin đăng nhập SQL. Hãy gọi SetSqlLoginCredentials trước.");
+            }
+
             return InjectCredentials(template, _sqlLogin, _sqlPassword);
         }
 
@@ -41,31 +53,50 @@ namespace BankDds.Infrastructure.Configuration
             var template = GetPublisherTemplate();
             return InjectCredentials(template, sqlLogin, sqlPassword);
         }
+
         [Obsolete("Use GetPublisherConnection() instead.")]
         public string GetBankConnection() => GetPublisherConnection();
 
         public string GetConnectionStringForBranch(string branch)
         {
             var normalizedBranch = (branch ?? string.Empty).Trim().ToUpperInvariant();
+
             if (string.IsNullOrWhiteSpace(normalizedBranch))
+            {
                 throw new InvalidOperationException("Mã chi nhánh không được để trống khi lấy chuỗi kết nối.");
+            }
+
             var key = $"ConnectionStrings:Branch_{normalizedBranch}";
             var template = _configuration[key]
                 ?? throw new InvalidOperationException(
                     $"Không tìm thấy chuỗi kết nối cho chi nhánh: {normalizedBranch}");
+
+            // Logic: branch data access must run under current authenticated SQL login.
             if (_sqlLogin is null || _sqlPassword is null)
+            {
                 throw new InvalidOperationException(
                     "Chưa thiết lập thông tin đăng nhập SQL. Hãy gọi SetSqlLoginCredentials trước.");
+            }
+
             return InjectCredentials(template, _sqlLogin, _sqlPassword);
         }
 
         public string? GetLookupConnection()
         {
             var template = _configuration["ConnectionStrings:LookupDatabase"];
-            if (template is null) return null;
+
+            if (template is null)
+            {
+                return null;
+            }
+
+            // Logic: lookup queries must use the same SQL identity to keep permission model consistent.
             if (_sqlLogin is null || _sqlPassword is null)
+            {
                 throw new InvalidOperationException(
                     "Chưa thiết lập thông tin đăng nhập SQL. Hãy gọi SetSqlLoginCredentials trước.");
+            }
+
             return InjectCredentials(template, _sqlLogin, _sqlPassword);
         }
 
@@ -81,8 +112,10 @@ namespace BankDds.Infrastructure.Configuration
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(code => code, StringComparer.OrdinalIgnoreCase)
                 .ToList();
+
             return branchCodes;
         }
+
         public string DefaultBranch =>
             _configuration["DatabaseSettings:DefaultBranch"] ?? "BENTHANH";
 
@@ -100,6 +133,7 @@ namespace BankDds.Infrastructure.Configuration
                 UserID = login,
                 Password = password
             };
+
             return builder.ConnectionString;
         }
     }

@@ -2,6 +2,9 @@ using Caliburn.Micro;
 
 namespace BankDds.Wpf.ViewModels
 {
+    /// <summary>
+    /// Handles BaseViewModel responsibilities in the application.
+    /// </summary>
     public abstract class BaseViewModel : Screen
     {
         private bool _isLoading;

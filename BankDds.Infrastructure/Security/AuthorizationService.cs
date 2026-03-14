@@ -3,10 +3,17 @@ using BankDds.Core.Models;
 
 namespace BankDds.Infrastructure.Security
 {
+    /// <summary>
+    /// Evaluates authorization rules for role-based access and branch data scope.
+    /// </summary>
     public class AuthorizationService : IAuthorizationService
     {
         private readonly IUserSession _userSession;
 
+        /// <summary>
+        /// Initializes authorization service with current user session context.
+        /// </summary>
+        /// <param name="userSession">Current authenticated user session.</param>
         public AuthorizationService(IUserSession userSession)
         {
             _userSession = userSession;
@@ -14,47 +21,80 @@ namespace BankDds.Infrastructure.Security
 
         public bool CanAccessAdmin()
         {
+            // Logic: only NganHang and ChiNhanh can use login/user administration screens.
             return _userSession.UserGroup == UserGroup.NganHang ||
                    _userSession.UserGroup == UserGroup.ChiNhanh;
         }
 
         public bool CanCreateUser(UserGroup targetUserGroup)
         {
+            // Logic: NganHang can create only NganHang; ChiNhanh can create ChiNhanh and KhachHang.
             if (_userSession.UserGroup == UserGroup.NganHang)
+            {
                 return targetUserGroup == UserGroup.NganHang;
+            }
+
             if (_userSession.UserGroup == UserGroup.ChiNhanh)
+            {
                 return targetUserGroup is UserGroup.ChiNhanh or UserGroup.KhachHang;
+            }
+
             return false;
         }
 
         public bool CanAccessBranch(string branchCode)
         {
             if (_userSession.UserGroup == UserGroup.NganHang)
+            {
                 return true;
+            }
+
             if (_userSession.UserGroup == UserGroup.ChiNhanh)
+            {
                 return branchCode == _userSession.SelectedBranch;
+            }
+
             if (_userSession.UserGroup == UserGroup.KhachHang)
+            {
                 return branchCode == _userSession.SelectedBranch;
+            }
+
             return false;
         }
 
         public bool CanModifyBranch(string branchCode)
         {
+            // Logic: ChiNhanh is full-access only in its own branch; NganHang is report/global-admin scope.
             if (_userSession.UserGroup == UserGroup.NganHang)
+            {
                 return false;
+            }
+
             if (_userSession.UserGroup == UserGroup.ChiNhanh)
+            {
                 return branchCode == _userSession.SelectedBranch;
+            }
+
             return false;
         }
 
         public bool CanAccessCustomer(string cmnd)
         {
             if (_userSession.UserGroup == UserGroup.NganHang)
+            {
                 return true;
+            }
+
             if (_userSession.UserGroup == UserGroup.ChiNhanh)
+            {
                 return true;
+            }
+
             if (_userSession.UserGroup == UserGroup.KhachHang)
+            {
                 return cmnd == _userSession.CustomerCMND;
+            }
+
             return false;
         }
 
@@ -65,17 +105,27 @@ namespace BankDds.Infrastructure.Security
 
         public bool CanPerformTransactions(string branchCode)
         {
+            // Logic: KhachHang is statement-only role and cannot execute transaction posting operations.
             if (_userSession.UserGroup == UserGroup.KhachHang)
+            {
                 return false;
+            }
+
             return CanModifyBranch(branchCode);
         }
 
         public bool CanAccessReports(string? branchCode = null)
         {
             if (_userSession.UserGroup == UserGroup.NganHang)
+            {
                 return true;
+            }
+
             if (_userSession.UserGroup == UserGroup.ChiNhanh)
+            {
                 return branchCode == null || branchCode == _userSession.SelectedBranch;
+            }
+
             return false;
         }
 
@@ -136,9 +186,15 @@ namespace BankDds.Infrastructure.Security
         public bool CanManageUserInBranch(string userDefaultBranch)
         {
             if (_userSession.UserGroup == UserGroup.NganHang)
+            {
                 return true;
+            }
+
             if (_userSession.UserGroup == UserGroup.ChiNhanh)
+            {
                 return userDefaultBranch == _userSession.SelectedBranch;
+            }
+
             return false;
         }
 
@@ -164,7 +220,8 @@ namespace BankDds.Infrastructure.Security
         {
             if (!CanAccessReports(branchCode))
             {
-                string scope = branchCode == null ? "tất cả chi nhánh" : $"chi nhánh '{branchCode}'";
+                var scope = branchCode == null ? "tất cả chi nhánh" : $"chi nhánh '{branchCode}'";
+
                 throw new UnauthorizedAccessException(
                     $"Bạn không có quyền truy cập báo cáo cho phạm vi {scope}.");
             }
@@ -173,7 +230,10 @@ namespace BankDds.Infrastructure.Security
         public string? GetEffectiveBranchFilter()
         {
             if (_userSession.UserGroup == UserGroup.NganHang)
+            {
                 return null;
+            }
+
             return _userSession.SelectedBranch;
         }
     }

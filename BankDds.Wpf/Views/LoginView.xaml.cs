@@ -4,8 +4,14 @@ using BankDds.Wpf.ViewModels;
 
 namespace BankDds.Wpf.Views
 {
+    /// <summary>
+    /// Handles LoginView responsibilities in the application.
+    /// </summary>
     public partial class LoginView : UserControl
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="LoginView"/> class.
+        /// </summary>
         public LoginView()
         {
             InitializeComponent();

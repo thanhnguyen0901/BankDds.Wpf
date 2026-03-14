@@ -1,5 +1,8 @@
 namespace BankDds.Core.Models
 {
+    /// <summary>
+    /// Represents an application login mapped to role, branch scope, and person identity.
+    /// </summary>
     public class User
     {
         public string Username { get; set; } = string.Empty;

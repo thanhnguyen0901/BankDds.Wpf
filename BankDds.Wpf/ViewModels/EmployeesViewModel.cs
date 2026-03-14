@@ -6,6 +6,9 @@ using System.Collections.ObjectModel;
 
 namespace BankDds.Wpf.ViewModels
 {
+    /// <summary>
+    /// Handles EmployeesViewModel responsibilities in the application.
+    /// </summary>
     public class EmployeesViewModel : Screen
     {
         private readonly IEmployeeService _employeeService;
@@ -18,6 +21,14 @@ namespace BankDds.Wpf.ViewModels
         private bool _isEditing;
         private string _errorMessage = string.Empty;
         private string _transferBranch = string.Empty;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EmployeesViewModel"/> class.
+        /// </summary>
+        /// <param name="employeeService"></param>
+        /// <param name="userSession"></param>
+        /// <param name="dialogService"></param>
+        /// <param name="validator"></param>
         public EmployeesViewModel(
             IEmployeeService employeeService,
             IUserSession userSession,

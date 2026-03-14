@@ -3,6 +3,9 @@ using System.Windows.Data;
 
 namespace BankDds.Wpf.Converters
 {
+    /// <summary>
+    /// Handles ActiveItemConverter responsibilities in the application.
+    /// </summary>
     public class ActiveItemConverter : IMultiValueConverter
     {
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)

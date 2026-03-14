@@ -1,5 +1,8 @@
 namespace BankDds.Core.Models
 {
+    /// <summary>
+    /// Represents a customer profile that owns accounts and is registered at one home branch.
+    /// </summary>
     public class Customer
     {
         public string CMND { get; set; } = string.Empty;

@@ -4,6 +4,9 @@ using System.Windows.Data;
 
 namespace BankDds.Wpf.Converters
 {
+    /// <summary>
+    /// Handles BoolToVisibilityConverter responsibilities in the application.
+    /// </summary>
     public class BoolToVisibilityConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)

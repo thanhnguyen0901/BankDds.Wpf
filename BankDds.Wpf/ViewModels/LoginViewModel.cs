@@ -5,6 +5,9 @@ using Caliburn.Micro;
 
 namespace BankDds.Wpf.ViewModels
 {
+    /// <summary>
+    /// Handles LoginViewModel responsibilities in the application.
+    /// </summary>
     public class LoginViewModel : Screen
     {
         private readonly IAuthService _authService;
@@ -15,6 +18,14 @@ namespace BankDds.Wpf.ViewModels
         private string _userName = string.Empty;
         private string _password = string.Empty;
         private string _errorMessage = string.Empty;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="LoginViewModel"/> class.
+        /// </summary>
+        /// <param name="authService"></param>
+        /// <param name="branchService"></param>
+        /// <param name="userSession"></param>
+        /// <param name="connectionStringProvider"></param>
         public LoginViewModel(
             IAuthService authService,
             IBranchService branchService,

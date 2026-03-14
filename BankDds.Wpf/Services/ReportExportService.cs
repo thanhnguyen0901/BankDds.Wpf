@@ -12,6 +12,9 @@ using System.IO;
 
 namespace BankDds.Wpf.Services
 {
+    /// <summary>
+    /// Handles ReportExportService responsibilities in the application.
+    /// </summary>
     public class ReportExportService : IReportExportService
     {
         private static PdfFont CreateVietnameseFont()
@@ -155,7 +158,7 @@ namespace BankDds.Wpf.Services
                 ws.Cell(1, 1).Style.Font.Bold = true;
                 ws.Cell(1, 1).Style.Font.FontSize = 14;
                 ws.Cell(2, 1).Value = $"Tài khoản: {statement.SOTK}";
-                ws.Cell(3, 1).Value = $"Từ: {statement.FromDate:dd/MM/yyyy}  —  đến: {statement.ToDate:dd/MM/yyyy}";
+                ws.Cell(3, 1).Value = $"Từ: {statement.FromDate:dd/MM/yyyy} đến: {statement.ToDate:dd/MM/yyyy}";
                 ws.Cell(4, 1).Value = $"Ngày xuất: {DateTime.Now:dd/MM/yyyy HH:mm:ss}";
                 ws.Cell(5, 1).Value = "Số dư đầu kỳ:";
                 ws.Cell(5, 1).Style.Font.Bold = true;
@@ -240,7 +243,7 @@ namespace BankDds.Wpf.Services
                 ws.Cell(1, 1).Value = "BÁO CÁO TÀI KHOẢN ĐÃ MỞ";
                 ws.Cell(1, 1).Style.Font.Bold = true;
                 ws.Cell(1, 1).Style.Font.FontSize = 14;
-                ws.Cell(2, 1).Value = $"Từ: {fromDate:dd/MM/yyyy}  —  đến: {toDate:dd/MM/yyyy}";
+                ws.Cell(2, 1).Value = $"Từ: {fromDate:dd/MM/yyyy} đến: {toDate:dd/MM/yyyy}";
                 ws.Cell(3, 1).Value = $"Ngày xuất: {DateTime.Now:dd/MM/yyyy HH:mm:ss}";
                 int headerRow = 5;
                 string[] headers = ["Số TK", "CMND", "Số dư", "Chi nhánh", "Ngày mở"];
@@ -432,7 +435,7 @@ namespace BankDds.Wpf.Services
                 wsSummary.Cell(1, 1).Value = "BÁO CÁO TỔNG HỢP GIAO DỊCH";
                 wsSummary.Cell(1, 1).Style.Font.Bold = true;
                 wsSummary.Cell(1, 1).Style.Font.FontSize = 14;
-                wsSummary.Cell(2, 1).Value = $"Từ: {summary.FromDate:dd/MM/yyyy}  —  đến: {summary.ToDate:dd/MM/yyyy}";
+                wsSummary.Cell(2, 1).Value = $"Từ: {summary.FromDate:dd/MM/yyyy} đến: {summary.ToDate:dd/MM/yyyy}";
                 wsSummary.Cell(3, 1).Value = $"Chi nhánh: {summary.BranchDisplay}";
                 wsSummary.Cell(4, 1).Value = $"Ngày xuất: {DateTime.Now:dd/MM/yyyy HH:mm:ss}";
                 int r = 6;

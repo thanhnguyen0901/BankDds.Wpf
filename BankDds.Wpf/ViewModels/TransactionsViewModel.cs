@@ -6,6 +6,9 @@ using System.Collections.ObjectModel;
 
 namespace BankDds.Wpf.ViewModels
 {
+    /// <summary>
+    /// Handles TransactionsViewModel responsibilities in the application.
+    /// </summary>
     public class TransactionsViewModel : BaseViewModel
     {
         private readonly ITransactionService _transactionService;
@@ -23,6 +26,15 @@ namespace BankDds.Wpf.ViewModels
         private readonly decimal _maxSingleAmount;
         private readonly decimal _maxDailyWithdrawal;
         private readonly decimal _maxDailyTransfer;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TransactionsViewModel"/> class.
+        /// </summary>
+        /// <param name="transactionService"></param>
+        /// <param name="accountService"></param>
+        /// <param name="userSession"></param>
+        /// <param name="configuration"></param>
+        /// <param name="validator"></param>
         public TransactionsViewModel(
             ITransactionService transactionService,
             IAccountService accountService,
