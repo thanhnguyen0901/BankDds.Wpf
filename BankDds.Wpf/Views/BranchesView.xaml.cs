@@ -1,11 +1,12 @@
 using System.Windows.Controls;
 
-namespace BankDds.Wpf.Views;
-
-public partial class BranchesView : UserControl
+namespace BankDds.Wpf.Views
 {
-    public BranchesView()
+    public partial class BranchesView : UserControl
     {
-        InitializeComponent();
+        public BranchesView()
+        {
+            InitializeComponent();
+        }
     }
 }

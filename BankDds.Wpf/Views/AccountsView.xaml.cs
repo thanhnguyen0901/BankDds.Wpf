@@ -1,11 +1,12 @@
 using System.Windows.Controls;
 
-namespace BankDds.Wpf.Views;
-
-public partial class AccountsView : UserControl
+namespace BankDds.Wpf.Views
 {
-    public AccountsView()
+    public partial class AccountsView : UserControl
     {
-        InitializeComponent();
+        public AccountsView()
+        {
+            InitializeComponent();
+        }
     }
 }

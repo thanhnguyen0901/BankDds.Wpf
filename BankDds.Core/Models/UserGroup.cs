@@ -1,8 +1,9 @@
-namespace BankDds.Core.Models;
-
-public enum UserGroup
+namespace BankDds.Core.Models
 {
-    NganHang,
-    ChiNhanh,
-    KhachHang
+    public enum UserGroup
+    {
+        NganHang,
+        ChiNhanh,
+        KhachHang
+    }
 }

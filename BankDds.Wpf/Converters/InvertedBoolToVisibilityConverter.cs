@@ -2,25 +2,26 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 
-namespace BankDds.Wpf.Converters;
-
-public class InvertedBoolToVisibilityConverter : IValueConverter
+namespace BankDds.Wpf.Converters
 {
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    public class InvertedBoolToVisibilityConverter : IValueConverter
     {
-        if (value is bool boolValue)
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            return boolValue ? Visibility.Collapsed : Visibility.Visible;
+            if (value is bool boolValue)
+            {
+                return boolValue ? Visibility.Collapsed : Visibility.Visible;
+            }
+            return Visibility.Visible;
         }
-        return Visibility.Visible;
-    }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-    {
-        if (value is Visibility visibility)
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            return visibility == Visibility.Collapsed;
+            if (value is Visibility visibility)
+            {
+                return visibility == Visibility.Collapsed;
+            }
+            return true;
         }
-        return true;
     }
 }

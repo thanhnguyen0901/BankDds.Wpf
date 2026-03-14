@@ -4,196 +4,180 @@ using BankDds.Core.Validators;
 using Caliburn.Micro;
 using System.Collections.ObjectModel;
 
-namespace BankDds.Wpf.ViewModels;
-
-public class BranchesViewModel : BaseViewModel
+namespace BankDds.Wpf.ViewModels
 {
-    private readonly IBranchService _branchService;
-    private readonly IUserSession _userSession;
-    private readonly BranchValidator _validator;
-
-    private ObservableCollection<Branch> _branches = new();
-    private Branch? _selectedBranch;
-    private Branch _editingBranch = new();
-    private bool _isEditing;
-
-    public BranchesViewModel(
-        IBranchService branchService,
-        IUserSession userSession,
-        BranchValidator validator)
+    public class BranchesViewModel : BaseViewModel
     {
-        _branchService = branchService;
-        _userSession   = userSession;
-        _validator     = validator;
-        DisplayName    = "Quản lý chi nhánh";
-    }
-
-    public ObservableCollection<Branch> Branches
-    {
-        get => _branches;
-        set { _branches = value; NotifyOfPropertyChange(() => Branches); }
-    }
-
-    public Branch? SelectedBranch
-    {
-        get => _selectedBranch;
-        set
+        private readonly IBranchService _branchService;
+        private readonly IUserSession _userSession;
+        private readonly BranchValidator _validator;
+        private ObservableCollection<Branch> _branches = new();
+        private Branch? _selectedBranch;
+        private Branch _editingBranch = new();
+        private bool _isEditing;
+        public BranchesViewModel(
+            IBranchService branchService,
+            IUserSession userSession,
+            BranchValidator validator)
         {
-            _selectedBranch = value;
-            NotifyOfPropertyChange(() => SelectedBranch);
-            NotifyOfPropertyChange(() => CanEdit);
-            NotifyOfPropertyChange(() => CanDelete);
+            _branchService = branchService;
+            _userSession = userSession;
+            _validator = validator;
+            DisplayName = "Quản lý chi nhánh";
         }
-    }
-
-    public Branch EditingBranch
-    {
-        get => _editingBranch;
-        set
+        public ObservableCollection<Branch> Branches
         {
-            _editingBranch = value;
-            NotifyOfPropertyChange(() => EditingBranch);
-            NotifyOfPropertyChange(() => CanSave);
+            get => _branches;
+            set { _branches = value; NotifyOfPropertyChange(() => Branches); }
         }
-    }
-
-    public bool IsEditing
-    {
-        get => _isEditing;
-        set
+        public Branch? SelectedBranch
         {
-            _isEditing = value;
-            NotifyOfPropertyChange(() => IsEditing);
-            NotifyOfPropertyChange(() => CanAdd);
-            NotifyOfPropertyChange(() => CanEdit);
-            NotifyOfPropertyChange(() => CanDelete);
-            NotifyOfPropertyChange(() => CanSave);
-            NotifyOfPropertyChange(() => CanCancel);
-        }
-    }
-
-    public bool CanAdd    => !IsEditing;
-    public bool CanEdit   => SelectedBranch != null && !IsEditing;
-    public bool CanDelete => SelectedBranch != null && !IsEditing;
-    public bool CanSave   => IsEditing
-                             && !string.IsNullOrWhiteSpace(EditingBranch.MACN)
-                             && !string.IsNullOrWhiteSpace(EditingBranch.TENCN);
-    public bool CanCancel => IsEditing;
-
-    protected override async Task OnActivateAsync(CancellationToken cancellationToken)
-    {
-        await base.OnActivateAsync(cancellationToken);
-
-        if (_userSession.UserGroup != UserGroup.NganHang)
-        {
-            ErrorMessage = "Không có quyền: chỉ nhóm Ngân hàng mới được quản lý chi nhánh.";
-            return;
-        }
-
-        await LoadBranchesAsync();
-    }
-
-    private async Task LoadBranchesAsync()
-    {
-        await ExecuteWithLoadingAsync(async () =>
-        {
-            var branches = await _branchService.GetAllBranchesAsync();
-            Branches = new ObservableCollection<Branch>(branches);
-        });
-    }
-
-    public void Add()
-    {
-        EditingBranch  = new Branch();
-        IsEditing      = true;
-        SelectedBranch = null;
-        ErrorMessage   = string.Empty;
-        SuccessMessage = string.Empty;
-    }
-
-    public void Edit()
-    {
-        if (SelectedBranch == null) return;
-
-        EditingBranch = new Branch
-        {
-            MACN   = SelectedBranch.MACN,
-            TENCN  = SelectedBranch.TENCN,
-            DiaChi = SelectedBranch.DiaChi,
-            SODT   = SelectedBranch.SODT
-        };
-        IsEditing      = true;
-        ErrorMessage   = string.Empty;
-        SuccessMessage = string.Empty;
-    }
-
-    public async Task Save()
-    {
-        await ExecuteWithLoadingAsync(async () =>
-        {
-            var validationResult = await _validator.ValidateAsync(EditingBranch);
-            if (!validationResult.IsValid)
+            get => _selectedBranch;
+            set
             {
-                ErrorMessage = string.Join(Environment.NewLine,
-                    validationResult.Errors.Select(e => e.ErrorMessage));
+                _selectedBranch = value;
+                NotifyOfPropertyChange(() => SelectedBranch);
+                NotifyOfPropertyChange(() => CanEdit);
+                NotifyOfPropertyChange(() => CanDelete);
+            }
+        }
+        public Branch EditingBranch
+        {
+            get => _editingBranch;
+            set
+            {
+                _editingBranch = value;
+                NotifyOfPropertyChange(() => EditingBranch);
+                NotifyOfPropertyChange(() => CanSave);
+            }
+        }
+        public bool IsEditing
+        {
+            get => _isEditing;
+            set
+            {
+                _isEditing = value;
+                NotifyOfPropertyChange(() => IsEditing);
+                NotifyOfPropertyChange(() => CanAdd);
+                NotifyOfPropertyChange(() => CanEdit);
+                NotifyOfPropertyChange(() => CanDelete);
+                NotifyOfPropertyChange(() => CanSave);
+                NotifyOfPropertyChange(() => CanCancel);
+            }
+        }
+        public bool CanAdd => !IsEditing;
+        public bool CanEdit => SelectedBranch != null && !IsEditing;
+        public bool CanDelete => SelectedBranch != null && !IsEditing;
+        public bool CanSave => IsEditing
+                                 && !string.IsNullOrWhiteSpace(EditingBranch.MACN)
+                                 && !string.IsNullOrWhiteSpace(EditingBranch.TENCN);
+        public bool CanCancel => IsEditing;
+
+        protected override async Task OnActivateAsync(CancellationToken cancellationToken)
+        {
+            await base.OnActivateAsync(cancellationToken);
+            if (_userSession.UserGroup != UserGroup.NganHang)
+            {
+                ErrorMessage = "Không có quyền: chỉ nhóm Ngân hàng mới được quản lý chi nhánh.";
                 return;
             }
+            await LoadBranchesAsync();
+        }
 
-            bool result;
-
-            if (SelectedBranch == null)
-            {
-                // Adding new branch
-                result = await _branchService.AddBranchAsync(EditingBranch);
-                if (result)
-                    SuccessMessage = $"Thêm chi nhánh '{EditingBranch.MACN}' thành công.";
-                else
-                    ErrorMessage = $"Không thể thêm chi nhánh - mã '{EditingBranch.MACN}' có thể đã tồn tại.";
-            }
-            else
-            {
-                // Updating existing branch (MACN is the PK, cannot be changed here)
-                result = await _branchService.UpdateBranchAsync(EditingBranch);
-                if (result)
-                    SuccessMessage = $"Cập nhật chi nhánh '{EditingBranch.MACN}' thành công.";
-                else
-                    ErrorMessage = "Không thể cập nhật chi nhánh.";
-            }
-
-            if (result)
-            {
-                await LoadBranchesAsync();
-                Cancel();
-            }
-        });
-    }
-
-    public async Task Delete()
-    {
-        if (SelectedBranch == null) return;
-
-        await ExecuteWithLoadingAsync(async () =>
+        private async Task LoadBranchesAsync()
         {
-            var result = await _branchService.DeleteBranchAsync(SelectedBranch.MACN);
-            if (result)
+            await ExecuteWithLoadingAsync(async () =>
             {
-                await LoadBranchesAsync();
-                SelectedBranch = null;
-                SuccessMessage = "Xóa chi nhánh thành công.";
-            }
-            else
-            {
-                ErrorMessage = "Không thể xóa chi nhánh - có thể đang có tài khoản hoặc khách hàng liên kết.";
-            }
-        });
-    }
+                var branches = await _branchService.GetAllBranchesAsync();
+                Branches = new ObservableCollection<Branch>(branches);
+            });
+        }
 
-    public void Cancel()
-    {
-        IsEditing      = false;
-        EditingBranch  = new Branch();
-        ErrorMessage   = string.Empty;
-        SuccessMessage = string.Empty;
+        public void Add()
+        {
+            EditingBranch = new Branch();
+            IsEditing = true;
+            SelectedBranch = null;
+            ErrorMessage = string.Empty;
+            SuccessMessage = string.Empty;
+        }
+
+        public void Edit()
+        {
+            if (SelectedBranch == null) return;
+            EditingBranch = new Branch
+            {
+                MACN = SelectedBranch.MACN,
+                TENCN = SelectedBranch.TENCN,
+                DiaChi = SelectedBranch.DiaChi,
+                SODT = SelectedBranch.SODT
+            };
+            IsEditing = true;
+            ErrorMessage = string.Empty;
+            SuccessMessage = string.Empty;
+        }
+
+        public async Task Save()
+        {
+            await ExecuteWithLoadingAsync(async () =>
+            {
+                var validationResult = await _validator.ValidateAsync(EditingBranch);
+                if (!validationResult.IsValid)
+                {
+                    ErrorMessage = string.Join(Environment.NewLine,
+                        validationResult.Errors.Select(e => e.ErrorMessage));
+                    return;
+                }
+                bool result;
+                if (SelectedBranch == null)
+                {
+                    result = await _branchService.AddBranchAsync(EditingBranch);
+                    if (result)
+                        SuccessMessage = $"Thêm chi nhánh '{EditingBranch.MACN}' thành công.";
+                    else
+                        ErrorMessage = $"Không thể thêm chi nhánh - mã '{EditingBranch.MACN}' có thể đã tồn tại.";
+                }
+                else
+                {
+                    result = await _branchService.UpdateBranchAsync(EditingBranch);
+                    if (result)
+                        SuccessMessage = $"Cập nhật chi nhánh '{EditingBranch.MACN}' thành công.";
+                    else
+                        ErrorMessage = "Không thể cập nhật chi nhánh.";
+                }
+                if (result)
+                {
+                    await LoadBranchesAsync();
+                    Cancel();
+                }
+            });
+        }
+
+        public async Task Delete()
+        {
+            if (SelectedBranch == null) return;
+            await ExecuteWithLoadingAsync(async () =>
+            {
+                var result = await _branchService.DeleteBranchAsync(SelectedBranch.MACN);
+                if (result)
+                {
+                    await LoadBranchesAsync();
+                    SelectedBranch = null;
+                    SuccessMessage = "Xóa chi nhánh thành công.";
+                }
+                else
+                {
+                    ErrorMessage = "Không thể xóa chi nhánh - có thể đang có tài khoản hoặc khách hàng liên kết.";
+                }
+            });
+        }
+
+        public void Cancel()
+        {
+            IsEditing = false;
+            EditingBranch = new Branch();
+            ErrorMessage = string.Empty;
+            SuccessMessage = string.Empty;
+        }
     }
 }
-

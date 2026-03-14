@@ -1,11 +1,12 @@
 using System.Windows;
 
-namespace BankDds.Wpf;
-
-public partial class App : Application
+namespace BankDds.Wpf
 {
-    public App()
+    public partial class App : Application
     {
-        new AppBootstrapper();
+        public App()
+        {
+            new AppBootstrapper();
+        }
     }
 }

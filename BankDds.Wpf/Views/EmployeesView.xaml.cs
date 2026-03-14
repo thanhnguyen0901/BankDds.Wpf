@@ -1,11 +1,12 @@
 using System.Windows.Controls;
 
-namespace BankDds.Wpf.Views;
-
-public partial class EmployeesView : UserControl
+namespace BankDds.Wpf.Views
 {
-    public EmployeesView()
+    public partial class EmployeesView : UserControl
     {
-        InitializeComponent();
+        public EmployeesView()
+        {
+            InitializeComponent();
+        }
     }
 }

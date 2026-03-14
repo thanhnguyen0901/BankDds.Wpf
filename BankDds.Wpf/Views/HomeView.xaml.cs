@@ -1,11 +1,12 @@
 using System.Windows.Controls;
 
-namespace BankDds.Wpf.Views;
-
-public partial class HomeView : UserControl
+namespace BankDds.Wpf.Views
 {
-    public HomeView()
+    public partial class HomeView : UserControl
     {
-        InitializeComponent();
+        public HomeView()
+        {
+            InitializeComponent();
+        }
     }
 }

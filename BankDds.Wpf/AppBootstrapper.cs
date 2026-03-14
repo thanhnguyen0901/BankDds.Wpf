@@ -13,237 +13,171 @@ using System.IO;
 using System.Reflection;
 using System.Windows;
 
-namespace BankDds.Wpf;
-
-public class AppBootstrapper : BootstrapperBase
+namespace BankDds.Wpf
 {
-    private IContainer? _container;
-
-    public AppBootstrapper()
+    public class AppBootstrapper : BootstrapperBase
     {
-        Initialize();
-    }
+        private IContainer? _container;
 
-    protected override void Configure()
-    {
-        // Configure Caliburn.Micro ViewLocator to handle custom view locations
-        ConfigureViewLocator();
-
-        var builder = new ContainerBuilder();
-
-        // Configuration
-        // Priority (highest -> lowest):
-        //   1. Environment variables (BANKDDS_CONNSTR_* or standard ConnectionStrings__* style)
-        //   2. appsettings.Development.json  (git-ignored - local dev secrets)
-        //   3. appsettings.json              (committed - placeholders only, no real passwords)
-        var configuration = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-            .AddJsonFile("appsettings.Development.json", optional: true, reloadOnChange: true)
-            .AddEnvironmentVariables()
-            .Build();
-
-        builder.RegisterInstance(configuration).As<IConfiguration>().SingleInstance();
-
-        // Logging - routes to Visual Studio Debug Output (no-op in Release unless AddConsole() is wired)
-        var loggerFactory = LoggerFactory.Create(lb =>
+        public AppBootstrapper()
         {
-            lb.SetMinimumLevel(LogLevel.Debug);
-            lb.AddDebug();
-        });
-        builder.RegisterInstance(loggerFactory).As<ILoggerFactory>().SingleInstance();
-        // Open-generic registration: any ILogger<T> resolved from the container
-        // is created via the factory so all categories share the same provider chain.
-        builder.RegisterGeneric(typeof(Logger<>)).As(typeof(ILogger<>)).SingleInstance();
+            Initialize();
+        }
 
-        // Caliburn services
-        builder.RegisterType<EventAggregator>()
-               .As<IEventAggregator>()
-               .SingleInstance();
-
-        builder.RegisterType<WindowManager>()
-               .As<IWindowManager>()
-               .SingleInstance();
-
-        // Dialog service
-        builder.RegisterType<DialogService>()
-               .As<IDialogService>()
-               .SingleInstance();
-
-        // Report Export service
-        builder.RegisterType<ReportExportService>()
-               .As<IReportExportService>()
-               .SingleInstance();
-
-        // Configuration services
-        builder.RegisterType<ConnectionStringProvider>()
-               .As<IConnectionStringProvider>()
-               .SingleInstance();
-
-        // User session
-        builder.RegisterType<UserSession>()
-               .As<IUserSession>()
-               .SingleInstance();
-
-        // Authorization service
-        builder.RegisterType<AuthorizationService>()
-               .As<IAuthorizationService>()
-               .SingleInstance();
-
-        // Validators - Register as singletons
-        builder.RegisterType<CustomerValidator>().AsSelf().SingleInstance();
-        builder.RegisterType<AccountValidator>().AsSelf().SingleInstance();
-        builder.RegisterType<EmployeeValidator>().AsSelf().SingleInstance();
-        builder.RegisterType<TransactionValidator>().AsSelf().SingleInstance();
-        builder.RegisterType<UserValidator>().AsSelf().SingleInstance();
-        builder.RegisterType<BranchValidator>().AsSelf().SingleInstance();
-
-        // Data access repositories
-        builder.RegisterType<CustomerRepository>()
-               .As<ICustomerRepository>()
-               .InstancePerDependency();
-
-        builder.RegisterType<AccountRepository>()
-               .As<IAccountRepository>()
-               .InstancePerDependency();
-
-        builder.RegisterType<EmployeeRepository>()
-               .As<IEmployeeRepository>()
-               .InstancePerDependency();
-
-        builder.RegisterType<TransactionRepository>()
-               .As<ITransactionRepository>()
-               .InstancePerDependency();
-
-        builder.RegisterType<UserRepository>()
-               .As<IUserRepository>()
-               .InstancePerDependency();
-
-        builder.RegisterType<ReportRepository>()
-               .As<IReportRepository>()
-               .InstancePerDependency();
-
-        // BranchRepository only holds IConnectionStringProvider (singleton),
-        // so SingleInstance is safe and avoids captive-dependency issues in validators.
-        builder.RegisterType<BranchRepository>()
-               .As<IBranchRepository>()
-               .SingleInstance();
-
-        builder.RegisterType<CustomerLookupRepository>()
-               .As<ICustomerLookupRepository>()
-               .InstancePerDependency();
-
-        // Business services layer - these wrap repositories with additional logic
-        builder.RegisterType<CustomerService>()
-               .As<ICustomerService>()
-               .SingleInstance();
-
-        builder.RegisterType<BranchService>()
-               .As<IBranchService>()
-               .SingleInstance();
-
-        builder.RegisterType<AccountService>()
-               .As<IAccountService>()
-               .SingleInstance();
-
-        builder.RegisterType<EmployeeService>()
-               .As<IEmployeeService>()
-               .SingleInstance();
-
-        builder.RegisterType<TransactionService>()
-               .As<ITransactionService>()
-               .SingleInstance();
-
-        builder.RegisterType<ReportService>()
-               .As<IReportService>()
-               .SingleInstance();
-
-        builder.RegisterType<UserService>()
-               .As<IUserService>()
-               .SingleInstance();
-
-        builder.RegisterType<CustomerLookupService>()
-               .As<ICustomerLookupService>()
-               .SingleInstance();
-
-        // Banking authentication: SQL login -> sp_DangNhap on Publisher
-        builder.RegisterType<AuthService>()
-               .As<IAuthService>()
-               .SingleInstance();
-
-        // Shell - SingleInstance to maintain state
-        builder.RegisterType<MainShellViewModel>()
-               .AsSelf()
-               .SingleInstance();
-
-        // ViewModels - register all types ending with ViewModel
-        builder.RegisterAssemblyTypes(Assembly.GetExecutingAssembly())
-               .Where(t => t.Name.EndsWith("ViewModel") && t != typeof(MainShellViewModel))
-               .AsSelf()
-               .InstancePerDependency();
-
-        _container = builder.Build();
-    }
-
-    private void ConfigureViewLocator()
-    {
-        // Store the original transform function
-        var originalTransform = ViewLocator.LocateTypeForModelType;
-
-        // Override the ViewLocator to handle custom locations
-        ViewLocator.LocateTypeForModelType = (modelType, displayLocation, context) =>
+        protected override void Configure()
         {
-            // Special handling for MainShellViewModel
-            if (modelType == typeof(MainShellViewModel))
+            ConfigureViewLocator();
+            var builder = new ContainerBuilder();
+            var configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .AddJsonFile("appsettings.Development.json", optional: true, reloadOnChange: true)
+                .AddEnvironmentVariables()
+                .Build();
+            builder.RegisterInstance(configuration).As<IConfiguration>().SingleInstance();
+            var loggerFactory = LoggerFactory.Create(lb =>
             {
-                // Search for MainShellView in the current assembly
-                var viewType = Assembly.GetExecutingAssembly()
-                    .GetTypes()
-                    .FirstOrDefault(t => t.Name == "MainShellView" && t.Namespace == "BankDds.Wpf.Shell");
+                lb.SetMinimumLevel(LogLevel.Debug);
+                lb.AddDebug();
+            });
+            builder.RegisterInstance(loggerFactory).As<ILoggerFactory>().SingleInstance();
+            builder.RegisterGeneric(typeof(Logger<>)).As(typeof(ILogger<>)).SingleInstance();
+            builder.RegisterType<EventAggregator>()
+                   .As<IEventAggregator>()
+                   .SingleInstance();
+            builder.RegisterType<WindowManager>()
+                   .As<IWindowManager>()
+                   .SingleInstance();
+            builder.RegisterType<DialogService>()
+                   .As<IDialogService>()
+                   .SingleInstance();
+            builder.RegisterType<ReportExportService>()
+                   .As<IReportExportService>()
+                   .SingleInstance();
+            builder.RegisterType<ConnectionStringProvider>()
+                   .As<IConnectionStringProvider>()
+                   .SingleInstance();
+            builder.RegisterType<UserSession>()
+                   .As<IUserSession>()
+                   .SingleInstance();
+            builder.RegisterType<AuthorizationService>()
+                   .As<IAuthorizationService>()
+                   .SingleInstance();
+            builder.RegisterType<CustomerValidator>().AsSelf().SingleInstance();
+            builder.RegisterType<AccountValidator>().AsSelf().SingleInstance();
+            builder.RegisterType<EmployeeValidator>().AsSelf().SingleInstance();
+            builder.RegisterType<TransactionValidator>().AsSelf().SingleInstance();
+            builder.RegisterType<UserValidator>().AsSelf().SingleInstance();
+            builder.RegisterType<BranchValidator>().AsSelf().SingleInstance();
+            builder.RegisterType<CustomerRepository>()
+                   .As<ICustomerRepository>()
+                   .InstancePerDependency();
+            builder.RegisterType<AccountRepository>()
+                   .As<IAccountRepository>()
+                   .InstancePerDependency();
+            builder.RegisterType<EmployeeRepository>()
+                   .As<IEmployeeRepository>()
+                   .InstancePerDependency();
+            builder.RegisterType<TransactionRepository>()
+                   .As<ITransactionRepository>()
+                   .InstancePerDependency();
+            builder.RegisterType<UserRepository>()
+                   .As<IUserRepository>()
+                   .InstancePerDependency();
+            builder.RegisterType<ReportRepository>()
+                   .As<IReportRepository>()
+                   .InstancePerDependency();
+            builder.RegisterType<BranchRepository>()
+                   .As<IBranchRepository>()
+                   .SingleInstance();
+            builder.RegisterType<CustomerLookupRepository>()
+                   .As<ICustomerLookupRepository>()
+                   .InstancePerDependency();
+            builder.RegisterType<CustomerService>()
+                   .As<ICustomerService>()
+                   .SingleInstance();
+            builder.RegisterType<BranchService>()
+                   .As<IBranchService>()
+                   .SingleInstance();
+            builder.RegisterType<AccountService>()
+                   .As<IAccountService>()
+                   .SingleInstance();
+            builder.RegisterType<EmployeeService>()
+                   .As<IEmployeeService>()
+                   .SingleInstance();
+            builder.RegisterType<TransactionService>()
+                   .As<ITransactionService>()
+                   .SingleInstance();
+            builder.RegisterType<ReportService>()
+                   .As<IReportService>()
+                   .SingleInstance();
+            builder.RegisterType<UserService>()
+                   .As<IUserService>()
+                   .SingleInstance();
+            builder.RegisterType<CustomerLookupService>()
+                   .As<ICustomerLookupService>()
+                   .SingleInstance();
+            builder.RegisterType<AuthService>()
+                   .As<IAuthService>()
+                   .SingleInstance();
+            builder.RegisterType<MainShellViewModel>()
+                   .AsSelf()
+                   .SingleInstance();
+            builder.RegisterAssemblyTypes(Assembly.GetExecutingAssembly())
+                   .Where(t => t.Name.EndsWith("ViewModel") && t != typeof(MainShellViewModel))
+                   .AsSelf()
+                   .InstancePerDependency();
+            _container = builder.Build();
+        }
 
-                if (viewType != null)
-                    return viewType;
-            }
+        private void ConfigureViewLocator()
+        {
+            var originalTransform = ViewLocator.LocateTypeForModelType;
+            ViewLocator.LocateTypeForModelType = (modelType, displayLocation, context) =>
+            {
+                if (modelType == typeof(MainShellViewModel))
+                {
+                    var viewType = Assembly.GetExecutingAssembly()
+                        .GetTypes()
+                        .FirstOrDefault(t => t.Name == "MainShellView" && t.Namespace == "BankDds.Wpf.Shell");
+                    if (viewType != null)
+                        return viewType;
+                }
+                return originalTransform(modelType, displayLocation, context);
+            };
+        }
 
-            // Fall back to default behavior
-            return originalTransform(modelType, displayLocation, context);
-        };
-    }
+        protected override object GetInstance(Type service, string key)
+        {
+            if (_container == null)
+                throw new InvalidOperationException("Container is not initialized");
+            return _container.Resolve(service);
+        }
 
-    protected override object GetInstance(Type service, string key)
-    {
-        if (_container == null)
-            throw new InvalidOperationException("Container is not initialized");
+        protected override IEnumerable<object> GetAllInstances(Type service)
+        {
+            if (_container == null)
+                throw new InvalidOperationException("Container is not initialized");
+            var enumerableType = typeof(IEnumerable<>).MakeGenericType(service);
+            return (IEnumerable<object>)_container.Resolve(enumerableType);
+        }
 
-        return _container.Resolve(service);
-    }
+        protected override void BuildUp(object instance)
+        {
+            if (_container == null)
+                throw new InvalidOperationException("Container is not initialized");
+            _container.InjectProperties(instance);
+        }
 
-    protected override IEnumerable<object> GetAllInstances(Type service)
-    {
-        if (_container == null)
-            throw new InvalidOperationException("Container is not initialized");
+        protected override async void OnStartup(object sender, StartupEventArgs e)
+        {
+            await DisplayRootViewForAsync<MainShellViewModel>();
+        }
 
-        var enumerableType = typeof(IEnumerable<>).MakeGenericType(service);
-        return (IEnumerable<object>)_container.Resolve(enumerableType);
-    }
-
-    protected override void BuildUp(object instance)
-    {
-        if (_container == null)
-            throw new InvalidOperationException("Container is not initialized");
-
-        _container.InjectProperties(instance);
-    }
-
-    protected override async void OnStartup(object sender, StartupEventArgs e)
-    {
-        // Start with MainShell which will handle navigation
-        await DisplayRootViewForAsync<MainShellViewModel>();
-    }
-
-    protected override void OnExit(object sender, EventArgs e)
-    {
-        _container?.Dispose();
-        base.OnExit(sender, e);
+        protected override void OnExit(object sender, EventArgs e)
+        {
+            _container?.Dispose();
+            base.OnExit(sender, e);
+        }
     }
 }

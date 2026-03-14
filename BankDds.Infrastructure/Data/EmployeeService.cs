@@ -1,96 +1,91 @@
 using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
 
-namespace BankDds.Infrastructure.Data;
-
-public class EmployeeService : IEmployeeService
+namespace BankDds.Infrastructure.Data
 {
-    private readonly IEmployeeRepository _employeeRepository;
-    private readonly IAuthorizationService _authorizationService;
-
-    public EmployeeService(IEmployeeRepository employeeRepository, IAuthorizationService authorizationService)
+    public class EmployeeService : IEmployeeService
     {
-        _employeeRepository = employeeRepository;
-        _authorizationService = authorizationService;
-    }
+        private readonly IEmployeeRepository _employeeRepository;
+        private readonly IAuthorizationService _authorizationService;
 
-    public Task<List<Employee>> GetEmployeesByBranchAsync(string branchCode)
-    {
-        _authorizationService.RequireCanAccessBranch(branchCode);
-        return _employeeRepository.GetEmployeesByBranchAsync(branchCode);
-    }
-
-    public Task<List<Employee>> GetAllEmployeesAsync()
-    {
-        if (!_authorizationService.CanAccessBranch("ALL"))
+        public EmployeeService(IEmployeeRepository employeeRepository, IAuthorizationService authorizationService)
         {
-            throw new UnauthorizedAccessException("Chỉ người dùng NganHang mới được xem toàn bộ nhân viên.");
+            _employeeRepository = employeeRepository;
+            _authorizationService = authorizationService;
         }
-        return _employeeRepository.GetAllEmployeesAsync();
+
+        public Task<List<Employee>> GetEmployeesByBranchAsync(string branchCode)
+        {
+            _authorizationService.RequireCanAccessBranch(branchCode);
+            return _employeeRepository.GetEmployeesByBranchAsync(branchCode);
+        }
+
+        public Task<List<Employee>> GetAllEmployeesAsync()
+        {
+            if (!_authorizationService.CanAccessBranch("ALL"))
+            {
+                throw new UnauthorizedAccessException("Chỉ người dùng NganHang mới được xem toàn bộ nhân viên.");
+            }
+            return _employeeRepository.GetAllEmployeesAsync();
+        }
+
+        public async Task<Employee?> GetEmployeeAsync(string manv)
+        {
+            var employee = await _employeeRepository.GetEmployeeAsync(manv);
+            if (employee == null)
+                return null;
+            _authorizationService.RequireCanAccessBranch(employee.MACN);
+            return employee;
+        }
+
+        public async Task<bool> AddEmployeeAsync(Employee employee)
+        {
+            _authorizationService.RequireCanModifyBranch(employee.MACN);
+            return await _employeeRepository.AddEmployeeAsync(employee);
+        }
+
+        public async Task<bool> UpdateEmployeeAsync(Employee employee)
+        {
+            var existing = await _employeeRepository.GetEmployeeAsync(employee.MANV);
+            if (existing == null)
+                return false;
+            _authorizationService.RequireCanModifyBranch(existing.MACN);
+            _authorizationService.RequireCanModifyBranch(employee.MACN);
+            return await _employeeRepository.UpdateEmployeeAsync(employee);
+        }
+
+        public async Task<bool> DeleteEmployeeAsync(string manv)
+        {
+            var employee = await _employeeRepository.GetEmployeeAsync(manv);
+            if (employee == null)
+                return false;
+            _authorizationService.RequireCanModifyBranch(employee.MACN);
+            return await _employeeRepository.DeleteEmployeeAsync(manv);
+        }
+
+        public async Task<bool> RestoreEmployeeAsync(string manv)
+        {
+            var employee = await _employeeRepository.GetEmployeeAsync(manv);
+            if (employee == null)
+                return false;
+            _authorizationService.RequireCanModifyBranch(employee.MACN);
+            return await _employeeRepository.RestoreEmployeeAsync(manv);
+        }
+
+        public async Task<bool> TransferEmployeeAsync(string manv, string newBranch)
+        {
+            var employee = await _employeeRepository.GetEmployeeAsync(manv);
+            if (employee == null)
+                return false;
+            _authorizationService.RequireCanModifyBranch(employee.MACN);
+            _authorizationService.RequireCanModifyBranch(newBranch);
+            return await _employeeRepository.TransferEmployeeAsync(manv, newBranch);
+        }
+
+        public Task<string> GenerateEmployeeIdAsync() =>
+            _employeeRepository.GenerateEmployeeIdAsync();
+
+        public Task<bool> EmployeeExistsAsync(string manv) =>
+            _employeeRepository.EmployeeExistsAsync(manv);
     }
-
-    public async Task<Employee?> GetEmployeeAsync(string manv)
-    {
-        var employee = await _employeeRepository.GetEmployeeAsync(manv);
-        if (employee == null)
-            return null;
-
-        _authorizationService.RequireCanAccessBranch(employee.MACN);
-        return employee;
-    }
-
-    public async Task<bool> AddEmployeeAsync(Employee employee)
-    {
-        _authorizationService.RequireCanModifyBranch(employee.MACN);
-        return await _employeeRepository.AddEmployeeAsync(employee);
-    }
-
-    public async Task<bool> UpdateEmployeeAsync(Employee employee)
-    {
-        var existing = await _employeeRepository.GetEmployeeAsync(employee.MANV);
-        if (existing == null)
-            return false;
-
-        _authorizationService.RequireCanModifyBranch(existing.MACN);
-        _authorizationService.RequireCanModifyBranch(employee.MACN);
-        return await _employeeRepository.UpdateEmployeeAsync(employee);
-    }
-
-    public async Task<bool> DeleteEmployeeAsync(string manv)
-    {
-        var employee = await _employeeRepository.GetEmployeeAsync(manv);
-        if (employee == null)
-            return false;
-
-        _authorizationService.RequireCanModifyBranch(employee.MACN);
-        return await _employeeRepository.DeleteEmployeeAsync(manv);
-    }
-
-    public async Task<bool> RestoreEmployeeAsync(string manv)
-    {
-        var employee = await _employeeRepository.GetEmployeeAsync(manv);
-        if (employee == null)
-            return false;
-
-        _authorizationService.RequireCanModifyBranch(employee.MACN);
-        return await _employeeRepository.RestoreEmployeeAsync(manv);
-    }
-
-    public async Task<bool> TransferEmployeeAsync(string manv, string newBranch)
-    {
-        var employee = await _employeeRepository.GetEmployeeAsync(manv);
-        if (employee == null)
-            return false;
-
-        _authorizationService.RequireCanModifyBranch(employee.MACN);
-        _authorizationService.RequireCanModifyBranch(newBranch);
-        return await _employeeRepository.TransferEmployeeAsync(manv, newBranch);
-    }
-
-    public Task<string> GenerateEmployeeIdAsync() =>
-        _employeeRepository.GenerateEmployeeIdAsync();
-
-    public Task<bool> EmployeeExistsAsync(string manv) =>
-        _employeeRepository.EmployeeExistsAsync(manv);
 }
-

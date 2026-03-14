@@ -1,28 +1,29 @@
 using System.Windows.Controls;
 using BankDds.Wpf.ViewModels;
 
-namespace BankDds.Wpf.Views;
-
-public partial class AdminView : UserControl
+namespace BankDds.Wpf.Views
 {
-    public AdminView()
+    public partial class AdminView : UserControl
     {
-        InitializeComponent();
-    }
-
-    private void OnNewPasswordChanged(object sender, System.Windows.RoutedEventArgs e)
-    {
-        if (DataContext is AdminViewModel vm && sender is PasswordBox passwordBox)
+        public AdminView()
         {
-            vm.NewPassword = passwordBox.Password;
+            InitializeComponent();
         }
-    }
 
-    private void OnConfirmPasswordChanged(object sender, System.Windows.RoutedEventArgs e)
-    {
-        if (DataContext is AdminViewModel vm && sender is PasswordBox passwordBox)
+        private void OnNewPasswordChanged(object sender, System.Windows.RoutedEventArgs e)
         {
-            vm.ConfirmPassword = passwordBox.Password;
+            if (DataContext is AdminViewModel vm && sender is PasswordBox passwordBox)
+            {
+                vm.NewPassword = passwordBox.Password;
+            }
+        }
+
+        private void OnConfirmPasswordChanged(object sender, System.Windows.RoutedEventArgs e)
+        {
+            if (DataContext is AdminViewModel vm && sender is PasswordBox passwordBox)
+            {
+                vm.ConfirmPassword = passwordBox.Password;
+            }
         }
     }
 }

@@ -1,139 +1,109 @@
 using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
 
-namespace BankDds.Infrastructure.Data;
-
-/// <summary>
-/// Account service that delegates to IAccountRepository for data access with authorization
-/// </summary>
-public class AccountService : IAccountService
+namespace BankDds.Infrastructure.Data
 {
-    private readonly IAccountRepository _accountRepository;
-    private readonly ICustomerRepository _customerRepository;
-    private readonly IAuthorizationService _authorizationService;
-    private readonly IUserSession _userSession;
-
-    public AccountService(
-        IAccountRepository accountRepository, 
-        ICustomerRepository customerRepository,
-        IAuthorizationService authorizationService,
-        IUserSession userSession)
+    public class AccountService : IAccountService
     {
-        _accountRepository = accountRepository;
-        _customerRepository = customerRepository;
-        _authorizationService = authorizationService;
-        _userSession = userSession;
-    }
-
-    public Task<List<Account>> GetAccountsByBranchAsync(string branchCode)
-    {
-        // Verify user can access this branch
-        _authorizationService.RequireCanAccessBranch(branchCode);
-        return _accountRepository.GetAccountsByBranchAsync(branchCode);
-    }
-
-    public Task<List<Account>> GetAllAccountsAsync()
-    {
-        // Only NganHang can get all accounts
-        if (!_authorizationService.CanAccessBranch("ALL"))
+        private readonly IAccountRepository _accountRepository;
+        private readonly ICustomerRepository _customerRepository;
+        private readonly IAuthorizationService _authorizationService;
+        private readonly IUserSession _userSession;
+        public AccountService(
+            IAccountRepository accountRepository,
+            ICustomerRepository customerRepository,
+            IAuthorizationService authorizationService,
+            IUserSession userSession)
         {
-            throw new UnauthorizedAccessException("Chỉ người dùng NganHang mới được truy cập toàn bộ tài khoản.");
+            _accountRepository = accountRepository;
+            _customerRepository = customerRepository;
+            _authorizationService = authorizationService;
+            _userSession = userSession;
         }
-        return _accountRepository.GetAllAccountsAsync();
-    }
 
-    public async Task<List<Account>> GetAccountsByCustomerAsync(string cmnd)
-    {
-        // Verify user can access this customer
-        _authorizationService.RequireCanAccessCustomer(cmnd);
-        
-        // Get customer to verify branch access
-        var customer = await _customerRepository.GetCustomerByCMNDAsync(cmnd);
-        if (customer != null)
+        public Task<List<Account>> GetAccountsByBranchAsync(string branchCode)
         {
-            _authorizationService.RequireCanAccessBranch(customer.MaCN);
+            _authorizationService.RequireCanAccessBranch(branchCode);
+            return _accountRepository.GetAccountsByBranchAsync(branchCode);
         }
-        
-        return await _accountRepository.GetAccountsByCustomerAsync(cmnd);
-    }
 
-    public async Task<Account?> GetAccountAsync(string sotk)
-    {
-        var account = await _accountRepository.GetAccountAsync(sotk);
-        if (account == null)
-            return null;
-
-        // Verify user can access this account's customer and branch
-        _authorizationService.RequireCanAccessAccount(account.CMND);
-        if (_userSession.UserGroup != UserGroup.KhachHang)
+        public Task<List<Account>> GetAllAccountsAsync()
         {
-            _authorizationService.RequireCanAccessBranch(account.MACN);
+            if (!_authorizationService.CanAccessBranch("ALL"))
+            {
+                throw new UnauthorizedAccessException("Chỉ người dùng NganHang mới được truy cập toàn bộ tài khoản.");
+            }
+            return _accountRepository.GetAllAccountsAsync();
         }
-        
-        return account;
-    }
 
-    public async Task<bool> AddAccountAsync(Account account)
-    {
-        // Verify user can modify this branch
-        _authorizationService.RequireCanModifyBranch(account.MACN);
-        
-        // Verify customer exists and user can access
-        var customer = await _customerRepository.GetCustomerByCMNDAsync(account.CMND);
-        if (customer == null)
-            throw new InvalidOperationException("Không tìm thấy khách hàng.");
-        
-        _authorizationService.RequireCanAccessCustomer(account.CMND);
-        
-        return await _accountRepository.AddAccountAsync(account);
-    }
+        public async Task<List<Account>> GetAccountsByCustomerAsync(string cmnd)
+        {
+            _authorizationService.RequireCanAccessCustomer(cmnd);
+            var customer = await _customerRepository.GetCustomerByCMNDAsync(cmnd);
+            if (customer != null)
+            {
+                _authorizationService.RequireCanAccessBranch(customer.MaCN);
+            }
+            return await _accountRepository.GetAccountsByCustomerAsync(cmnd);
+        }
 
-    public async Task<bool> UpdateAccountAsync(Account account)
-    {
-        var existing = await _accountRepository.GetAccountAsync(account.SOTK);
-        if (existing == null)
-            return false;
+        public async Task<Account?> GetAccountAsync(string sotk)
+        {
+            var account = await _accountRepository.GetAccountAsync(sotk);
+            if (account == null)
+                return null;
+            _authorizationService.RequireCanAccessAccount(account.CMND);
+            if (_userSession.UserGroup != UserGroup.KhachHang)
+            {
+                _authorizationService.RequireCanAccessBranch(account.MACN);
+            }
+            return account;
+        }
 
-        // Verify user can modify this branch
-        _authorizationService.RequireCanModifyBranch(existing.MACN);
-        
-        return await _accountRepository.UpdateAccountAsync(account);
-    }
+        public async Task<bool> AddAccountAsync(Account account)
+        {
+            _authorizationService.RequireCanModifyBranch(account.MACN);
+            var customer = await _customerRepository.GetCustomerByCMNDAsync(account.CMND);
+            if (customer == null)
+                throw new InvalidOperationException("Không tìm thấy khách hàng.");
+            _authorizationService.RequireCanAccessCustomer(account.CMND);
+            return await _accountRepository.AddAccountAsync(account);
+        }
 
-    public async Task<bool> DeleteAccountAsync(string sotk)
-    {
-        var account = await _accountRepository.GetAccountAsync(sotk);
-        if (account == null)
-            return false;
+        public async Task<bool> UpdateAccountAsync(Account account)
+        {
+            var existing = await _accountRepository.GetAccountAsync(account.SOTK);
+            if (existing == null)
+                return false;
+            _authorizationService.RequireCanModifyBranch(existing.MACN);
+            return await _accountRepository.UpdateAccountAsync(account);
+        }
 
-        // Verify user can modify this branch
-        _authorizationService.RequireCanModifyBranch(account.MACN);
-        
-        return await _accountRepository.DeleteAccountAsync(sotk);
-    }
+        public async Task<bool> DeleteAccountAsync(string sotk)
+        {
+            var account = await _accountRepository.GetAccountAsync(sotk);
+            if (account == null)
+                return false;
+            _authorizationService.RequireCanModifyBranch(account.MACN);
+            return await _accountRepository.DeleteAccountAsync(sotk);
+        }
 
-    public async Task<bool> CloseAccountAsync(string sotk)
-    {
-        var account = await _accountRepository.GetAccountAsync(sotk);
-        if (account == null)
-            return false;
+        public async Task<bool> CloseAccountAsync(string sotk)
+        {
+            var account = await _accountRepository.GetAccountAsync(sotk);
+            if (account == null)
+                return false;
+            _authorizationService.RequireCanModifyBranch(account.MACN);
+            return await _accountRepository.CloseAccountAsync(sotk);
+        }
 
-        // Verify user can modify this branch
-        _authorizationService.RequireCanModifyBranch(account.MACN);
-        
-        return await _accountRepository.CloseAccountAsync(sotk);
-    }
-
-    public async Task<bool> ReopenAccountAsync(string sotk)
-    {
-        var account = await _accountRepository.GetAccountAsync(sotk);
-        if (account == null)
-            return false;
-
-        // Verify user can modify this branch
-        _authorizationService.RequireCanModifyBranch(account.MACN);
-        
-        return await _accountRepository.ReopenAccountAsync(sotk);
+        public async Task<bool> ReopenAccountAsync(string sotk)
+        {
+            var account = await _accountRepository.GetAccountAsync(sotk);
+            if (account == null)
+                return false;
+            _authorizationService.RequireCanModifyBranch(account.MACN);
+            return await _accountRepository.ReopenAccountAsync(sotk);
+        }
     }
 }
-

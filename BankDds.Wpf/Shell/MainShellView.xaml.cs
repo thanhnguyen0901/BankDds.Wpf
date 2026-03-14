@@ -1,11 +1,12 @@
 using System.Windows;
 
-namespace BankDds.Wpf.Shell;
-
-public partial class MainShellView : Window
+namespace BankDds.Wpf.Shell
 {
-    public MainShellView()
+    public partial class MainShellView : Window
     {
-        InitializeComponent();
+        public MainShellView()
+        {
+            InitializeComponent();
+        }
     }
 }

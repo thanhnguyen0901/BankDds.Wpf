@@ -3,28 +3,28 @@ using System.Globalization;
 using System.Windows.Data;
 using BankDds.Core.Models;
 
-namespace BankDds.Wpf.Converters;
-
-public class UserGroupDisplayConverter : IValueConverter
+namespace BankDds.Wpf.Converters
 {
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    public class UserGroupDisplayConverter : IValueConverter
     {
-        if (value is not UserGroup group)
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            return string.Empty;
+            if (value is not UserGroup group)
+            {
+                return string.Empty;
+            }
+            return group switch
+            {
+                UserGroup.NganHang => "Ngân hàng",
+                UserGroup.ChiNhanh => "Chi nhánh",
+                UserGroup.KhachHang => "Khách hàng",
+                _ => group.ToString()
+            };
         }
 
-        return group switch
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            UserGroup.NganHang => "Ngân hàng",
-            UserGroup.ChiNhanh => "Chi nhánh",
-            UserGroup.KhachHang => "Khách hàng",
-            _ => group.ToString()
-        };
-    }
-
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-    {
-        return Binding.DoNothing;
+            return Binding.DoNothing;
+        }
     }
 }
