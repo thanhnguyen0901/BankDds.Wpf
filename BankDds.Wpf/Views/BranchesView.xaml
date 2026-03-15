@@ -23,13 +23,11 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!--  Title  -->
         <TextBlock
             Grid.Row="0"
             Style="{StaticResource PageTitleStyle}"
             Text="Quản lý Chi nhánh" />
 
-        <!--  Action Buttons  -->
         <StackPanel
             Grid.Row="1"
             Margin="0,0,0,15"
@@ -48,7 +46,6 @@
                 Style="{StaticResource DangerButtonStyle}" />
         </StackPanel>
 
-        <!--  Branch List  -->
         <DataGrid
             x:Name="Branches"
             Grid.Row="2"
@@ -56,26 +53,13 @@
             Style="{StaticResource StandardDataGridStyle}"
             Visibility="{Binding IsEditing, Converter={StaticResource InvertedBoolToVis}}">
             <DataGrid.Columns>
-                <DataGridTextColumn
-                    Width="120"
-                    Binding="{Binding MACN}"
-                    Header="Mã CN" />
-                <DataGridTextColumn
-                    Width="200"
-                    Binding="{Binding TENCN}"
-                    Header="Tên chi nhánh" />
-                <DataGridTextColumn
-                    Width="*"
-                    Binding="{Binding DiaChi}"
-                    Header="Địa chỉ" />
-                <DataGridTextColumn
-                    Width="140"
-                    Binding="{Binding SoDT}"
-                    Header="SĐT" />
+                <DataGridTextColumn Width="2*" Binding="{Binding MACN}" Header="Mã CN" />
+                <DataGridTextColumn Width="2*" Binding="{Binding TENCN}" Header="Tên chi nhánh" />
+                <DataGridTextColumn Width="3*" Binding="{Binding DiaChi}" Header="Địa chỉ" />
+                <DataGridTextColumn Width="2*" Binding="{Binding SODT}" Header="SĐT" />
             </DataGrid.Columns>
         </DataGrid>
 
-        <!--  Edit Form  -->
         <Border
             Grid.Row="2"
             Style="{StaticResource DetailPanelStyle}"
@@ -84,21 +68,16 @@
                 <StackPanel>
                     <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Thông tin Chi nhánh" />
 
-                    <!--  MACN — read-only when editing an existing branch  -->
                     <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Mã chi nhánh (MACN):" />
                     <TextBox
                         Margin="0,0,0,12"
                         Text="{Binding EditingBranch.MACN, UpdateSourceTrigger=PropertyChanged}">
                         <TextBox.Style>
                             <Style BasedOn="{StaticResource StandardTextBoxStyle}" TargetType="TextBox">
-                                <Setter Property="IsReadOnly" Value="False" />
-                                <!--  MACN is immutable once saved — lock it when SelectedBranch != null  -->
+                                <Setter Property="IsReadOnly" Value="True" />
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding SelectedBranch}" Value="{x:Null}">
                                         <Setter Property="IsReadOnly" Value="False" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding IsEditing}" Value="True">
-                                        <!--  Resolved per-binding: if SelectedBranch is set, make read-only  -->
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
@@ -121,9 +100,8 @@
                     <TextBox
                         Margin="0,0,0,20"
                         Style="{StaticResource StandardTextBoxStyle}"
-                        Text="{Binding EditingBranch.SoDT, UpdateSourceTrigger=PropertyChanged}" />
+                        Text="{Binding EditingBranch.SODT, UpdateSourceTrigger=PropertyChanged}" />
 
-                    <!--  Validation errors  -->
                     <Border
                         Style="{StaticResource ValidationErrorPanelStyle}"
                         Visibility="{Binding HasError, Converter={StaticResource BoolToVisConverter}}">
@@ -155,33 +133,14 @@
             </ScrollViewer>
         </Border>
 
-        <!--  Messages  -->
         <StackPanel Grid.Row="3" Margin="0,10,0,0">
             <TextBlock
-                FontWeight="SemiBold"
-                Foreground="#388E3C"
-                Text="{Binding SuccessMessage}">
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock">
-                        <Setter Property="Visibility" Value="Collapsed" />
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding SuccessMessage}" Value="{x:Null}">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding SuccessMessage}" Value="">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding HasSuccess}" Value="True">
-                                <Setter Property="Visibility" Value="Visible" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
+                Style="{StaticResource SuccessMessageStyle}"
+                Text="{Binding SuccessMessage}"
+                Visibility="{Binding HasSuccess, Converter={StaticResource BoolToVisConverter}}" />
             <TextBlock x:Name="ErrorMessage" Style="{StaticResource ErrorMessageStyle}" />
         </StackPanel>
 
-        <!--  Loading Overlay  -->
         <Grid Grid.Row="0" Grid.RowSpan="4" Style="{StaticResource LoadingOverlayStyle}">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                 <ProgressBar Style="{StaticResource LoadingSpinnerStyle}" />

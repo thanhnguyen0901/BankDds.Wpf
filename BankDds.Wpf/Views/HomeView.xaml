@@ -13,7 +13,6 @@
         <converters:BoolToVisibilityConverter x:Key="BoolToVisConverter" />
         <converters:ActiveItemConverter x:Key="ActiveItemConverter" />
 
-        <!--  Menu Button Style with Active State  -->
         <Style x:Key="MenuButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="#0078D7" />
             <Setter Property="Foreground" Value="White" />
@@ -48,7 +47,6 @@
                                 <Setter TargetName="border" Property="BorderThickness" Value="0,0,0,4" />
                                 <Setter Property="FontWeight" Value="Bold" />
                             </Trigger>
-                            <!--  Active Tab Style  -->
                             <Trigger Property="Tag" Value="Active">
                                 <Setter TargetName="border" Property="Background" Value="#004578" />
                                 <Setter TargetName="border" Property="BorderThickness" Value="0,0,0,4" />
@@ -92,8 +90,8 @@
             </Style.Triggers>
         </Style>
     </UserControl.Resources>
+
     <DockPanel>
-        <!--  Top Menu Bar  -->
         <Border
             Padding="20,12"
             Background="#0078D7"
@@ -104,7 +102,6 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <!--  User Info  -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal">
                     <TextBlock
                         VerticalAlignment="Center"
@@ -129,29 +126,8 @@
                         FontSize="14"
                         FontWeight="Bold"
                         Foreground="White" />
-
-                    <!--  Branch Selector — visible only for NGANHANG role  -->
-                    <StackPanel
-                        Margin="20,0,0,0"
-                        Orientation="Horizontal"
-                        Visibility="{Binding CanSwitchBranch, Converter={StaticResource BoolToVisConverter}}">
-                        <TextBlock
-                            Margin="0,0,8,0"
-                            VerticalAlignment="Center"
-                            FontSize="14"
-                            Foreground="White"
-                            Text="| Chi nhánh:" />
-                        <ComboBox
-                            x:Name="SelectedBranchCode"
-                            MinWidth="140"
-                            VerticalAlignment="Center"
-                            FontSize="13"
-                            ItemsSource="{Binding Branches}"
-                            SelectedItem="{Binding SelectedBranchCode, Mode=TwoWay}" />
-                    </StackPanel>
                 </StackPanel>
 
-                <!--  Logout Button  -->
                 <Button
                     x:Name="Logout"
                     Grid.Column="1"
@@ -160,7 +136,6 @@
             </Grid>
         </Border>
 
-        <!--  Navigation Menu  -->
         <Border
             Padding="15,12"
             Background="White"
@@ -190,7 +165,7 @@
                 </Button>
                 <Button
                     x:Name="ShowAccounts"
-                    Content="Tài khoản"
+                    Content="{Binding AccountsTabText}"
                     Style="{StaticResource MenuButtonStyle}"
                     Visibility="{Binding CanViewAccounts, Converter={StaticResource BoolToVisConverter}}">
                     <Button.Tag>
@@ -237,7 +212,7 @@
                 </Button>
                 <Button
                     x:Name="ShowAdmin"
-                    Content="Quản trị"
+                    Content="{Binding AdminTabText}"
                     Style="{StaticResource MenuButtonStyle}"
                     Visibility="{Binding CanViewAdmin, Converter={StaticResource BoolToVisConverter}}">
                     <Button.Tag>
@@ -274,9 +249,7 @@
             </WrapPanel>
         </Border>
 
-        <!--  Content Region - Shows active screen  -->
         <Grid>
-            <!--  Welcome screen when no item is active  -->
             <Border
                 Margin="20"
                 Padding="40"
@@ -330,7 +303,6 @@
                 </StackPanel>
             </Border>
 
-            <!--  Active child screen  -->
             <ContentControl x:Name="ActiveItem" />
         </Grid>
     </DockPanel>

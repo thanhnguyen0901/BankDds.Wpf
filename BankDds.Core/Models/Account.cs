@@ -1,3 +1,5 @@
+using BankDds.Core.Formatting;
+
 namespace BankDds.Core.Models
 {
     /// <summary>
@@ -11,6 +13,7 @@ namespace BankDds.Core.Models
         public string MACN { get; set; } = string.Empty;
         public DateTime NGAYMOTK { get; set; }
         public string Status { get; set; } = "Active";
-        public string StatusDisplay => Status == "Active" ? "Active" : "Closed";
+        public string BranchDisplayName => DisplayText.Branch(MACN);
+        public string StatusDisplay => DisplayText.AccountStatus(Status);
     }
 }

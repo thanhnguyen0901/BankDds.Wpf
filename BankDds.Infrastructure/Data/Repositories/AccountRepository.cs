@@ -173,7 +173,6 @@ namespace BankDds.Infrastructure.Data
                     CommandType = CommandType.StoredProcedure
                 };
                 command.Parameters.AddWithValue("@SOTK", account.SOTK);
-                command.Parameters.AddWithValue("@SODU", account.SODU);
                 command.Parameters.AddWithValue("@Status", account.Status);
                 var result = await command.ExecuteNonQueryAsync();
                 return result > 0;

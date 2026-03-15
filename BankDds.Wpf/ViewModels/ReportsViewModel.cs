@@ -17,6 +17,7 @@ namespace BankDds.Wpf.ViewModels
         private readonly IUserSession _userSession;
         private readonly IAccountService _accountService;
         private readonly IReportExportService _exportService;
+        private ObservableCollection<Account> _statementAccounts = new();
         private string _statementAccountNumber = string.Empty;
         private DateTime _statementFromDate = DateTime.Now.AddMonths(-1);
         private DateTime _statementToDate = DateTime.Now;
@@ -57,6 +58,15 @@ namespace BankDds.Wpf.ViewModels
                 _statementAccountNumber = value;
                 NotifyOfPropertyChange(() => StatementAccountNumber);
                 NotifyOfPropertyChange(() => CanGenerateStatement);
+            }
+        }
+        public ObservableCollection<Account> StatementAccounts
+        {
+            get => _statementAccounts;
+            set
+            {
+                _statementAccounts = value;
+                NotifyOfPropertyChange(() => StatementAccounts);
             }
         }
         public DateTime StatementFromDate
@@ -255,9 +265,14 @@ namespace BankDds.Wpf.ViewModels
             try
             {
                 var accounts = await _accountService.GetAccountsByCustomerAsync(_userSession.CustomerCMND ?? "");
+                StatementAccounts = new ObservableCollection<Account>(accounts);
                 if (accounts.Any())
                 {
                     StatementAccountNumber = accounts.First().SOTK;
+                }
+                else
+                {
+                    StatementAccountNumber = string.Empty;
                 }
             }
             catch (Exception ex)

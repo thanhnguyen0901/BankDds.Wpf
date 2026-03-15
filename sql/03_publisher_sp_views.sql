@@ -369,13 +369,12 @@ GO
 
 CREATE OR ALTER PROCEDURE dbo.SP_UpdateAccount
     @SOTK   nChar(9),
-    @SODU   money,
     @Status nvarchar(10)
 AS
 BEGIN
     SET NOCOUNT OFF;
     UPDATE dbo.TAIKHOAN
-    SET    SODU = @SODU, Status = @Status
+    SET    Status = @Status
     WHERE  SOTK = @SOTK;
 END
 GO

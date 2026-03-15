@@ -26,14 +26,6 @@ namespace BankDds.Wpf.ViewModels
         private string _confirmPassword = string.Empty;
         private string _passwordValidationMessage = string.Empty;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="AdminViewModel"/> class.
-        /// </summary>
-        /// <param name="userService">Service that manages application users and SQL logins.</param>
-        /// <param name="userSession">Current authenticated session with role, branch, and identity context.</param>
-        /// <param name="dialogService">Dialog service used to show confirmation and feedback messages.</param>
-        /// <param name="validator">Validator that enforces input rules before saving data.</param>
-        /// <param name="branchService">Service that provides branch data and branch management operations.</param>
         public AdminViewModel(
             IUserService userService,
             IUserSession userSession,
@@ -46,8 +38,9 @@ namespace BankDds.Wpf.ViewModels
             _dialogService = dialogService;
             _validator = validator;
             _branchService = branchService;
-            DisplayName = "Quản trị người dùng";
+            DisplayName = PageTitle;
         }
+
         public ObservableCollection<User> Users
         {
             get => _users;
@@ -57,6 +50,7 @@ namespace BankDds.Wpf.ViewModels
                 NotifyOfPropertyChange(() => Users);
             }
         }
+
         public User? SelectedUser
         {
             get => _selectedUser;
@@ -70,6 +64,7 @@ namespace BankDds.Wpf.ViewModels
                 NotifyOfPropertyChange(() => CanChangeTargetUserGroup);
             }
         }
+
         public User EditingUser
         {
             get => _editingUser;
@@ -85,12 +80,14 @@ namespace BankDds.Wpf.ViewModels
                 NotifyOfPropertyChange(() => CanSave);
             }
         }
+
         public UserGroup SelectedEditingUserGroup
         {
             get => _selectedEditingUserGroup;
             set
             {
                 if (_selectedEditingUserGroup == value) return;
+
                 _selectedEditingUserGroup = value;
                 _editingUser.UserGroup = value;
                 ApplyRoleSpecificDefaults();
@@ -102,6 +99,7 @@ namespace BankDds.Wpf.ViewModels
                 NotifyOfPropertyChange(() => CanSave);
             }
         }
+
         public bool IsEditing
         {
             get => _isEditing;
@@ -118,6 +116,7 @@ namespace BankDds.Wpf.ViewModels
                 NotifyOfPropertyChange(() => CanChangeTargetUserGroup);
             }
         }
+
         public string NewPassword
         {
             get => _newPassword;
@@ -129,6 +128,7 @@ namespace BankDds.Wpf.ViewModels
                 ValidatePassword();
             }
         }
+
         public string ConfirmPassword
         {
             get => _confirmPassword;
@@ -140,6 +140,7 @@ namespace BankDds.Wpf.ViewModels
                 ValidatePassword();
             }
         }
+
         public string PasswordValidationMessage
         {
             get => _passwordValidationMessage;
@@ -150,16 +151,26 @@ namespace BankDds.Wpf.ViewModels
                 NotifyOfPropertyChange(() => IsPasswordValid);
             }
         }
+
         public bool IsPasswordValid => PasswordValidationMessage.StartsWith("✓");
         public ObservableCollection<UserGroup> AvailableUserGroups { get; } = new();
         public ObservableCollection<string> AvailableBranches { get; } = new();
+
         public bool CanEditDefaultBranch => _userSession.UserGroup == UserGroup.NganHang;
         public bool ShowEmployeeIdField => SelectedEditingUserGroup == UserGroup.ChiNhanh;
         public bool ShowCustomerCmndField => SelectedEditingUserGroup == UserGroup.KhachHang;
         public bool CanChangeTargetUserGroup => SelectedUser == null;
+        public bool ShowBankAdminActions => _userSession.UserGroup == UserGroup.NganHang;
+        public string PageTitle => _userSession.UserGroup == UserGroup.NganHang
+            ? "Quản trị người dùng"
+            : "Tạo tài khoản đăng nhập";
+        public string PageSubtitle => _userSession.UserGroup == UserGroup.NganHang
+            ? "Quản lý toàn bộ đăng nhập ngân hàng ở phạm vi hệ thống."
+            : "Tạo tài khoản đăng nhập cho nhân viên và khách hàng trong chi nhánh hiện tại.";
+
         public bool CanAdd => !IsEditing;
-        public bool CanEdit => SelectedUser != null && !IsEditing && _userSession.UserGroup == UserGroup.NganHang;
-        public bool CanDelete => SelectedUser != null && !IsEditing && _userSession.UserGroup == UserGroup.NganHang;
+        public bool CanEdit => SelectedUser != null && !IsEditing && ShowBankAdminActions;
+        public bool CanDelete => SelectedUser != null && !IsEditing && ShowBankAdminActions;
         public bool CanRestore => false;
         public bool CanSave => IsEditing &&
                                !string.IsNullOrWhiteSpace(EditingUser.Username) &&
@@ -168,49 +179,20 @@ namespace BankDds.Wpf.ViewModels
                                IsPasswordValid;
         public bool CanCancel => IsEditing;
 
-        private void ValidatePassword()
-        {
-            if (string.IsNullOrEmpty(NewPassword))
-            {
-                PasswordValidationMessage = "Mật khẩu là bắt buộc.";
-                return;
-            }
-            if (NewPassword.Length < 8)
-            {
-                PasswordValidationMessage = "Mật khẩu phải có ít nhất 8 ký tự.";
-                return;
-            }
-            if (!NewPassword.Any(char.IsUpper))
-            {
-                PasswordValidationMessage = "Mật khẩu phải có ít nhất 1 chữ in hoa.";
-                return;
-            }
-            if (!NewPassword.Any(char.IsLower))
-            {
-                PasswordValidationMessage = "Mật khẩu phải có ít nhất 1 chữ thường.";
-                return;
-            }
-            if (!NewPassword.Any(char.IsDigit))
-            {
-                PasswordValidationMessage = "Mật khẩu phải có ít nhất 1 chữ số.";
-                return;
-            }
-            if (NewPassword != ConfirmPassword)
-            {
-                PasswordValidationMessage = "Mật khẩu xác nhận không khớp.";
-                return;
-            }
-            PasswordValidationMessage = "✓ Mật khẩu hợp lệ.";
-        }
-
         protected override async Task OnActivateAsync(CancellationToken cancellationToken)
         {
             await base.OnActivateAsync(cancellationToken);
+            DisplayName = PageTitle;
+            NotifyOfPropertyChange(() => PageTitle);
+            NotifyOfPropertyChange(() => PageSubtitle);
+            NotifyOfPropertyChange(() => ShowBankAdminActions);
+
             if (_userSession.UserGroup != UserGroup.NganHang && _userSession.UserGroup != UserGroup.ChiNhanh)
             {
                 ErrorMessage = "Không có quyền: chỉ người dùng Ngân hàng hoặc Chi nhánh được mở màn hình này.";
                 return;
             }
+
             AvailableUserGroups.Clear();
             if (_userSession.UserGroup == UserGroup.NganHang)
             {
@@ -221,25 +203,75 @@ namespace BankDds.Wpf.ViewModels
                 AvailableUserGroups.Add(UserGroup.ChiNhanh);
                 AvailableUserGroups.Add(UserGroup.KhachHang);
             }
+
             NotifyOfPropertyChange(() => AvailableUserGroups);
+            await LoadBranchesAsync();
+            await LoadUsersAsync();
+        }
+
+        private void ValidatePassword()
+        {
+            if (string.IsNullOrEmpty(NewPassword))
+            {
+                PasswordValidationMessage = "Mật khẩu là bắt buộc.";
+                return;
+            }
+
+            if (NewPassword.Length < 8)
+            {
+                PasswordValidationMessage = "Mật khẩu phải có ít nhất 8 ký tự.";
+                return;
+            }
+
+            if (!NewPassword.Any(char.IsUpper))
+            {
+                PasswordValidationMessage = "Mật khẩu phải có ít nhất 1 chữ in hoa.";
+                return;
+            }
+
+            if (!NewPassword.Any(char.IsLower))
+            {
+                PasswordValidationMessage = "Mật khẩu phải có ít nhất 1 chữ thường.";
+                return;
+            }
+
+            if (!NewPassword.Any(char.IsDigit))
+            {
+                PasswordValidationMessage = "Mật khẩu phải có ít nhất 1 chữ số.";
+                return;
+            }
+
+            if (NewPassword != ConfirmPassword)
+            {
+                PasswordValidationMessage = "Mật khẩu xác nhận không khớp.";
+                return;
+            }
+
+            PasswordValidationMessage = "✓ Mật khẩu hợp lệ.";
+        }
+
+        private async Task LoadBranchesAsync()
+        {
             try
             {
                 var branches = await _branchService.GetAllBranchesAsync();
                 AvailableBranches.Clear();
-                foreach (var b in branches)
+                foreach (var branch in branches.OrderBy(branch => branch.MACN, StringComparer.OrdinalIgnoreCase))
                 {
-                    AvailableBranches.Add(b.MACN.Trim().ToUpperInvariant());
+                    AvailableBranches.Add(branch.MACN.Trim().ToUpperInvariant());
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                if (AvailableBranches.Count == 0)
-                {
-                    AvailableBranches.Add("BENTHANH");
-                    AvailableBranches.Add("TANDINH");
-                }
+                ErrorMessage = $"Không tải được danh sách chi nhánh: {ex.Message}";
             }
-            await LoadUsersAsync();
+
+            if (!string.IsNullOrWhiteSpace(_userSession.SelectedBranch) &&
+                _userSession.SelectedBranch != "ALL" &&
+                !AvailableBranches.Contains(_userSession.SelectedBranch))
+            {
+                AvailableBranches.Add(_userSession.SelectedBranch);
+            }
         }
 
         private async Task LoadUsersAsync()
@@ -258,11 +290,12 @@ namespace BankDds.Wpf.ViewModels
                 ErrorMessage = "Không có nhóm người dùng hợp lệ cho tài khoản hiện tại.";
                 return;
             }
+
             EditingUser = new User
             {
                 UserGroup = AvailableUserGroups[0],
                 DefaultBranch = _userSession.SelectedBranch == "ALL"
-                    ? (AvailableBranches.FirstOrDefault() ?? "BENTHANH")
+                    ? AvailableBranches.FirstOrDefault() ?? string.Empty
                     : _userSession.SelectedBranch
             };
             ApplyRoleSpecificDefaults();
@@ -278,11 +311,13 @@ namespace BankDds.Wpf.ViewModels
         public void Edit()
         {
             if (SelectedUser == null) return;
-            if (_userSession.UserGroup != UserGroup.NganHang)
+
+            if (!ShowBankAdminActions)
             {
                 ErrorMessage = "Chỉ người dùng Ngân hàng mới được đặt lại mật khẩu cho tài khoản khác.";
                 return;
             }
+
             EditingUser = new User
             {
                 Username = SelectedUser.Username,
@@ -304,22 +339,23 @@ namespace BankDds.Wpf.ViewModels
 
         public async Task Save()
         {
-            if (_userSession.UserGroup == UserGroup.NganHang &&
-                EditingUser.UserGroup != UserGroup.NganHang)
+            if (_userSession.UserGroup == UserGroup.NganHang && EditingUser.UserGroup != UserGroup.NganHang)
             {
                 ErrorMessage = "Tài khoản Ngân hàng chỉ được tạo tài khoản cùng nhóm Ngân hàng.";
                 return;
             }
-            if (_userSession.UserGroup == UserGroup.ChiNhanh &&
-                EditingUser.UserGroup == UserGroup.NganHang)
+
+            if (_userSession.UserGroup == UserGroup.ChiNhanh && EditingUser.UserGroup == UserGroup.NganHang)
             {
                 ErrorMessage = "Tài khoản Chi nhánh không được tạo tài khoản nhóm Ngân hàng.";
                 return;
             }
+
             await ExecuteWithLoadingAsync(async () =>
             {
                 EditingUser.PasswordHash = NewPassword;
                 ApplyRoleSpecificDefaults();
+
                 bool result;
                 if (SelectedUser == null)
                 {
@@ -327,9 +363,10 @@ namespace BankDds.Wpf.ViewModels
                     var validationResult = await _validator.ValidateAsync(validationContext);
                     if (!validationResult.IsValid)
                     {
-                        ErrorMessage = string.Join(Environment.NewLine, validationResult.Errors.Select(e => e.ErrorMessage));
+                        ErrorMessage = string.Join(Environment.NewLine, validationResult.Errors.Select(error => error.ErrorMessage));
                         return;
                     }
+
                     result = await _userService.AddUserAsync(EditingUser);
                     if (result)
                     {
@@ -338,17 +375,19 @@ namespace BankDds.Wpf.ViewModels
                 }
                 else
                 {
-                    if (_userSession.UserGroup != UserGroup.NganHang)
+                    if (!ShowBankAdminActions)
                     {
                         ErrorMessage = "Chỉ người dùng Ngân hàng mới được đặt lại mật khẩu.";
                         return;
                     }
+
                     result = await _userService.UpdateUserAsync(EditingUser);
                     if (result)
                     {
                         SuccessMessage = $"Đã đặt lại mật khẩu cho tài khoản '{EditingUser.Username}'.";
                     }
                 }
+
                 if (result)
                 {
                     await LoadUsersAsync();
@@ -364,20 +403,24 @@ namespace BankDds.Wpf.ViewModels
         public async Task Delete()
         {
             if (SelectedUser == null) return;
+
             if (SelectedUser.Username.Equals(_userSession.Username, StringComparison.OrdinalIgnoreCase))
             {
                 await _dialogService.ShowWarningAsync("Bạn không thể tự xóa chính tài khoản của mình.", "Xóa người dùng");
                 return;
             }
-            if (_userSession.UserGroup != UserGroup.NganHang)
+
+            if (!ShowBankAdminActions)
             {
                 await _dialogService.ShowWarningAsync("Chỉ người dùng Ngân hàng mới được xóa tài khoản đăng nhập.", "Xóa đăng nhập");
                 return;
             }
+
             var confirmed = await _dialogService.ShowConfirmationAsync(
                 $"Bạn có chắc muốn xóa tài khoản đăng nhập '{SelectedUser.Username}'?",
                 "Xác nhận xóa đăng nhập");
             if (!confirmed) return;
+
             await ExecuteWithLoadingAsync(async () =>
             {
                 var result = await _userService.DeleteUserAsync(SelectedUser.Username);
@@ -419,6 +462,7 @@ namespace BankDds.Wpf.ViewModels
             {
                 _editingUser.DefaultBranch = _userSession.SelectedBranch;
             }
+
             _editingUser.DefaultBranch = (_editingUser.DefaultBranch ?? string.Empty).Trim().ToUpperInvariant();
             switch (_editingUser.UserGroup)
             {

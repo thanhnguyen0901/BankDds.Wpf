@@ -1,5 +1,6 @@
 using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
+using System.Linq;
 
 namespace BankDds.Infrastructure.Data
 {
@@ -52,15 +53,16 @@ namespace BankDds.Infrastructure.Data
         public async Task<List<Account>> GetAccountsByCustomerAsync(string cmnd)
         {
             _authorizationService.RequireCanAccessCustomer(cmnd);
+            var accounts = await _accountRepository.GetAccountsByCustomerAsync(cmnd);
 
-            var customer = await _customerRepository.GetCustomerByCMNDAsync(cmnd);
-
-            if (customer != null)
+            if (_userSession.UserGroup == UserGroup.ChiNhanh)
             {
-                _authorizationService.RequireCanAccessBranch(customer.MaCN);
+                return accounts
+                    .Where(a => string.Equals(a.MACN, _userSession.SelectedBranch, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
             }
 
-            return await _accountRepository.GetAccountsByCustomerAsync(cmnd);
+            return accounts;
         }
 
         public async Task<Account?> GetAccountAsync(string sotk)

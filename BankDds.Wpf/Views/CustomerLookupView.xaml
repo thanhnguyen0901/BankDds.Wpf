@@ -8,7 +8,6 @@
     d:DesignWidth="1000"
     mc:Ignorable="d">
     <UserControl.Resources>
-        <!-- Primary button style -->
         <Style x:Key="SearchButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="#0078D7" />
             <Setter Property="Foreground" Value="White" />
@@ -52,21 +51,19 @@
         </Border.Effect>
 
         <DockPanel>
-            <!-- Header -->
             <StackPanel DockPanel.Dock="Top" Margin="0,0,0,20">
                 <TextBlock
                     FontSize="24"
                     FontWeight="Bold"
                     Foreground="#0078D7"
-                    Text="🔍 Tra cứu khách hàng toàn hệ thống" />
+                    Text="Tra cứu khách hàng toàn hệ thống" />
                 <TextBlock
                     Margin="0,4,0,0"
                     FontSize="13"
                     Foreground="#888"
-                    Text="Tìm kiếm khách hàng trên CSDL tra cứu (NGANHANG) — dữ liệu từ tất cả chi nhánh." />
+                    Text="Tìm kiếm khách hàng trên CSDL tra cứu (NGANHANG) - dữ liệu từ tất cả chi nhánh." />
             </StackPanel>
 
-            <!-- Search bar -->
             <Border
                 DockPanel.Dock="Top"
                 Margin="0,0,0,16"
@@ -74,7 +71,6 @@
                 Background="#F8F9FA"
                 CornerRadius="6">
                 <StackPanel>
-                    <!-- Radio buttons for search mode -->
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                         <RadioButton
                             Content="Tìm theo CMND (chính xác)"
@@ -87,7 +83,6 @@
                             FontSize="13" />
                     </StackPanel>
 
-                    <!-- Search input + button -->
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -116,7 +111,6 @@
                 </StackPanel>
             </Border>
 
-            <!-- Status bar -->
             <TextBlock
                 x:Name="StatusMessage"
                 DockPanel.Dock="Bottom"
@@ -124,7 +118,6 @@
                 FontSize="13"
                 Foreground="#666" />
 
-            <!-- Results grid -->
             <DataGrid
                 x:Name="Results"
                 AutoGenerateColumns="False"
@@ -141,15 +134,15 @@
                 BorderThickness="1"
                 BorderBrush="#DDD">
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="CMND" Binding="{Binding CMND}" Width="120" />
-                    <DataGridTextColumn Header="Họ" Binding="{Binding Ho}" Width="120" />
-                    <DataGridTextColumn Header="Tên" Binding="{Binding Ten}" Width="100" />
-                    <DataGridTextColumn Header="Phái" Binding="{Binding Phai}" Width="60" />
-                    <DataGridTextColumn Header="Ngày sinh" Binding="{Binding NgaySinh, StringFormat=\{0:dd/MM/yyyy\}}" Width="100" />
-                    <DataGridTextColumn Header="Điện thoại" Binding="{Binding SODT}" Width="110" />
-                    <DataGridTextColumn Header="Địa chỉ" Binding="{Binding DiaChi}" Width="*" />
-                    <DataGridTextColumn Header="Chi nhánh" Binding="{Binding MaCN}" Width="100" />
-                    <DataGridTextColumn Header="Trạng thái" Binding="{Binding StatusText}" Width="80" />
+                    <DataGridTextColumn Header="CMND" Binding="{Binding CMND}" Width="2*" />
+                    <DataGridTextColumn Header="Họ" Binding="{Binding Ho}" Width="2*" />
+                    <DataGridTextColumn Header="Tên" Binding="{Binding Ten}" Width="*" />
+                    <DataGridTextColumn Header="Phái" Binding="{Binding Phai}" Width="*" />
+                    <DataGridTextColumn Header="Ngày sinh" Binding="{Binding NgaySinh, StringFormat=\{0:dd/MM/yyyy\}}" Width="2*" />
+                    <DataGridTextColumn Header="Điện thoại" Binding="{Binding SODT}" Width="2*" />
+                    <DataGridTextColumn Header="Địa chỉ" Binding="{Binding DiaChi}" Width="3*" />
+                    <DataGridTextColumn Header="Chi nhánh" Binding="{Binding BranchDisplayName}" Width="2*" />
+                    <DataGridTextColumn Header="Trạng thái" Binding="{Binding StatusText}" Width="2*" />
                 </DataGrid.Columns>
             </DataGrid>
         </DockPanel>

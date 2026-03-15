@@ -1,3 +1,4 @@
+using BankDds.Core.Formatting;
 using BankDds.Core.Models;
 using ClosedXML.Excel;
 using iText.IO.Font;
@@ -226,7 +227,7 @@ namespace BankDds.Wpf.Services
                     table.AddCell(DataCell(a.SOTK, font));
                     table.AddCell(DataCell(a.CMND, font));
                     table.AddCell(DataCell($"{a.SODU:N0}", font, TextAlignment.RIGHT));
-                    table.AddCell(DataCell(a.MACN, font, TextAlignment.CENTER));
+                    table.AddCell(DataCell(a.BranchDisplayName, font, TextAlignment.CENTER));
                     table.AddCell(DataCell(a.NGAYMOTK.ToString("dd/MM/yyyy"), font, TextAlignment.CENTER));
                 }
                 doc.Add(table);
@@ -263,7 +264,7 @@ namespace BankDds.Wpf.Services
                     ws.Cell(row, 2).Value = a.CMND;
                     ws.Cell(row, 3).Value = a.SODU;
                     ws.Cell(row, 3).Style.NumberFormat.Format = "#,##0";
-                    ws.Cell(row, 4).Value = a.MACN;
+                    ws.Cell(row, 4).Value = a.BranchDisplayName;
                     ws.Cell(row, 5).Value = a.NGAYMOTK;
                     ws.Cell(row, 5).Style.DateFormat.Format = "dd/MM/yyyy";
                     row++;
@@ -285,7 +286,7 @@ namespace BankDds.Wpf.Services
                 using var doc = new Document(pdf, iText.Kernel.Geom.PageSize.A4.Rotate());
                 AddPdfHeader(doc, boldFont, font,
                     "BÁO CÁO KHÁCH HÀNG THEO CHI NHÁNH",
-                    $"Chi nhánh: {branchCode ?? "TẤT CẢ"}  |  Tổng: {customers.Count} khách hàng");
+                    $"Chi nhánh: {DisplayText.Branch(branchCode)}  |  Tổng: {customers.Count} khách hàng");
                 var table = new Table(UnitValue.CreatePercentArray(new float[] { 12, 20, 10, 12, 20, 10, 8, 8 }))
                     .UseAllAvailableWidth();
                 table.AddHeaderCell(HeaderCell("CMND", boldFont));
@@ -305,7 +306,7 @@ namespace BankDds.Wpf.Services
                     table.AddCell(DataCell(c.DiaChi, font));
                     table.AddCell(DataCell(c.SODT, font));
                     table.AddCell(DataCell(c.Phai, font, TextAlignment.CENTER));
-                    table.AddCell(DataCell(c.MaCN, font, TextAlignment.CENTER));
+                    table.AddCell(DataCell(c.BranchDisplayName, font, TextAlignment.CENTER));
                 }
                 doc.Add(table);
             });
@@ -321,7 +322,7 @@ namespace BankDds.Wpf.Services
                 ws.Cell(1, 1).Value = "BÁO CÁO KHÁCH HÀNG THEO CHI NHÁNH";
                 ws.Cell(1, 1).Style.Font.Bold = true;
                 ws.Cell(1, 1).Style.Font.FontSize = 14;
-                ws.Cell(2, 1).Value = $"Chi nhánh: {branchCode ?? "TẤT CẢ"}";
+                ws.Cell(2, 1).Value = $"Chi nhánh: {DisplayText.Branch(branchCode)}";
                 ws.Cell(3, 1).Value = $"Ngày xuất: {DateTime.Now:dd/MM/yyyy HH:mm:ss}";
                 int headerRow = 5;
                 string[] headers = ["CMND", "Họ tên", "Ngày sinh", "Ngày cấp", "Địa chỉ", "SĐT", "Phái", "Chi nhánh"];
@@ -352,7 +353,7 @@ namespace BankDds.Wpf.Services
                     ws.Cell(row, 5).Value = c.DiaChi;
                     ws.Cell(row, 6).Value = c.SODT;
                     ws.Cell(row, 7).Value = c.Phai;
-                    ws.Cell(row, 8).Value = c.MaCN;
+                    ws.Cell(row, 8).Value = c.BranchDisplayName;
                     row++;
                 }
                 ws.Columns().AdjustToContents();

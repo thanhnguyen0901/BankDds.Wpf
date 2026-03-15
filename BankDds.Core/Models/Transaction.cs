@@ -1,3 +1,5 @@
+using BankDds.Core.Formatting;
+
 namespace BankDds.Core.Models
 {
     /// <summary>
@@ -14,12 +16,6 @@ namespace BankDds.Core.Models
         public string? SOTK_NHAN { get; set; }
         public string Status { get; set; } = "Completed";
         public string? ErrorMessage { get; set; }
-        public string StatusDisplay => Status switch
-        {
-            "Completed" => "Completed",
-            "Failed" => "Failed",
-            "Pending" => "Pending",
-            _ => Status
-        };
+        public string StatusDisplay => DisplayText.TransactionStatus(Status);
     }
 }

@@ -11,126 +11,95 @@
     mc:Ignorable="d">
     <UserControl.Resources>
         <converters:BoolToVisibilityConverter x:Key="BoolToVisConverter" />
-        <converters:InvertedBoolToVisibilityConverter x:Key="InvertedBoolToVis" />
     </UserControl.Resources>
 
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="200" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!--  Title  -->
-        <TextBlock
-            Grid.Row="0"
-            Style="{StaticResource PageTitleStyle}"
-            Text="Quản lý Tài khoản" />
-
-        <!--  Error Message  -->
-        <TextBlock
-            x:Name="ErrorMessage"
-            Grid.Row="1"
-            Style="{StaticResource ErrorMessageStyle}" />
-
-        <!--  Customer List (Master)  -->
-        <GroupBox
-            Grid.Row="2"
-            Margin="0,0,0,10"
-            Header="Khách hàng - Chọn khách hàng để xem tài khoản">
-            <DataGrid
-                x:Name="Customers"
-                SelectedItem="{Binding SelectedCustomer, Mode=TwoWay}"
-                Style="{StaticResource StandardDataGridStyle}">
-                <DataGrid.Columns>
-                    <DataGridTextColumn
-                        Width="120"
-                        Binding="{Binding CMND}"
-                        Header="CMND" />
-                    <DataGridTextColumn
-                        Width="150"
-                        Binding="{Binding Ho}"
-                        Header="Họ" />
-                    <DataGridTextColumn
-                        Width="100"
-                        Binding="{Binding Ten}"
-                        Header="Tên" />
-                    <DataGridTextColumn
-                        Width="*"
-                        Binding="{Binding DiaChi}"
-                        Header="Địa chỉ" />
-                    <DataGridTextColumn
-                        Width="100"
-                        Binding="{Binding SDT}"
-                        Header="SĐT" />
-                    <DataGridTextColumn
-                        Width="100"
-                        Binding="{Binding MaCN}"
-                        Header="Chi nhánh" />
-                </DataGrid.Columns>
-            </DataGrid>
-        </GroupBox>
-
-        <!--  Section Title  -->
-        <TextBlock
-            Grid.Row="3"
-            Style="{StaticResource SectionTitleStyle}"
-            Text="Tài khoản của khách hàng đã chọn" />
-
-        <!--  Action Buttons  -->
-        <StackPanel
-            Grid.Row="4"
-            Margin="0,0,0,15"
-            Orientation="Horizontal">
-            <Button
-                x:Name="Add"
-                Content="Thêm tài khoản"
-                Style="{StaticResource PrimaryButtonStyle}" />
-            <Button
-                x:Name="Edit"
-                Content="Sửa"
-                Style="{StaticResource WarningButtonStyle}" />
-            <Button
-                x:Name="Delete"
-                Content="Xóa"
-                Style="{StaticResource DangerButtonStyle}" />
-            <Button
-                x:Name="Close"
-                Content="Đóng tài khoản"
-                Style="{StaticResource WarningButtonStyle}" />
-            <Button
-                x:Name="Reopen"
-                Content="Mở lại tài khoản"
-                Style="{StaticResource SuccessButtonStyle}" />
+        <StackPanel Grid.Row="0" Margin="0,0,0,15">
+            <TextBlock Style="{StaticResource PageTitleStyle}" Text="Tra cứu tài khoản" />
+            <TextBlock
+                FontSize="13"
+                Foreground="#666666"
+                Text="{Binding ResultSummary}" />
         </StackPanel>
 
-        <!--  Accounts for Selected Customer (Detail)  -->
+        <Border
+            Grid.Row="1"
+            Margin="0,0,0,15"
+            Padding="16"
+            Background="#F8F9FA"
+            BorderBrush="#DEE2E6"
+            BorderThickness="1"
+            CornerRadius="5">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Margin="0,0,15,0">
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Số tài khoản hoặc CMND:" />
+                    <TextBox
+                        x:Name="SearchText"
+                        Height="40"
+                        Style="{StaticResource StandardTextBoxStyle}" />
+                </StackPanel>
+
+                <Button
+                    x:Name="Search"
+                    Grid.Column="1"
+                    Margin="0,22,10,0"
+                    Content="Tra cứu"
+                    Style="{StaticResource PrimaryButtonStyle}" />
+
+                <Button
+                    x:Name="Refresh"
+                    Grid.Column="2"
+                    Margin="0,22,0,0"
+                    Content="Tải lại"
+                    Style="{StaticResource SecondaryButtonStyle}" />
+            </Grid>
+        </Border>
+
+        <TextBlock
+            x:Name="ErrorMessage"
+            Grid.Row="2"
+            Margin="0,0,0,10"
+            Style="{StaticResource ErrorMessageStyle}" />
+
         <DataGrid
             x:Name="Accounts"
-            Grid.Row="5"
+            Grid.Row="3"
             SelectedItem="{Binding SelectedAccount, Mode=TwoWay}"
             Style="{StaticResource StandardDataGridStyle}">
             <DataGrid.Columns>
                 <DataGridTextColumn
-                    Width="150"
+                    Width="2*"
                     Binding="{Binding SOTK}"
                     Header="Số tài khoản" />
                 <DataGridTextColumn
-                    Width="150"
+                    Width="2*"
+                    Binding="{Binding CMND}"
+                    Header="CMND khách hàng" />
+                <DataGridTextColumn
+                    Width="2*"
+                    Binding="{Binding BranchDisplayName}"
+                    Header="Chi nhánh mở TK" />
+                <DataGridTextColumn
+                    Width="2*"
+                    Binding="{Binding NGAYMOTK, StringFormat=dd/MM/yyyy HH:mm}"
+                    Header="Ngày mở" />
+                <DataGridTextColumn
+                    Width="2*"
                     Binding="{Binding SODU, StringFormat=N0}"
                     Header="Số dư (VND)" />
-                <DataGridTextColumn
-                    Width="100"
-                    Binding="{Binding MACN}"
-                    Header="Chi nhánh" />
-                <DataGridTextColumn
-                    Width="120"
-                    Binding="{Binding NGAYMOTK, StringFormat=dd/MM/yyyy}"
-                    Header="Ngày mở" />
                 <DataGridTextColumn
                     Width="*"
                     Binding="{Binding StatusDisplay}"
@@ -138,81 +107,9 @@
             </DataGrid.Columns>
         </DataGrid>
 
-        <!--  Edit Form  -->
-        <Border
-            Grid.Row="5"
-            Style="{StaticResource DetailPanelStyle}"
-            Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisConverter}}">
-            <ScrollViewer Padding="20" VerticalScrollBarVisibility="Auto">
-                <StackPanel>
-                    <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Thông tin Tài khoản" />
-
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Số tài khoản:" />
-                    <TextBox
-                        Margin="0,0,0,12"
-                        Background="#F0F0F0"
-                        IsReadOnly="True"
-                        Style="{StaticResource StandardTextBoxStyle}"
-                        Text="{Binding EditingAccount.SOTK}" />
-
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Số dư:" />
-                    <TextBox
-                        Margin="0,0,0,12"
-                        Style="{StaticResource StandardTextBoxStyle}"
-                        Text="{Binding EditingAccount.SODU, UpdateSourceTrigger=PropertyChanged}" />
-
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Ngày mở:" />
-                    <DatePicker
-                        MinHeight="32"
-                        Margin="0,0,0,12"
-                        Padding="10"
-                        FontSize="14"
-                        SelectedDate="{Binding EditingAccount.NGAYMOTK}" />
-
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Chi nhánh:" />
-                    <TextBox
-                        Margin="0,0,0,20"
-                        Background="#F0F0F0"
-                        IsReadOnly="True"
-                        Style="{StaticResource StandardTextBoxStyle}"
-                        Text="{Binding EditingAccount.MACN}" />
-
-                    <!--  Inline validation errors  -->
-                    <Border
-                        Style="{StaticResource ValidationErrorPanelStyle}"
-                        Visibility="{Binding HasError, Converter={StaticResource BoolToVisConverter}}">
-                        <StackPanel>
-                            <TextBlock
-                                FontWeight="SemiBold"
-                                Foreground="#8B0000"
-                                Text="Vui lòng sửa các lỗi sau:"
-                                Margin="0,0,0,4" />
-                            <TextBlock
-                                Text="{Binding ErrorMessage}"
-                                TextWrapping="Wrap"
-                                Foreground="#8B0000" />
-                        </StackPanel>
-                    </Border>
-
-                    <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
-                        <Button
-                            x:Name="Save"
-                            Content="Ghi"
-                            Style="{StaticResource SuccessButtonStyle}" />
-                        <Button
-                            x:Name="Cancel"
-                            Margin="0"
-                            Content="Thoát"
-                            Style="{StaticResource SecondaryButtonStyle}" />
-                    </StackPanel>
-                </StackPanel>
-            </ScrollViewer>
-        </Border>
-
-        <!--  Loading Overlay  -->
         <Grid
             Grid.Row="0"
-            Grid.RowSpan="7"
+            Grid.RowSpan="4"
             Style="{StaticResource LoadingOverlayStyle}">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                 <ProgressBar Style="{StaticResource LoadingSpinnerStyle}" />

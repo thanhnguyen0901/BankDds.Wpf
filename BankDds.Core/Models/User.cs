@@ -1,3 +1,5 @@
+using BankDds.Core.Formatting;
+
 namespace BankDds.Core.Models
 {
     /// <summary>
@@ -12,6 +14,7 @@ namespace BankDds.Core.Models
         public string? CustomerCMND { get; set; }
         public string? EmployeeId { get; set; }
         public int TrangThaiXoa { get; set; } = 0;
-        public string StatusText => TrangThaiXoa == 0 ? "Hoạt động" : "Đã xóa";
+        public string DefaultBranchDisplayName => DisplayText.Branch(DefaultBranch);
+        public string StatusText => DisplayText.SoftDeleteStatus(TrangThaiXoa);
     }
 }

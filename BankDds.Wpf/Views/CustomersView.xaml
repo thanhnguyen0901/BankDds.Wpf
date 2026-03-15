@@ -17,24 +17,18 @@
 
     <Grid Margin="20">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />  <!--  0: Page title  -->
-            <RowDefinition Height="Auto" />  <!--  1: Customer CRUD buttons  -->
-            <RowDefinition Height="260" />   <!--  2: Customer master DataGrid / edit overlay  -->
-            <RowDefinition Height="*" />     <!--  3: Account SubForm  -->
-            <RowDefinition Height="Auto" />  <!--  4: Page-level status messages  -->
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="260" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!--  ═══════════════════════════════════════════════════════
-              ROW 0 · Page title
-              ═══════════════════════════════════════════════════════  -->
         <TextBlock
             Grid.Row="0"
             Style="{StaticResource PageTitleStyle}"
-            Text="Quản lý Khách hàng" />
+            Text="Quản lý khách hàng" />
 
-        <!--  ═══════════════════════════════════════════════════════
-              ROW 1 · Customer CRUD buttons
-              ═══════════════════════════════════════════════════════  -->
         <StackPanel
             Grid.Row="1"
             Margin="0,0,0,8"
@@ -57,9 +51,6 @@
                 Style="{StaticResource SuccessButtonStyle}" />
         </StackPanel>
 
-        <!--  ═══════════════════════════════════════════════════════
-              ROW 2 · Customer master DataGrid
-              ═══════════════════════════════════════════════════════  -->
         <DataGrid
             x:Name="Customers"
             Grid.Row="2"
@@ -67,79 +58,78 @@
             Style="{StaticResource StandardDataGridStyle}">
             <DataGrid.Columns>
                 <DataGridTextColumn
-                    Width="110"
+                    Width="2*"
                     Binding="{Binding CMND}"
                     Header="CMND" />
                 <DataGridTextColumn
-                    Width="130"
+                    Width="2*"
                     Binding="{Binding Ho}"
                     Header="Họ" />
                 <DataGridTextColumn
-                    Width="90"
+                    Width="*"
                     Binding="{Binding Ten}"
                     Header="Tên" />
                 <DataGridTextColumn
-                    Width="100"
+                    Width="2*"
                     Binding="{Binding NgaySinh, StringFormat=dd/MM/yyyy}"
                     Header="Ngày sinh" />
                 <DataGridTextColumn
-                    Width="100"
+                    Width="2*"
                     Binding="{Binding NgayCap, StringFormat=dd/MM/yyyy}"
                     Header="Ngày cấp" />
                 <DataGridTextColumn
-                    Width="*"
+                    Width="3*"
                     Binding="{Binding DiaChi}"
                     Header="Địa chỉ" />
                 <DataGridTextColumn
-                    Width="110"
-                    Binding="{Binding SDT}"
+                    Width="2*"
+                    Binding="{Binding SODT}"
                     Header="SĐT" />
                 <DataGridTextColumn
-                    Width="60"
+                    Width="*"
                     Binding="{Binding Phai}"
                     Header="Phái" />
                 <DataGridTextColumn
-                    Width="90"
-                    Binding="{Binding MaCN}"
+                    Width="2*"
+                    Binding="{Binding BranchDisplayName}"
                     Header="Chi nhánh" />
                 <DataGridTextColumn
-                    Width="70"
+                    Width="2*"
                     Binding="{Binding StatusText}"
                     Header="Trạng thái" />
             </DataGrid.Columns>
         </DataGrid>
 
-        <!--  ROW 2 overlay · Customer Edit / Add Form  -->
         <Border
             Grid.Row="2"
             Style="{StaticResource DetailPanelStyle}"
             Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisConverter}}">
             <ScrollViewer Padding="20" VerticalScrollBarVisibility="Auto">
                 <StackPanel>
-                    <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Thông tin Khách hàng" />
+                    <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Thông tin khách hàng" />
 
-                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="CMND: *" />
+                    <TextBlock Style="{StaticResource StandardLabelStyle}" Text="CMND:" />
                     <TextBox
                         Margin="0,0,0,12"
                         IsEnabled="{Binding SelectedCustomer, Converter={StaticResource NullToBoolConverter}}"
                         Style="{StaticResource StandardTextBoxStyle}"
                         Text="{Binding EditingCustomer.CMND, UpdateSourceTrigger=PropertyChanged}" />
 
-                    <Grid Margin="0,0,0,0">
+                    <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="16" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0">
-                            <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Họ (Ho): *" />
+                            <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Họ:" />
                             <TextBox
                                 Margin="0,0,0,12"
                                 Style="{StaticResource StandardTextBoxStyle}"
                                 Text="{Binding EditingCustomer.Ho, UpdateSourceTrigger=PropertyChanged}" />
                         </StackPanel>
                         <StackPanel Grid.Column="2">
-                            <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Tên (Ten): *" />
+                            <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Tên:" />
                             <TextBox
                                 Margin="0,0,0,12"
                                 Style="{StaticResource StandardTextBoxStyle}"
@@ -147,14 +137,14 @@
                         </StackPanel>
                     </Grid>
 
-                    <Grid Margin="0,0,0,0">
+                    <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="16" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0">
-                            <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Ngày sinh (NgaySinh): *" />
+                            <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Ngày sinh:" />
                             <DatePicker
                                 MinHeight="32"
                                 Margin="0,0,0,12"
@@ -163,7 +153,7 @@
                                 SelectedDate="{Binding EditingCustomer.NgaySinh}" />
                         </StackPanel>
                         <StackPanel Grid.Column="2">
-                            <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Ngày cấp CMND (NgayCap): *" />
+                            <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Ngày cấp CMND:" />
                             <DatePicker
                                 MinHeight="32"
                                 Margin="0,0,0,12"
@@ -182,7 +172,7 @@
                             <ColumnDefinition Width="80" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0">
-                            <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Địa chỉ (DiaChi): *" />
+                            <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Địa chỉ:" />
                             <TextBox
                                 Margin="0,0,0,12"
                                 Style="{StaticResource StandardTextBoxStyle}"
@@ -193,10 +183,10 @@
                             <TextBox
                                 Margin="0,0,0,12"
                                 Style="{StaticResource StandardTextBoxStyle}"
-                                Text="{Binding EditingCustomer.SDT, UpdateSourceTrigger=PropertyChanged}" />
+                                Text="{Binding EditingCustomer.SODT, UpdateSourceTrigger=PropertyChanged}" />
                         </StackPanel>
                         <StackPanel Grid.Column="4">
-                            <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Phái: *" />
+                            <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Phái:" />
                             <ComboBox
                                 Margin="0,0,0,12"
                                 SelectedValue="{Binding EditingCustomer.Phai}"
@@ -213,9 +203,8 @@
                         Background="#F0F0F0"
                         IsReadOnly="True"
                         Style="{StaticResource StandardTextBoxStyle}"
-                        Text="{Binding EditingCustomer.MaCN}" />
+                        Text="{Binding EditingCustomer.BranchDisplayName}" />
 
-                    <!--  Inline validation errors  -->
                     <Border
                         Style="{StaticResource ValidationErrorPanelStyle}"
                         Visibility="{Binding HasError, Converter={StaticResource BoolToVisConverter}}">
@@ -247,16 +236,12 @@
             </ScrollViewer>
         </Border>
 
-        <!--  ═══════════════════════════════════════════════════════
-              ROW 3 · Account SubForm
-              ═══════════════════════════════════════════════════════  -->
         <Grid Grid.Row="3" Margin="0,10,0,0">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />  <!--  3a: Section header + account buttons  -->
-                <RowDefinition Height="*" />     <!--  3b: Account DataGrid or edit form  -->
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <!--  Placeholder — shown when no customer is selected  -->
             <Border
                 Grid.RowSpan="2"
                 Padding="20"
@@ -264,178 +249,167 @@
                 BorderBrush="#DEE2E6"
                 BorderThickness="1"
                 CornerRadius="4"
-                Visibility="{Binding HasSelectedCustomer, Converter={StaticResource InvertedBoolToVis}}">
+                Visibility="{Binding HasAccountCustomer, Converter={StaticResource InvertedBoolToVis}}">
                 <TextBlock
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
                     FontSize="14"
                     FontStyle="Italic"
                     Foreground="#6C757D"
-                    Text="↑  Chọn một khách hàng từ danh sách ở trên để xem và quản lý tài khoản." />
+                    Text="Chọn khách hàng trong danh sách hoặc nhập CMND để tra cứu khách hàng toàn hệ thống rồi mở tài khoản tại chi nhánh đang đăng nhập." />
             </Border>
 
-            <!--  3a: Account section header + action buttons  -->
-            <Grid
+            <Border
                 Grid.Row="0"
-                Margin="0,0,0,8"
-                Visibility="{Binding HasSelectedCustomer, Converter={StaticResource BoolToVisConverter}}">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
+                Padding="15"
+                Background="#F8F9FA"
+                BorderBrush="#DEE2E6"
+                BorderThickness="1"
+                CornerRadius="5"
+                Visibility="{Binding HasAccountCustomer, Converter={StaticResource BoolToVisConverter}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="320" />
+                    </Grid.ColumnDefinitions>
 
-                <!--  Section title showing selected customer name  -->
-                <StackPanel Grid.Column="0" Orientation="Vertical" VerticalAlignment="Bottom">
-                    <TextBlock Style="{StaticResource SectionTitleStyle}" Margin="0">
-                        <TextBlock.Text>
-                            <MultiBinding StringFormat="Tài khoản — {0} (CMND: {1})">
-                                <Binding Path="SelectedCustomer.FullName" FallbackValue="" />
-                                <Binding Path="SelectedCustomer.CMND" FallbackValue="" />
-                            </MultiBinding>
-                        </TextBlock.Text>
-                    </TextBlock>
-                </StackPanel>
+                    <StackPanel Grid.Column="0" Margin="0,0,20,0">
+                        <TextBlock
+                            Style="{StaticResource SectionTitleStyle}"
+                            Margin="0,0,0,6"
+                            Text="{Binding AccountContextTitle}" />
+                        <TextBlock
+                            FontSize="13"
+                            Foreground="#666666"
+                            Text="{Binding AccountContextSubtitle}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
 
-                <!--  Account action buttons  -->
-                <StackPanel
-                    Grid.Column="1"
-                    Orientation="Horizontal"
-                    VerticalAlignment="Bottom">
-                    <Button
-                        x:Name="AddAccount"
-                        Content="Mở tài khoản"
-                        Style="{StaticResource PrimaryButtonStyle}" />
-                    <Button
-                        x:Name="EditAccount"
-                        Content="Sửa"
-                        Style="{StaticResource WarningButtonStyle}" />
-                    <Button
-                        x:Name="CloseAccount"
-                        Content="Đóng tài khoản"
-                        Style="{StaticResource DangerButtonStyle}" />
-                    <Button
-                        x:Name="ReopenAccount"
-                        Content="Mở lại"
-                        Style="{StaticResource SuccessButtonStyle}" />
-                </StackPanel>
-            </Grid>
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Tra cứu khách hàng mở tài khoản theo CMND:" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox
+                                x:Name="AccountCustomerLookupCmnd"
+                                Grid.Column="0"
+                                Margin="0,0,10,0"
+                                Style="{StaticResource StandardTextBoxStyle}" />
+                            <Button
+                                x:Name="LookupAccountCustomer"
+                                Grid.Column="1"
+                                Content="Tra cứu CMND"
+                                Style="{StaticResource PrimaryButtonStyle}" />
+                        </Grid>
 
-            <!--  3b: Account DataGrid (visible when customer selected and NOT editing an account)  -->
+                        <StackPanel
+                            Margin="0,10,0,0"
+                            HorizontalAlignment="Right"
+                            Orientation="Horizontal">
+                            <Button
+                                x:Name="AddAccount"
+                                Content="Mở tài khoản"
+                                Style="{StaticResource PrimaryButtonStyle}" />
+                            <Button
+                                x:Name="CloseAccount"
+                                Content="Đóng tài khoản"
+                                Style="{StaticResource DangerButtonStyle}" />
+                            <Button
+                                x:Name="ReopenAccount"
+                                Content="Mở lại"
+                                Style="{StaticResource SuccessButtonStyle}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
             <DataGrid
                 x:Name="CustomerAccounts"
                 Grid.Row="1"
+                Margin="0,10,0,0"
                 SelectedItem="{Binding SelectedAccount, Mode=TwoWay}"
                 Style="{StaticResource StandardDataGridStyle}"
                 Visibility="{Binding IsEditingAccount, Converter={StaticResource InvertedBoolToVis}}">
                 <DataGrid.Columns>
                     <DataGridTextColumn
-                        Width="140"
+                        Width="2*"
                         Binding="{Binding SOTK}"
                         Header="Số tài khoản" />
                     <DataGridTextColumn
-                        Width="160"
+                        Width="2*"
                         Binding="{Binding SODU, StringFormat=N0}"
                         Header="Số dư (VND)" />
                     <DataGridTextColumn
-                        Width="90"
-                        Binding="{Binding MACN}"
-                        Header="Chi nhánh" />
+                        Width="2*"
+                        Binding="{Binding BranchDisplayName}"
+                        Header="Chi nhánh mở TK" />
                     <DataGridTextColumn
-                        Width="110"
+                        Width="2*"
                         Binding="{Binding NGAYMOTK, StringFormat=dd/MM/yyyy}"
                         Header="Ngày mở" />
                     <DataGridTextColumn
                         Width="*"
                         Binding="{Binding StatusDisplay}"
-                        Header="Trạng thái">
-                        <DataGridTextColumn.ElementStyle>
-                            <Style TargetType="TextBlock">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Status}" Value="Active">
-                                        <Setter Property="Foreground" Value="#388E3C" />
-                                        <Setter Property="FontWeight" Value="SemiBold" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding Status}" Value="Closed">
-                                        <Setter Property="Foreground" Value="#999999" />
-                                        <Setter Property="FontStyle" Value="Italic" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
+                        Header="Trạng thái" />
                 </DataGrid.Columns>
             </DataGrid>
 
-            <!--  3b overlay: Account Open / Edit Form  -->
             <Border
                 Grid.Row="1"
+                Margin="0,10,0,0"
                 Style="{StaticResource DetailPanelStyle}"
                 Visibility="{Binding IsEditingAccount, Converter={StaticResource BoolToVisConverter}}">
                 <ScrollViewer Padding="20" VerticalScrollBarVisibility="Auto">
                     <StackPanel>
-                        <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Mở / Sửa tài khoản" />
+                        <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Mở tài khoản" />
 
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="20" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
+                        <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Số tài khoản:" />
+                        <TextBox
+                            Margin="0,0,0,12"
+                            Background="#F0F0F0"
+                            IsReadOnly="True"
+                            Style="{StaticResource StandardTextBoxStyle}"
+                            Text="{Binding EditingAccount.SOTK}" />
 
-                            <!--  Left column  -->
-                            <StackPanel Grid.Column="0">
-                                <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Số tài khoản (SOTK):" />
-                                <TextBox
-                                    Margin="0,0,0,12"
-                                    Background="#F0F0F0"
-                                    IsReadOnly="True"
-                                    Style="{StaticResource StandardTextBoxStyle}"
-                                    Text="{Binding EditingAccount.SOTK}" />
+                        <TextBlock Style="{StaticResource StandardLabelStyle}" Text="CMND khách hàng:" />
+                        <TextBox
+                            Margin="0,0,0,12"
+                            Background="#F0F0F0"
+                            IsReadOnly="True"
+                            Style="{StaticResource StandardTextBoxStyle}"
+                            Text="{Binding EditingAccount.CMND}" />
 
-                                <TextBlock Style="{StaticResource StandardLabelStyle}" Text="CMND Khách hàng:" />
-                                <TextBox
-                                    Margin="0,0,0,12"
-                                    Background="#F0F0F0"
-                                    IsReadOnly="True"
-                                    Style="{StaticResource StandardTextBoxStyle}"
-                                    Text="{Binding EditingAccount.CMND}" />
+                        <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Chi nhánh mở tài khoản:" />
+                        <TextBox
+                            Margin="0,0,0,12"
+                            Background="#F0F0F0"
+                            IsReadOnly="True"
+                            Style="{StaticResource StandardTextBoxStyle}"
+                            Text="{Binding AccountOpenBranchDisplayName}" />
 
-                                <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Chi nhánh:" />
-                                <TextBox
-                                    Margin="0,0,0,12"
-                                    Background="#F0F0F0"
-                                    IsReadOnly="True"
-                                    Style="{StaticResource StandardTextBoxStyle}"
-                                    Text="{Binding EditingAccount.MACN}" />
-                            </StackPanel>
+                        <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Ngày mở:" />
+                        <TextBox
+                            Margin="0,0,0,12"
+                            Background="#F0F0F0"
+                            IsReadOnly="True"
+                            Style="{StaticResource StandardTextBoxStyle}"
+                            Text="{Binding EditingAccount.NGAYMOTK, StringFormat=dd/MM/yyyy HH:mm}" />
 
-                            <!--  Right column  -->
-                            <StackPanel Grid.Column="2">
-                                <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Ngày mở:" />
-                                <TextBox
-                                    Margin="0,0,0,12"
-                                    Background="#F0F0F0"
-                                    IsReadOnly="True"
-                                    Style="{StaticResource StandardTextBoxStyle}"
-                                    Text="{Binding EditingAccount.NGAYMOTK, StringFormat=dd/MM/yyyy HH:mm}" />
+                        <Border
+                            Margin="0,0,0,12"
+                            Padding="12"
+                            Background="#E7F3FF"
+                            BorderBrush="#B8DAFF"
+                            BorderThickness="1"
+                            CornerRadius="4">
+                            <TextBlock
+                                FontSize="13"
+                                Foreground="#004085"
+                                Text="Số dư ban đầu được cố định là 0 VND. Mọi thay đổi số dư chỉ thực hiện qua tab Giao dịch." />
+                        </Border>
 
-                                <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Số dư ban đầu (VND):" />
-                                <TextBox
-                                    Margin="0,0,0,12"
-                                    Style="{StaticResource StandardTextBoxStyle}"
-                                    Text="{Binding EditingAccount.SODU, UpdateSourceTrigger=PropertyChanged}" />
-
-                                <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Trạng thái:" />
-                                <TextBox
-                                    Margin="0,0,0,12"
-                                    Background="#F0F0F0"
-                                    IsReadOnly="True"
-                                    Style="{StaticResource StandardTextBoxStyle}"
-                                    Text="{Binding EditingAccount.Status}" />
-                            </StackPanel>
-                        </Grid>
-
-                        <!--  Account inline validation errors  -->
                         <Border
                             Style="{StaticResource ValidationErrorPanelStyle}"
                             Visibility="{Binding HasAccountError, Converter={StaticResource BoolToVisConverter}}">
@@ -471,9 +445,6 @@
             </Border>
         </Grid>
 
-        <!--  ═══════════════════════════════════════════════════════
-              ROW 4 · Page-level status messages
-              ═══════════════════════════════════════════════════════  -->
         <StackPanel Grid.Row="4" Margin="0,8,0,0">
             <TextBlock
                 Style="{StaticResource SuccessMessageStyle}"
@@ -485,7 +456,6 @@
                 Visibility="{Binding HasError, Converter={StaticResource BoolToVisConverter}}" />
         </StackPanel>
 
-        <!--  Loading overlay spanning all rows  -->
         <Grid
             Grid.Row="0"
             Grid.RowSpan="5"

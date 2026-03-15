@@ -1,3 +1,5 @@
+using BankDds.Core.Formatting;
+
 namespace BankDds.Core.Models
 {
     /// <summary>
@@ -9,5 +11,11 @@ namespace BankDds.Core.Models
         public string TENCN { get; set; } = string.Empty;
         public string DiaChi { get; set; } = string.Empty;
         public string SODT { get; set; } = string.Empty;
+        public string SoDT
+        {
+            get => SODT;
+            set => SODT = value;
+        }
+        public string DisplayName => string.IsNullOrWhiteSpace(TENCN) ? DisplayText.Branch(MACN) : TENCN.Trim();
     }
 }

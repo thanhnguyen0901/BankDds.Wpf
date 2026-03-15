@@ -51,7 +51,6 @@ namespace BankDds.Infrastructure.Data
             }
 
             _authorizationService.RequireCanAccessCustomer(cmnd);
-            _authorizationService.RequireCanAccessBranch(customer.MaCN);
             return customer;
         }
 

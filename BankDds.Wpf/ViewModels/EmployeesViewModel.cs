@@ -3,6 +3,7 @@ using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
 using BankDds.Core.Validators;
 using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace BankDds.Wpf.ViewModels
 {
@@ -15,6 +16,7 @@ namespace BankDds.Wpf.ViewModels
         private readonly IUserSession _userSession;
         private readonly IDialogService _dialogService;
         private readonly EmployeeValidator _validator;
+        private readonly IBranchService _branchService;
         private ObservableCollection<Employee> _employees = new();
         private Employee? _selectedEmployee;
         private Employee _editingEmployee = new();
@@ -22,25 +24,21 @@ namespace BankDds.Wpf.ViewModels
         private string _errorMessage = string.Empty;
         private string _transferBranch = string.Empty;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="EmployeesViewModel"/> class.
-        /// </summary>
-        /// <param name="employeeService">Service that manages employee data and branch transfer actions.</param>
-        /// <param name="userSession">Current authenticated session with role, branch, and identity context.</param>
-        /// <param name="dialogService">Dialog service used to show confirmation and feedback messages.</param>
-        /// <param name="validator">Validator that enforces input rules before saving data.</param>
         public EmployeesViewModel(
             IEmployeeService employeeService,
             IUserSession userSession,
             IDialogService dialogService,
-            EmployeeValidator validator)
+            EmployeeValidator validator,
+            IBranchService branchService)
         {
             _employeeService = employeeService;
             _userSession = userSession;
             _dialogService = dialogService;
             _validator = validator;
+            _branchService = branchService;
             DisplayName = "Quản lý nhân viên";
         }
+
         public ObservableCollection<Employee> Employees
         {
             get => _employees;
@@ -50,6 +48,7 @@ namespace BankDds.Wpf.ViewModels
                 NotifyOfPropertyChange(() => Employees);
             }
         }
+
         public Employee? SelectedEmployee
         {
             get => _selectedEmployee;
@@ -63,6 +62,7 @@ namespace BankDds.Wpf.ViewModels
                 NotifyOfPropertyChange(() => CanExecuteTransferBranch);
             }
         }
+
         public Employee EditingEmployee
         {
             get => _editingEmployee;
@@ -71,8 +71,10 @@ namespace BankDds.Wpf.ViewModels
                 _editingEmployee = value;
                 NotifyOfPropertyChange(() => EditingEmployee);
                 NotifyOfPropertyChange(() => CanSave);
+                NotifyOfPropertyChange(() => EditingBranchDisplayName);
             }
         }
+
         public bool IsEditing
         {
             get => _isEditing;
@@ -89,6 +91,7 @@ namespace BankDds.Wpf.ViewModels
                 NotifyOfPropertyChange(() => CanExecuteTransferBranch);
             }
         }
+
         public string ErrorMessage
         {
             get => _errorMessage;
@@ -99,7 +102,9 @@ namespace BankDds.Wpf.ViewModels
                 NotifyOfPropertyChange(() => HasError);
             }
         }
+
         public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
+
         public string TransferBranch
         {
             get => _transferBranch;
@@ -110,7 +115,10 @@ namespace BankDds.Wpf.ViewModels
                 NotifyOfPropertyChange(() => CanExecuteTransferBranch);
             }
         }
-        public ObservableCollection<string> AvailableBranches { get; } = new() { "BENTHANH", "TANDINH" };
+
+        public ObservableCollection<string> AvailableBranches { get; } = new();
+        public string EditingBranchDisplayName => EditingEmployee.BranchDisplayName;
+
         private bool CanModifyEmployees => _userSession.UserGroup == UserGroup.ChiNhanh;
         public bool CanAdd => CanModifyEmployees && !IsEditing;
         public bool CanEdit => CanModifyEmployees && SelectedEmployee != null && !IsEditing;
@@ -118,12 +126,41 @@ namespace BankDds.Wpf.ViewModels
         public bool CanRestore => CanModifyEmployees && SelectedEmployee != null && !IsEditing && SelectedEmployee.TrangThaiXoa == 1;
         public bool CanSave => IsEditing && !string.IsNullOrWhiteSpace(EditingEmployee.HO) && !string.IsNullOrWhiteSpace(EditingEmployee.TEN);
         public bool CanCancel => IsEditing;
-        public bool CanExecuteTransferBranch => CanModifyEmployees && SelectedEmployee != null && IsEditing && SelectedEmployee.TrangThaiXoa == 0 && !string.IsNullOrWhiteSpace(TransferBranch);
+        public bool CanExecuteTransferBranch =>
+            CanModifyEmployees &&
+            SelectedEmployee != null &&
+            IsEditing &&
+            SelectedEmployee.TrangThaiXoa == 0 &&
+            !string.IsNullOrWhiteSpace(TransferBranch) &&
+            !string.Equals(TransferBranch, SelectedEmployee.MACN, StringComparison.OrdinalIgnoreCase);
 
         protected override async Task OnActivateAsync(CancellationToken cancellationToken)
         {
             await base.OnActivateAsync(cancellationToken);
+            await LoadBranchesAsync();
             await LoadEmployeesAsync();
+        }
+
+        private async Task LoadBranchesAsync()
+        {
+            try
+            {
+                var branches = await _branchService.GetAllBranchesAsync();
+                AvailableBranches.Clear();
+                foreach (var branch in branches.OrderBy(branch => branch.MACN, StringComparer.OrdinalIgnoreCase))
+                {
+                    AvailableBranches.Add(branch.MACN);
+                }
+
+                if (!AvailableBranches.Contains(_userSession.SelectedBranch))
+                {
+                    AvailableBranches.Add(_userSession.SelectedBranch);
+                }
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"Lỗi tải danh sách chi nhánh: {ex.Message}";
+            }
         }
 
         private async Task LoadEmployeesAsync()
@@ -139,6 +176,7 @@ namespace BankDds.Wpf.ViewModels
                 {
                     employees = await _employeeService.GetEmployeesByBranchAsync(_userSession.SelectedBranch);
                 }
+
                 Employees = new ObservableCollection<Employee>(employees);
                 ErrorMessage = string.Empty;
             }
@@ -156,6 +194,7 @@ namespace BankDds.Wpf.ViewModels
                 MACN = _userSession.SelectedBranch,
                 TrangThaiXoa = 0
             };
+            TransferBranch = string.Empty;
             IsEditing = true;
             SelectedEmployee = null;
             ErrorMessage = string.Empty;
@@ -164,6 +203,7 @@ namespace BankDds.Wpf.ViewModels
         public void Edit()
         {
             if (SelectedEmployee == null) return;
+
             EditingEmployee = new Employee
             {
                 MANV = SelectedEmployee.MANV,
@@ -176,19 +216,25 @@ namespace BankDds.Wpf.ViewModels
                 MACN = SelectedEmployee.MACN,
                 TrangThaiXoa = SelectedEmployee.TrangThaiXoa
             };
+            TransferBranch = string.Empty;
             IsEditing = true;
             ErrorMessage = string.Empty;
         }
 
         public async Task Save()
         {
+            if (SelectedEmployee != null)
+            {
+                EditingEmployee.MACN = SelectedEmployee.MACN;
+            }
+
             var validationResult = await _validator.ValidateAsync(EditingEmployee);
             if (!validationResult.IsValid)
             {
-                ErrorMessage = string.Join(Environment.NewLine,
-                    validationResult.Errors.Select(e => e.ErrorMessage));
+                ErrorMessage = string.Join(Environment.NewLine, validationResult.Errors.Select(error => error.ErrorMessage));
                 return;
             }
+
             try
             {
                 bool result;
@@ -199,17 +245,20 @@ namespace BankDds.Wpf.ViewModels
                         ErrorMessage = $"Mã nhân viên '{EditingEmployee.MANV}' đã tồn tại. Vui lòng nhập mã khác.";
                         return;
                     }
+
                     result = await _employeeService.AddEmployeeAsync(EditingEmployee);
                 }
                 else
                 {
                     result = await _employeeService.UpdateEmployeeAsync(EditingEmployee);
                 }
+
                 if (result)
                 {
                     IsEditing = false;
                     await LoadEmployeesAsync();
                     SelectedEmployee = null;
+                    TransferBranch = string.Empty;
                     ErrorMessage = string.Empty;
                 }
                 else
@@ -228,9 +277,9 @@ namespace BankDds.Wpf.ViewModels
             if (SelectedEmployee == null) return;
             var confirmed = await _dialogService.ShowConfirmationAsync(
                 $"Bạn có chắc muốn xóa nhân viên '{SelectedEmployee.FullName}'?",
-                "Xác nhận xóa"
-            );
+                "Xác nhận xóa");
             if (!confirmed) return;
+
             try
             {
                 var result = await _employeeService.DeleteEmployeeAsync(SelectedEmployee.MANV);
@@ -256,9 +305,9 @@ namespace BankDds.Wpf.ViewModels
             if (SelectedEmployee == null) return;
             var confirmed = await _dialogService.ShowConfirmationAsync(
                 $"Bạn có chắc muốn khôi phục nhân viên '{SelectedEmployee.FullName}'?",
-                "Xác nhận khôi phục"
-            );
+                "Xác nhận khôi phục");
             if (!confirmed) return;
+
             try
             {
                 var result = await _employeeService.RestoreEmployeeAsync(SelectedEmployee.MANV);
@@ -283,17 +332,19 @@ namespace BankDds.Wpf.ViewModels
         {
             IsEditing = false;
             EditingEmployee = new Employee();
+            TransferBranch = string.Empty;
             ErrorMessage = string.Empty;
         }
 
         public async Task ExecuteTransferBranch()
         {
             if (SelectedEmployee == null || string.IsNullOrWhiteSpace(TransferBranch)) return;
+
             var confirmed = await _dialogService.ShowConfirmationAsync(
                 $"Bạn có chắc muốn chuyển nhân viên '{SelectedEmployee.FullName}' sang chi nhánh '{TransferBranch}'?",
-                "Xác nhận chuyển chi nhánh"
-            );
+                "Xác nhận chuyển chi nhánh");
             if (!confirmed) return;
+
             try
             {
                 var result = await _employeeService.TransferEmployeeAsync(SelectedEmployee.MANV, TransferBranch);
@@ -302,6 +353,7 @@ namespace BankDds.Wpf.ViewModels
                     await LoadEmployeesAsync();
                     TransferBranch = string.Empty;
                     SelectedEmployee = null;
+                    IsEditing = false;
                     ErrorMessage = string.Empty;
                 }
                 else

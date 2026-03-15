@@ -1,3 +1,5 @@
+using BankDds.Core.Formatting;
+
 namespace BankDds.Core.Models
 {
     /// <summary>
@@ -12,9 +14,15 @@ namespace BankDds.Core.Models
         public string CMND { get; set; } = string.Empty;
         public string PHAI { get; set; } = string.Empty;
         public string SODT { get; set; } = string.Empty;
+        public string SDT
+        {
+            get => SODT;
+            set => SODT = value;
+        }
         public string MACN { get; set; } = string.Empty;
         public int TrangThaiXoa { get; set; } = 0;
         public string FullName => $"{HO} {TEN}";
-        public string StatusText => TrangThaiXoa == 0 ? "Active" : "Deleted";
+        public string BranchDisplayName => DisplayText.Branch(MACN);
+        public string StatusText => DisplayText.SoftDeleteStatus(TrangThaiXoa);
     }
 }

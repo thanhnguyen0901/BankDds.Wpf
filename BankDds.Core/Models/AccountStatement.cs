@@ -1,3 +1,5 @@
+using BankDds.Core.Formatting;
+
 namespace BankDds.Core.Models
 {
     /// <summary>
@@ -46,7 +48,7 @@ namespace BankDds.Core.Models
         public DateTime FromDate { get; set; }
         public DateTime ToDate { get; set; }
         public string? BranchCode { get; set; }
-        public string BranchDisplay => BranchCode ?? "ALL";
+        public string BranchDisplay => DisplayText.Branch(BranchCode);
         public int TotalTransactionCount { get; set; }
         public int DepositCount { get; set; }
         public int WithdrawalCount { get; set; }
