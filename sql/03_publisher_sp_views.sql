@@ -43,6 +43,20 @@ BEGIN
 END
 GO
 
+CREATE OR ALTER PROCEDURE dbo.SP_SearchCustomersByName
+    @Keyword nvarchar(100),
+    @MaxRows int = 50
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT TOP (@MaxRows)
+           CMND, HO, TEN, NGAYSINH, DIACHI, NGAYCAP, SODT, PHAI, MACN, TrangThaiXoa
+    FROM   dbo.KHACHHANG
+    WHERE  (HO + N' ' + TEN) LIKE N'%' + @Keyword + N'%'
+    ORDER  BY HO ASC, TEN ASC;
+END
+GO
+
 CREATE OR ALTER PROCEDURE dbo.SP_AddCustomer
     @CMND     nChar(10),
     @HO       nvarchar(50),
@@ -457,22 +471,43 @@ BEGIN
     SET NOCOUNT ON;
     IF IS_MEMBER('KHACHHANG') = 1
     BEGIN
+        DECLARE @OriginalLogin nvarchar(128) = ORIGINAL_LOGIN();
+        DECLARE @CallerDbUser  nvarchar(128) = NULL;
         DECLARE @TargetCMND nChar(10) = NULL;
         DECLARE @OwnerCMND  nChar(10) = NULL;
+
+        SELECT TOP 1
+            @CallerDbUser = dp.name
+        FROM sys.database_principals dp
+        WHERE dp.sid = SUSER_SID(@OriginalLogin)
+          AND dp.type IN ('S', 'U')
+        ORDER BY
+            CASE dp.type
+                WHEN 'S' THEN 1
+                ELSE 2
+            END;
+
+        IF @CallerDbUser IS NULL
+            SET @CallerDbUser = @OriginalLogin;
 
         IF OBJECT_ID(N'dbo.NGUOIDUNG', N'U') IS NOT NULL
         BEGIN
             SELECT TOP 1 @TargetCMND = NULLIF(RTRIM(CustomerCMND), N'')
             FROM dbo.NGUOIDUNG
-            WHERE Username = SYSTEM_USER
-              AND TrangThaiXoa = 0;
+            WHERE TrangThaiXoa = 0
+              AND UPPER(RTRIM(Username)) IN
+              (
+                  UPPER(RTRIM(@OriginalLogin)),
+                  UPPER(RTRIM(@CallerDbUser)),
+                  UPPER(RTRIM(SYSTEM_USER))
+              );
         END
 
         IF @TargetCMND IS NULL
         BEGIN
             SELECT TOP 1 @TargetCMND = CMND
             FROM dbo.KHACHHANG
-            WHERE CMND = SYSTEM_USER
+            WHERE CMND IN (@OriginalLogin, SYSTEM_USER)
               AND TrangThaiXoa = 0;
         END
 
@@ -834,16 +869,17 @@ GO
 CREATE OR ALTER PROCEDURE dbo.SP_GetAccountStatement
     @SOTK    nChar(9),
     @TuNgay  datetime,
-    @DenNgay datetime
+    @DenNgay datetime,
+    @CustomerCMND nChar(10) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
     IF IS_MEMBER('KHACHHANG') = 1
     BEGIN
-        DECLARE @TargetCMND nChar(10) = NULL;
+        DECLARE @TargetCMND nChar(10) = NULLIF(RTRIM(@CustomerCMND), N'');
         DECLARE @OwnerCMND  nChar(10) = NULL;
 
-        IF OBJECT_ID(N'dbo.NGUOIDUNG', N'U') IS NOT NULL
+        IF @TargetCMND IS NULL AND OBJECT_ID(N'dbo.NGUOIDUNG', N'U') IS NOT NULL
         BEGIN
             SELECT TOP 1 @TargetCMND = NULLIF(RTRIM(CustomerCMND), N'')
             FROM dbo.NGUOIDUNG
@@ -857,6 +893,12 @@ BEGIN
             FROM dbo.KHACHHANG
             WHERE CMND = SYSTEM_USER
               AND TrangThaiXoa = 0;
+        END
+
+        IF @TargetCMND IS NULL
+        BEGIN
+            RAISERROR(N'KHACHHANG login is missing CustomerCMND mapping.', 16, 1);
+            RETURN;
         END
 
         SELECT @OwnerCMND = CMND

@@ -50,6 +50,7 @@ GO
 -- Cấp quyền EXECUTE cho role NGANHANG.
 GRANT EXECUTE ON dbo.SP_GetCustomersByBranch      TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_GetCustomerByCMND         TO NGANHANG;
+GRANT EXECUTE ON dbo.SP_SearchCustomersByName     TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_GetAllCustomers           TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_GetAccount                TO NGANHANG;
 GRANT EXECUTE ON dbo.SP_GetAccountStatement       TO NGANHANG;

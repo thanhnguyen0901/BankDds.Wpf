@@ -14,6 +14,7 @@ namespace BankDds.Core.Models
         public DateTime NGAYMOTK { get; set; }
         public string Status { get; set; } = "Active";
         public string BranchDisplayName => DisplayText.Branch(MACN);
+        public string StatementDisplayText => $"{SOTK} - {BranchDisplayName}";
         public string StatusDisplay => DisplayText.AccountStatus(Status);
     }
 }

@@ -156,7 +156,7 @@
                         Background="#F0F0F0"
                         IsReadOnly="True"
                         Style="{StaticResource StandardTextBoxStyle}"
-                        Text="{Binding EditingBranchDisplayName}" />
+                        Text="{Binding EditingBranchDisplayName, Mode=OneWay}" />
 
                     <Border
                         Style="{StaticResource ValidationErrorPanelStyle}"

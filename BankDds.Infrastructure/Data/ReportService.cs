@@ -49,7 +49,11 @@ namespace BankDds.Infrastructure.Data
                 _authorizationService.RequireCanAccessBranch(account.MACN);
             }
 
-            var statement = await _reportRepository.GetAccountStatementAsync(sotk, fromDate, toDate);
+            var statement = await _reportRepository.GetAccountStatementAsync(
+                sotk,
+                fromDate,
+                toDate,
+                _userSession.UserGroup == UserGroup.KhachHang ? _userSession.CustomerCMND : null);
 
             if (statement == null)
             {

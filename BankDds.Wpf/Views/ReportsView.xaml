@@ -11,6 +11,7 @@
     mc:Ignorable="d">
     <UserControl.Resources>
         <converters:BoolToVisibilityConverter x:Key="BoolToVisConverter" />
+        <converters:InvertedBoolToVisibilityConverter x:Key="InvertedBoolToVisConverter" />
     </UserControl.Resources>
 
     <Grid Margin="20">
@@ -70,20 +71,18 @@
                                 <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Số tài khoản:" />
                                 <ComboBox
                                     Height="42"
-                                    IsEditable="True"
+                                    DisplayMemberPath="StatementDisplayText"
                                     ItemsSource="{Binding StatementAccounts}"
-                                    Text="{Binding StatementAccountNumber, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                    Style="{StaticResource StandardComboBoxStyle}">
-                                    <ComboBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock>
-                                                <Run Text="{Binding SOTK}" />
-                                                <Run Text=" - " />
-                                                <Run Text="{Binding BranchDisplayName}" />
-                                            </TextBlock>
-                                        </DataTemplate>
-                                    </ComboBox.ItemTemplate>
+                                    SelectedValue="{Binding StatementAccountNumber, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    SelectedValuePath="SOTK"
+                                    Style="{StaticResource StandardComboBoxStyle}"
+                                    Visibility="{Binding IsCustomerMode, Converter={StaticResource BoolToVisConverter}}">
                                 </ComboBox>
+                                <TextBox
+                                    Height="42"
+                                    Style="{StaticResource StandardTextBoxStyle}"
+                                    Text="{Binding StatementAccountNumber, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    Visibility="{Binding IsCustomerMode, Converter={StaticResource InvertedBoolToVisConverter}}" />
                             </StackPanel>
 
                             <StackPanel Grid.Column="1" Margin="0,0,20,0">
@@ -229,7 +228,11 @@
 
                             <StackPanel Grid.Column="2" Margin="0,0,20,0">
                                 <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Chi nhánh:" />
-                                <ComboBox x:Name="SelectedBranchForAccounts" Height="42" ItemsSource="{Binding AvailableBranches}" Style="{StaticResource StandardComboBoxStyle}">
+                                <ComboBox
+                                    Height="42"
+                                    ItemsSource="{Binding AvailableBranches}"
+                                    SelectedItem="{Binding SelectedBranchForAccounts, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    Style="{StaticResource StandardComboBoxStyle}">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate>
                                             <TextBlock Text="{Binding Converter={StaticResource BranchDisplayConverter}}" />
@@ -287,7 +290,11 @@
 
                             <StackPanel Grid.Column="0" Margin="0,0,20,0">
                                 <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Chi nhánh:" />
-                                <ComboBox x:Name="SelectedBranchForCustomers" Height="42" ItemsSource="{Binding AvailableBranches}" Style="{StaticResource StandardComboBoxStyle}">
+                                <ComboBox
+                                    Height="42"
+                                    ItemsSource="{Binding AvailableBranches}"
+                                    SelectedItem="{Binding SelectedBranchForCustomers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    Style="{StaticResource StandardComboBoxStyle}">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate>
                                             <TextBlock Text="{Binding Converter={StaticResource BranchDisplayConverter}}" />
@@ -357,7 +364,11 @@
 
                             <StackPanel Grid.Column="2" Margin="0,0,20,0">
                                 <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Chi nhánh:" />
-                                <ComboBox x:Name="SelectedBranchForTransactionSummary" Height="42" ItemsSource="{Binding AvailableBranches}" Style="{StaticResource StandardComboBoxStyle}">
+                                <ComboBox
+                                    Height="42"
+                                    ItemsSource="{Binding AvailableBranches}"
+                                    SelectedItem="{Binding SelectedBranchForTransactionSummary, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    Style="{StaticResource StandardComboBoxStyle}">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate>
                                             <TextBlock Text="{Binding Converter={StaticResource BranchDisplayConverter}}" />

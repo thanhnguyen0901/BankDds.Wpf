@@ -14,7 +14,7 @@ namespace BankDds.Core.Interfaces
         /// <param name="fromDate">Start date.</param>
         /// <param name="toDate">End date.</param>
         /// <returns>Account statement data for the requested account and date range.</returns>
-        Task<AccountStatement?> GetAccountStatementAsync(string accountNumber, DateTime fromDate, DateTime toDate);
+        Task<AccountStatement?> GetAccountStatementAsync(string accountNumber, DateTime fromDate, DateTime toDate, string? customerCmnd = null);
 
         /// <summary>
         /// Gets accounts opened in a date range and optional branch.

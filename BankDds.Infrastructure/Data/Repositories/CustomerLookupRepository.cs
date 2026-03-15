@@ -42,13 +42,10 @@ namespace BankDds.Infrastructure.Data
             {
                 await using var connection = new SqlConnection(GetConnectionString());
                 await connection.OpenAsync();
-                const string sql = """
-                    SELECT TOP 1
-                           CMND, HO, TEN, NGAYSINH, DIACHI, NGAYCAP, SODT, PHAI, MACN, TrangThaiXoa
-                    FROM   dbo.KHACHHANG
-                    WHERE  CMND = @CMND
-                    """;
-                await using var cmd = new SqlCommand(sql, connection);
+                await using var cmd = new SqlCommand("dbo.SP_GetCustomerByCMND", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
                 cmd.Parameters.Add("@CMND", SqlDbType.NChar, 10).Value = cmnd;
                 await using var reader = await cmd.ExecuteReaderAsync();
                 if (await reader.ReadAsync())
@@ -66,31 +63,27 @@ namespace BankDds.Infrastructure.Data
         {
             keyword = keyword.Trim();
             _logger.LogInformation("CustomerLookup: search name keyword={Keyword}, max={Max}", keyword, maxResults);
-            var results = new List<Customer>();
             try
             {
+                var results = new List<Customer>();
                 await using var connection = new SqlConnection(GetConnectionString());
                 await connection.OpenAsync();
-                const string sql = """
-                    SELECT TOP (@MaxRows)
-                           CMND, HO, TEN, NGAYSINH, DIACHI, NGAYCAP, SODT, PHAI, MACN, TrangThaiXoa
-                    FROM   dbo.KHACHHANG
-                    WHERE  (HO + N' ' + TEN) LIKE N'%' + @Keyword + N'%'
-                    ORDER  BY HO, TEN
-                    """;
-                await using var cmd = new SqlCommand(sql, connection);
+                await using var cmd = new SqlCommand("dbo.SP_SearchCustomersByName", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
                 cmd.Parameters.Add("@MaxRows", SqlDbType.Int).Value = maxResults;
                 cmd.Parameters.Add("@Keyword", SqlDbType.NVarChar, 100).Value = keyword;
                 await using var reader = await cmd.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
                     results.Add(MapFromReader(reader));
+                return results;
             }
             catch (SqlException ex)
             {
                 throw new InvalidOperationException(
                     $"CustomerLookup: database error searching name '{keyword}': {ex.Message}", ex);
             }
-            return results;
         }
 
         private static Customer MapFromReader(SqlDataReader reader) => new()

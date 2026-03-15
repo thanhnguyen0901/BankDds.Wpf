@@ -33,7 +33,7 @@ namespace BankDds.Infrastructure.Data
             return _connectionStringProvider.GetPublisherConnection();
         }
 
-        public async Task<AccountStatement?> GetAccountStatementAsync(string accountNumber, DateTime fromDate, DateTime toDate)
+        public async Task<AccountStatement?> GetAccountStatementAsync(string accountNumber, DateTime fromDate, DateTime toDate, string? customerCmnd = null)
         {
             accountNumber = accountNumber.Trim();
             _logger.LogInformation("Report: AccountStatement SOTK={SOTK} period={From:yyyy-MM-dd}->{To:yyyy-MM-dd}",
@@ -52,6 +52,7 @@ namespace BankDds.Infrastructure.Data
                 command.Parameters.AddWithValue("@SOTK", accountNumber);
                 command.Parameters.AddWithValue("@TuNgay", fromDate.Date);
                 command.Parameters.AddWithValue("@DenNgay", endOfDay);
+                command.Parameters.AddWithValue("@CustomerCMND", string.IsNullOrWhiteSpace(customerCmnd) ? (object)DBNull.Value : customerCmnd.Trim());
                 using var reader = await command.ExecuteReaderAsync();
                 if (!await reader.ReadAsync())
                     return null;

@@ -203,7 +203,7 @@
                         Background="#F0F0F0"
                         IsReadOnly="True"
                         Style="{StaticResource StandardTextBoxStyle}"
-                        Text="{Binding EditingCustomer.BranchDisplayName}" />
+                        Text="{Binding EditingCustomer.BranchDisplayName, Mode=OneWay}" />
 
                     <Border
                         Style="{StaticResource ValidationErrorPanelStyle}"
@@ -270,7 +270,7 @@
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="320" />
+                        <ColumnDefinition Width="360" />
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Grid.Column="0" Margin="0,0,20,0">
@@ -304,23 +304,33 @@
                                 Style="{StaticResource PrimaryButtonStyle}" />
                         </Grid>
 
-                        <StackPanel
-                            Margin="0,10,0,0"
-                            HorizontalAlignment="Right"
-                            Orientation="Horizontal">
+                        <Grid Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
                             <Button
                                 x:Name="AddAccount"
+                                Grid.Column="0"
+                                HorizontalAlignment="Stretch"
                                 Content="Mở tài khoản"
                                 Style="{StaticResource PrimaryButtonStyle}" />
                             <Button
                                 x:Name="CloseAccount"
+                                Grid.Column="2"
+                                HorizontalAlignment="Stretch"
                                 Content="Đóng tài khoản"
                                 Style="{StaticResource DangerButtonStyle}" />
                             <Button
                                 x:Name="ReopenAccount"
+                                Grid.Column="4"
+                                HorizontalAlignment="Stretch"
                                 Content="Mở lại"
                                 Style="{StaticResource SuccessButtonStyle}" />
-                        </StackPanel>
+                        </Grid>
                     </StackPanel>
                 </Grid>
             </Border>
@@ -387,7 +397,7 @@
                             Background="#F0F0F0"
                             IsReadOnly="True"
                             Style="{StaticResource StandardTextBoxStyle}"
-                            Text="{Binding AccountOpenBranchDisplayName}" />
+                            Text="{Binding AccountOpenBranchDisplayName, Mode=OneWay}" />
 
                         <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Ngày mở:" />
                         <TextBox
