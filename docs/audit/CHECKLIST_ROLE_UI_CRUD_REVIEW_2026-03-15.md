@@ -603,3 +603,108 @@ Kết luận cuối:
     - xac nhan 3 nut `Mo tai khoan`, `Dong tai khoan`, `Mo lai` hien day du text, khong bi cat
     - thu resize man hinh/app o be rong thong dung de bao dam khong tai phat
   - trang thai: cho `approve` truoc khi update code
+- 17. [x] DONE: tab `Giao dich` -> `Chuyen tien` bao loi validate du da nhap du thong tin
+  - pham vi user report: role `ChiNhanh` dang nhap, vao tab `Giao dich`, chon `Chuyen tien`, nhap 2 so tai khoan va so tien hop le, bam `Chuyen tien` thi form bao loi `Ma giao dich (MAGD) la bat buoc` va `Ngay giao dich khong duoc lon hon ngay hien tai`
+  - nguyen nhan root cause:
+    - `BankDds.Wpf/ViewModels/TransactionsViewModel.cs`: truoc khi goi service, UI luon tao `Transaction` tam va validate qua `TransactionValidator`; object nay duoc set `MAGD = 0` trong `ValidateTransactionInputAsync`
+    - `BankDds.Core/Validators/TransactionValidator.cs`: validator lai dang bat buoc `MAGD` phai co gia tri, trong khi `MAGD` la identity/duoc DB sinh khi post giao dich; do do giao dich moi se fail ngay o tang UI validation
+    - cung validator nay dang dung `LessThanOrEqualTo(DateTime.Now)` cho `NGAYGD`
+    - `BankDds.Wpf/AppBootstrapper.cs`: `TransactionValidator` duoc register `SingleInstance`, nen moc `DateTime.Now` trong rule bi chup tai thoi diem app khoi dong; sau mot thoi gian, moi giao dich tao sau do co `NGAYGD` lon hon moc cu va tiep tuc fail rule ngay
+  - tac dong/risk:
+    - bug nay chan flow `Chuyen tien` ngay tai client-side, chua kip xuong service/repository/SP
+    - vi `Deposit`, `Withdraw`, `Transfer` deu dung chung `ValidateTransactionInputAsync`, cung 2 rule sai nay co the lam hong ca `Gui tien` va `Rut tien`, khong chi rieng `Chuyen tien`
+  - solution fix de xuat:
+    - tach validator cho transaction create-input ra khoi posted transaction model, hoac toi thieu bo rule bat buoc `MAGD` khoi flow validate truoc khi ghi
+    - doi rule `NGAYGD` sang evaluate dong theo thoi diem validate, vi du dung lambda/custom rule thay vi capture `DateTime.Now` co dinh trong constructor
+    - retest day du ca 3 flow `Gui tien`, `Rut tien`, `Chuyen tien` vi chung dang di qua cung validator
+  - retest sau fix:
+    - `Chuyen tien`: nhap TK nguon, TK dich, so tien hop le -> bam `Chuyen tien` khong con bao loi `MAGD` / `Ngay giao dich`
+    - `Gui tien`: nhap so tien hop le -> thuc hien duoc
+    - `Rut tien`: nhap so tien hop le -> thuc hien duoc
+  - cach sua da ap dung:
+    - bo rule validate `MAGD` o `BankDds.Core/Validators/TransactionValidator.cs` vi day la gia tri do DB/SP sinh
+    - doi rule `NGAYGD` sang evaluate dong theo runtime thay vi capture `DateTime.Now` tai luc app khoi dong
+  - ket qua user test:
+    - `passed`
+    - ca 3 flow `Gui tien`, `Rut tien`, `Chuyen tien` deu qua duoc buoc validate client-side
+- 18. [x] DONE: tab `Giao dich` -> `Gui/Rut tien` bao loi generic du SP co the da thuc thi
+  - pham vi user report: role `ChiNhanh` vao tab `Giao dich`; `Gui tien`, `Rut tien` va user report ca `Chuyen tien` deu "khong thuc hien duoc"
+  - nguyen nhan root cause da xac dinh cho flow `Gui/Rut`:
+    - `BankDds.Infrastructure/Data/Repositories/TransactionRepository.cs`: `DepositAsync` va `WithdrawAsync` dang goi `ExecuteNonQueryAsync()` roi ket luan thanh cong neu `result > 0`
+    - `sql/03_publisher_sp_views.sql`: `SP_Deposit` va `SP_Withdraw` deu `SET NOCOUNT ON`
+    - voi stored procedure co `SET NOCOUNT ON`, ADO.NET thuong tra `-1` cho `ExecuteNonQuery()` du cau lenh ben trong da chay thanh cong
+    - ket qua la app ket luan `false` va `TransactionsViewModel` hien message generic `Khong the xu ly giao dich ...`, tao false-negative cho user
+  - nhan dinh them ve `Chuyen tien`:
+    - `TransferAsync` trong repository khong dua vao `ExecuteNonQuery() > 0`; neu SP chay xong se tra `true`
+    - vi vay `Chuyen tien` khong co cung root cause boolean-check nhu `Gui/Rut`
+    - neu `Chuyen tien` van fail sau khi fix `Gui/Rut`, can doc message exception cu the tu `SP_CrossBranchTransfer` de phan biet loi app voi loi cau hinh SQL (`SP` chua replicate, `LINK1`, `MSDTC`, tai khoan dich khong hop le, ...`)
+  - solution fix de xuat:
+    - doi `DepositAsync` va `WithdrawAsync` sang xac dinh thanh cong bang viec khong co exception hoac bang output/return code tu SP, khong dua vao `ExecuteNonQuery() > 0`
+    - neu muon dong bo pattern, co the ap dung cung cach cho nhom transaction SP thay vi phu thuoc row-count cua ADO.NET
+    - sau do retest rieng `Chuyen tien`; neu van fail thi hien/giu thong diep loi SQL cu the de khoanh vung tiep
+  - retest sau fix:
+    - `Gui tien`: nhap so tien hop le -> khong con hien thong diep generic false-negative
+    - `Rut tien`: nhap so tien hop le va du so du -> giao dich thanh cong
+    - `Chuyen tien`: test lai local-branch transfer; neu fail phai ghi nhan exact error message thay vi ket luan chung voi `Gui/Rut`
+  - cach sua da ap dung:
+    - `DepositAsync` va `WithdrawAsync` trong `BankDds.Infrastructure/Data/Repositories/TransactionRepository.cs` khong con suy ra ket qua tu `ExecuteNonQuery() > 0`
+    - neu `SP_Deposit` / `SP_Withdraw` chay xong khong nem exception thi app coi giao dich thanh cong
+  - ket qua user test:
+    - `passed`
+    - xac nhan root cause la app check sai ket qua thuc thi; cac giao dich tung bao loi generic truoc do van co the da duoc ghi thanh cong xuong DB
+- 19. [ ] REVIEW: textbox nhap `So tien` can format hang nghin ngay trong luc go
+  - pham vi user request: o cac o nhap `So tien`, khi nguoi dung go `100000` thi UI can hien thanh `100,000` ngay trong luc nhap, khong cho den luc submit moi format
+  - hien trang:
+    - `BankDds.Wpf/Views/TransactionsView.xaml`: 2 textbox `So tien` dang bind truc tiep vao `Amount` voi `UpdateSourceTrigger=PropertyChanged`
+    - `BankDds.Wpf/ViewModels/TransactionsViewModel.cs`: `Amount` dang la `string`; logic `CanDeposit/CanWithdraw/CanTransfer` va submit dang `decimal.TryParse(Amount, out ...)`
+    - app hien khong co converter/behavior input tien te de vua format live tren UI vua giu raw value on dinh cho ViewModel
+  - nguyen nhan root cause:
+    - binding text thuong chi dong bo chuoi nhu nguoi dung go, nen `100000` se duoc hien nguyen xi la `100000`
+    - neu chi them `StringFormat` vao binding se khong giai quyet duoc bai toan format khi dang go, va co the lam hong parse/caret/typing experience
+  - solution fix de xuat:
+    - them 1 attached behavior/helper rieng cho `TextBox` nhap tien
+    - behavior nay can:
+      - loc input thanh chu so hop le
+      - format live theo hang nghin trong luc go, theo mau user mong muon `100,000`
+      - dong bo gia tri ve source sao cho logic hien co van parse duoc on dinh
+      - xu ly ca backspace/delete/paste va giu caret hop ly
+    - ap dung behavior nay cho cac textbox `So tien` o tab `Giao dich`; neu on dinh thi moi mo rong sang cac input tien khac sau
+  - retest sau fix:
+    - go `1` -> `10` -> `100` -> `1000` -> textbox doi thanh `1,000`
+    - go tiep `100000` -> textbox hien `100,000`
+    - backspace/paste van hoat dong dung
+    - `CanDeposit/CanWithdraw/CanTransfer` va submit van chay dung voi gia tri da format
+  - trang thai: cho `approve` truoc khi update code
+- 20. [ ] REVIEW: role `ChiNhanh` tao user bi loi o buoc sync security sang subscriber
+  - pham vi user report: dang nhap role `ChiNhanh`, vao tab `Tao nguoi dung`, nhap thong tin tao account `KhachHang` thi app bao loi nhu anh chup
+  - dau hieu loi tu thong diep:
+    - `User does not have permission to perform this action.`
+    - `User or role 'thanhnguyen0901' does not exist in this database.`
+    - `Sync security to LINK0 failed: Access to the remote server is denied because no login-mapping exists.`
+    - dong thoi van co cac dong `Da tao login`, `Da tao DB user`, `Da them user ... vao role KHACHHANG`
+  - nguyen nhan root cause:
+    - `BankDds.Infrastructure/Data/Repositories/UserRepository.cs`: flow tao user goi `sp_TaoTaiKhoan` truoc, neu SP nay throw thi app khong goi den `USP_AddUser`
+    - `sql/04_publisher_security.sql`: `sp_TaoTaiKhoan` sau khi tao login/user/role local se goi `sp_SyncSecurityToSubscribers`
+    - `sp_SyncSecurityToSubscribers` thuc thi remote SQL qua `LINK0/LINK1/LINK2`; trong case nay no fail ngay tai `LINK0` vi linked server chua co login mapping (`sp_addlinkedsrvlogin`) dung
+    - vi vay day la loi cau hinh security replication/linked server, khong phai loi validate UI
+  - van de phu quan trong:
+    - `sp_TaoTaiKhoan` khong co co che rollback/compensation cho cac buoc da tao local truoc khi sync subscriber
+    - ket qua la local login/user/role co the da duoc tao thanh cong, nhung `NGUOIDUNG` mapping chua duoc insert vi repository bi dung truoc `USP_AddUser`
+    - neu user bam tao lai cung username, kha nang cao se gap loi `Login ... da ton tai` do partial state con lai
+  - solution fix de xuat:
+    - fix ngay o he thong SQL:
+      - cau hinh lai `LINK0` (va kiem tra luon `LINK1/LINK2`) dung theo huong dan `sp_addlinkedserver` + `sp_addlinkedsrvlogin`
+      - test bang `sp_testlinkedserver` va truy van thu truc tiep qua linked server
+    - fix hardening de tranh partial-create:
+      - bo sung rollback/cleanup neu `sp_SyncSecurityToSubscribers` fail sau khi da tao login/user/role local
+      - hoac doi trinh tu/transaction de khong de lai local state nua chung
+    - fix UX/app:
+      - giu/bo sung thong diep loi ro rang rang day la loi cau hinh `LINK0`/security sync, khong phai loi du lieu nguoi dung nhap
+  - retest sau fix:
+    - role `ChiNhanh` tao duoc account `KhachHang`
+    - sau khi tao xong co du ca 3 lop:
+      - SQL login
+      - DB user + role
+      - dong mapping `NGUOIDUNG`
+    - dang nhap bang account moi tao thanh cong tren workflow app
+  - trang thai: cho `approve` truoc khi update code

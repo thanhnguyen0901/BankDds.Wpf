@@ -265,6 +265,7 @@ CREATE OR ALTER PROCEDURE dbo.sp_SyncSecurityToSubscribers
     @PASS     nvarchar(128) = NULL,
     @TENNHOM  nvarchar(128) = NULL,
     @MODE     nvarchar(20)
+WITH EXECUTE AS OWNER
 AS
 BEGIN
     SET NOCOUNT ON;

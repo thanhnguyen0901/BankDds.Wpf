@@ -147,8 +147,8 @@ namespace BankDds.Infrastructure.Data
                 command.Parameters.AddWithValue("@SOTK", sotk);
                 command.Parameters.AddWithValue("@Amount", amount);
                 command.Parameters.AddWithValue("@MANV", manv);
-                var result = await command.ExecuteNonQueryAsync();
-                return result > 0;
+                await command.ExecuteNonQueryAsync();
+                return true;
             }
             catch (SqlException ex)
             {
@@ -171,8 +171,8 @@ namespace BankDds.Infrastructure.Data
                 command.Parameters.AddWithValue("@SOTK", sotk);
                 command.Parameters.AddWithValue("@Amount", amount);
                 command.Parameters.AddWithValue("@MANV", manv);
-                var result = await command.ExecuteNonQueryAsync();
-                return result > 0;
+                await command.ExecuteNonQueryAsync();
+                return true;
             }
             catch (SqlException ex)
             {
