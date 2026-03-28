@@ -586,6 +586,30 @@ BEGIN
             RAISERROR(N'EmployeeId bat buoc voi nhom ChiNhanh.', 16, 1);
             RETURN;
         END
+
+        IF NOT EXISTS (
+            SELECT 1
+            FROM dbo.NHANVIEN
+            WHERE MANV = @EmployeeId
+              AND TrangThaiXoa = 0
+        )
+        BEGIN
+            RAISERROR(N'EmployeeId %s khong ton tai trong NHANVIEN.', 16, 1, @EmployeeId);
+            RETURN;
+        END
+
+        IF NOT EXISTS (
+            SELECT 1
+            FROM dbo.NHANVIEN
+            WHERE MANV = @EmployeeId
+              AND TrangThaiXoa = 0
+              AND RTRIM(MACN) = @DefaultBranch
+        )
+        BEGIN
+            RAISERROR(N'EmployeeId %s khong thuoc chi nhanh %s.', 16, 1, @EmployeeId, @DefaultBranch);
+            RETURN;
+        END
+
         SET @CustomerCMND = NULL;
     END
     ELSE IF @UserGroup = 2
@@ -595,6 +619,30 @@ BEGIN
             RAISERROR(N'CustomerCMND bat buoc voi nhom KhachHang.', 16, 1);
             RETURN;
         END
+
+        IF NOT EXISTS (
+            SELECT 1
+            FROM dbo.KHACHHANG
+            WHERE CMND = @CustomerCMND
+              AND TrangThaiXoa = 0
+        )
+        BEGIN
+            RAISERROR(N'CustomerCMND %s khong ton tai trong KHACHHANG.', 16, 1, @CustomerCMND);
+            RETURN;
+        END
+
+        IF NOT EXISTS (
+            SELECT 1
+            FROM dbo.KHACHHANG
+            WHERE CMND = @CustomerCMND
+              AND TrangThaiXoa = 0
+              AND RTRIM(MACN) = @DefaultBranch
+        )
+        BEGIN
+            RAISERROR(N'CustomerCMND %s khong thuoc chi nhanh %s.', 16, 1, @CustomerCMND, @DefaultBranch);
+            RETURN;
+        END
+
         SET @EmployeeId = NULL;
     END
     ELSE

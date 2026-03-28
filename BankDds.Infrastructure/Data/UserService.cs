@@ -9,6 +9,8 @@ namespace BankDds.Infrastructure.Data
     public class UserService : IUserService
     {
         private readonly IUserRepository _userRepository;
+        private readonly IEmployeeService _employeeService;
+        private readonly ICustomerService _customerService;
         private readonly IAuthorizationService _authorizationService;
         private readonly IUserSession _userSession;
 
@@ -20,10 +22,14 @@ namespace BankDds.Infrastructure.Data
         /// <param name="userSession">Current authenticated user session.</param>
         public UserService(
             IUserRepository userRepository,
+            IEmployeeService employeeService,
+            ICustomerService customerService,
             IAuthorizationService authorizationService,
             IUserSession userSession)
         {
             _userRepository = userRepository;
+            _employeeService = employeeService;
+            _customerService = customerService;
             _authorizationService = authorizationService;
             _userSession = userSession;
         }
@@ -34,7 +40,7 @@ namespace BankDds.Infrastructure.Data
             return _userRepository.GetUserAsync(username);
         }
 
-        public Task<bool> AddUserAsync(User user)
+        public async Task<bool> AddUserAsync(User user)
         {
             _authorizationService.RequireAdminAccess();
 
@@ -42,7 +48,8 @@ namespace BankDds.Infrastructure.Data
 
             _authorizationService.RequireCanCreateUser(preparedUser.UserGroup);
             _authorizationService.RequireCanManageUserInBranch(preparedUser.DefaultBranch);
-            return _userRepository.AddUserAsync(preparedUser);
+            await ValidateLinkedIdentityAsync(preparedUser);
+            return await _userRepository.AddUserAsync(preparedUser);
         }
 
         public Task<bool> UpdateUserAsync(User user)
@@ -139,6 +146,50 @@ namespace BankDds.Infrastructure.Data
             }
 
             return prepared;
+        }
+
+        private async Task ValidateLinkedIdentityAsync(User preparedUser)
+        {
+            if (preparedUser.UserGroup == UserGroup.ChiNhanh)
+            {
+                if (string.IsNullOrWhiteSpace(preparedUser.EmployeeId))
+                {
+                    throw new InvalidOperationException("Mã nhân viên là bắt buộc với tài khoản nhóm Chi nhánh.");
+                }
+
+                var employee = await _employeeService.GetEmployeeAsync(preparedUser.EmployeeId);
+                if (employee == null)
+                {
+                    throw new InvalidOperationException(
+                        $"Mã nhân viên '{preparedUser.EmployeeId}' chưa tồn tại. Hãy tạo nhân viên trước ở tab Nhân viên.");
+                }
+
+                if (!string.Equals(employee.MACN?.Trim(), preparedUser.DefaultBranch, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException(
+                        $"Mã nhân viên '{preparedUser.EmployeeId}' không thuộc chi nhánh '{preparedUser.DefaultBranch}'.");
+                }
+
+                return;
+            }
+
+            if (preparedUser.UserGroup == UserGroup.KhachHang)
+            {
+                if (string.IsNullOrWhiteSpace(preparedUser.CustomerCMND))
+                {
+                    throw new InvalidOperationException("CMND khách hàng là bắt buộc với tài khoản nhóm Khách hàng.");
+                }
+
+                var customer = await _customerService.GetCustomerByCMNDFromBranchAsync(
+                    preparedUser.CustomerCMND,
+                    preparedUser.DefaultBranch);
+
+                if (customer == null)
+                {
+                    throw new InvalidOperationException(
+                        $"CMND khách hàng '{preparedUser.CustomerCMND}' chưa tồn tại tại chi nhánh '{preparedUser.DefaultBranch}'. Hãy tạo khách hàng trước ở tab Khách hàng.");
+                }
+            }
         }
     }
 }

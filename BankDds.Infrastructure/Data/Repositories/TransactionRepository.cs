@@ -14,6 +14,7 @@ namespace BankDds.Infrastructure.Data
         private readonly IConnectionStringProvider _connectionStringProvider;
         private readonly IUserSession _userSession;
         private readonly ILogger<TransactionRepository> _logger;
+        private static readonly TimeSpan SqlDateTimeEndOfDayOffset = TimeSpan.FromMilliseconds(997);
 
         /// <summary>
         /// Initializes TransactionRepository with required infrastructure dependencies.
@@ -36,6 +37,11 @@ namespace BankDds.Infrastructure.Data
             // Logic: transaction write operations must target the session-selected branch shard.
             return _connectionStringProvider.GetConnectionStringForBranch(_userSession.SelectedBranch);
         }
+
+        private static DateTime? NormalizeStartDate(DateTime? value) => value?.Date;
+
+        private static DateTime? NormalizeInclusiveEndDate(DateTime? value) =>
+            value?.Date.AddDays(1).Subtract(SqlDateTimeEndOfDayOffset);
 
         public async Task<List<Transaction>> GetTransactionsByAccountAsync(string sotk)
         {
@@ -65,6 +71,8 @@ namespace BankDds.Infrastructure.Data
         public async Task<List<Transaction>> GetTransactionsByBranchAsync(string branchCode, DateTime? fromDate = null, DateTime? toDate = null)
         {
             var transactions = new List<Transaction>();
+            var normalizedFromDate = NormalizeStartDate(fromDate);
+            var normalizedToDate = NormalizeInclusiveEndDate(toDate);
             try
             {
                 // Logic: branch transaction history reads from requested branch shard only.
@@ -75,8 +83,8 @@ namespace BankDds.Infrastructure.Data
                     CommandType = CommandType.StoredProcedure
                 };
                 command.Parameters.AddWithValue("@MACN", branchCode);
-                command.Parameters.AddWithValue("@FromDate", fromDate ?? (object)DBNull.Value);
-                command.Parameters.AddWithValue("@ToDate", toDate ?? (object)DBNull.Value);
+                command.Parameters.AddWithValue("@FromDate", normalizedFromDate ?? (object)DBNull.Value);
+                command.Parameters.AddWithValue("@ToDate", normalizedToDate ?? (object)DBNull.Value);
                 using var reader = await command.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
                 {

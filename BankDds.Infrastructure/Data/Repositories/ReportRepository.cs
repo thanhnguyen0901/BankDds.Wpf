@@ -13,6 +13,7 @@ namespace BankDds.Infrastructure.Data
     {
         private readonly IConnectionStringProvider _connectionStringProvider;
         private readonly ILogger<ReportRepository> _logger;
+        private static readonly TimeSpan SqlDateTimeEndOfDayOffset = TimeSpan.FromMilliseconds(997);
 
         /// <summary>
         /// Initializes ReportRepository with required infrastructure dependencies.
@@ -33,6 +34,11 @@ namespace BankDds.Infrastructure.Data
             return _connectionStringProvider.GetPublisherConnection();
         }
 
+        private static DateTime NormalizeStartDate(DateTime value) => value.Date;
+
+        private static DateTime NormalizeInclusiveEndDate(DateTime value) =>
+            value.Date.AddDays(1).Subtract(SqlDateTimeEndOfDayOffset);
+
         public async Task<AccountStatement?> GetAccountStatementAsync(string accountNumber, DateTime fromDate, DateTime toDate, string? customerCmnd = null)
         {
             accountNumber = accountNumber.Trim();
@@ -40,7 +46,8 @@ namespace BankDds.Infrastructure.Data
                                    accountNumber, fromDate, toDate);
             if (fromDate.Date > toDate.Date)
                 throw new ArgumentException("Từ ngày phải nhỏ hơn hoặc bằng đến ngày.");
-            var endOfDay = toDate.Date.AddDays(1).AddMilliseconds(-3);
+            var normalizedFromDate = NormalizeStartDate(fromDate);
+            var normalizedToDate = NormalizeInclusiveEndDate(toDate);
             try
             {
                 using var connection = new SqlConnection(GetConnectionString());
@@ -50,8 +57,8 @@ namespace BankDds.Infrastructure.Data
                     CommandType = CommandType.StoredProcedure
                 };
                 command.Parameters.AddWithValue("@SOTK", accountNumber);
-                command.Parameters.AddWithValue("@TuNgay", fromDate.Date);
-                command.Parameters.AddWithValue("@DenNgay", endOfDay);
+                command.Parameters.AddWithValue("@TuNgay", normalizedFromDate);
+                command.Parameters.AddWithValue("@DenNgay", normalizedToDate);
                 command.Parameters.AddWithValue("@CustomerCMND", string.IsNullOrWhiteSpace(customerCmnd) ? (object)DBNull.Value : customerCmnd.Trim());
                 using var reader = await command.ExecuteReaderAsync();
                 if (!await reader.ReadAsync())
@@ -59,7 +66,7 @@ namespace BankDds.Infrastructure.Data
                 var statement = new AccountStatement
                 {
                     SOTK = reader.GetString(reader.GetOrdinal("SOTK")),
-                    FromDate = fromDate.Date,
+                    FromDate = normalizedFromDate,
                     ToDate = toDate.Date,
                     OpeningBalance = reader.GetDecimal(reader.GetOrdinal("OpeningBalance"))
                 };
@@ -96,6 +103,8 @@ namespace BankDds.Infrastructure.Data
             _logger.LogInformation("Report: AccountsOpenedInPeriod branch={Branch} period={From:yyyy-MM-dd}->{To:yyyy-MM-dd}",
                                    branchCode ?? "ALL", fromDate, toDate);
             var accounts = new List<Account>();
+            var normalizedFromDate = NormalizeStartDate(fromDate);
+            var normalizedToDate = toDate.Date;
             try
             {
                 var connStr = (string.IsNullOrEmpty(branchCode) || branchCode == "ALL")
@@ -108,8 +117,8 @@ namespace BankDds.Infrastructure.Data
                 {
                     CommandType = CommandType.StoredProcedure
                 };
-                command.Parameters.AddWithValue("@FromDate", fromDate);
-                command.Parameters.AddWithValue("@ToDate", toDate);
+                command.Parameters.AddWithValue("@FromDate", normalizedFromDate);
+                command.Parameters.AddWithValue("@ToDate", normalizedToDate);
                 command.Parameters.AddWithValue("@BranchCode", branchCode ?? (object)DBNull.Value);
                 using var reader = await command.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
@@ -158,6 +167,8 @@ namespace BankDds.Infrastructure.Data
         {
             _logger.LogInformation("Report: TransactionSummary branch={Branch} period={From:yyyy-MM-dd}->{To:yyyy-MM-dd}",
                                    branchCode ?? "ALL", fromDate, toDate);
+            var normalizedFromDate = NormalizeStartDate(fromDate);
+            var normalizedToDate = NormalizeInclusiveEndDate(toDate);
             try
             {
                 var connStr = (string.IsNullOrEmpty(branchCode) || branchCode == "ALL")
@@ -170,13 +181,13 @@ namespace BankDds.Infrastructure.Data
                 {
                     CommandType = CommandType.StoredProcedure
                 };
-                command.Parameters.AddWithValue("@FromDate", fromDate);
-                command.Parameters.AddWithValue("@ToDate", toDate);
+                command.Parameters.AddWithValue("@FromDate", normalizedFromDate);
+                command.Parameters.AddWithValue("@ToDate", normalizedToDate);
                 command.Parameters.AddWithValue("@BranchCode", branchCode ?? (object)DBNull.Value);
                 var summary = new TransactionSummary
                 {
-                    FromDate = fromDate,
-                    ToDate = toDate,
+                    FromDate = normalizedFromDate,
+                    ToDate = toDate.Date,
                     BranchCode = branchCode
                 };
                 using var reader = await command.ExecuteReaderAsync();

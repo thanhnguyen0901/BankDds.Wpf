@@ -513,7 +513,7 @@ Kết luận cuối:
     - sau khi sua, retest 2 case:
       - sua `Khach hang`: vao edit phai preselect dung gia tri cu va save thanh cong khi khong doi hoac doi `Phai`
       - sua `Nhan vien`: mo edit phai preselect dung va save thanh cong
-  - trang thai: cho `approve` truoc khi update code
+  - trang thai: da update code o `BankDds.Wpf/Views/AdminView.xaml.cs`, cho user retest va xac nhan `passed`
 - 13. [ ] REVIEW: button `Ghi khach hang` khong enable khi them moi du da nhap du lieu
   - pham vi user report: role `ChiNhanh` vao tab `Khach hang`, bam `Them moi`, nhap day du form nhung button `Ghi khach hang` van disable nen khong save duoc
   - nguyen nhan root cause:
@@ -732,3 +732,49 @@ Kết luận cuối:
     - chon `ChiNhanh`, nhap `Ma nhan vien`, username, password moi -> `Ghi` enable dung
     - chuyen qua `KhachHang` va lap lai de xac nhan khong con stale state
   - trang thai: cho `approve` truoc khi update code
+- 22. [ ] REVIEW: tab `Tao nguoi dung` cho phep tao account mo coi cho ca nhom `ChiNhanh` va `KhachHang` du chi `EmployeeId` / `CustomerCMND` khong ton tai trong master data
+  - pham vi user report:
+    - tao account nhom `ChiNhanh` thanh cong voi `Ma nhan vien = NV00000022`, nhung qua tab `Nhan vien` khong thay nhan vien nay
+    - user xac nhan nhom `KhachHang` cung co van de tuong tu neu `CustomerCMND` khong ton tai trong `KHACHHANG`
+  - nguyen nhan root cause:
+    - tab `Tao nguoi dung` chi tao SQL login/user/role va insert mapping `NGUOIDUNG` qua `sp_TaoTaiKhoan` + `USP_AddUser`
+    - tab `Nhan vien` doc du lieu tu bang `NHANVIEN` qua `SP_GetAllEmployees` / `SP_GetEmployeesByBranch`, khong doc tu `NGUOIDUNG`
+    - hien tai `UserValidator` va `USP_AddUser` chi bat buoc `EmployeeId` / `CustomerCMND` khong rong va dung format, nhung khong validate master record co ton tai va co thuoc dung chi nhanh hay khong
+    - ket qua la he thong cho phep tao account mo coi:
+      - `ChiNhanh`: co login + mapping `NGUOIDUNG`, nhung khong co employee master record trong `NHANVIEN`
+      - `KhachHang`: co login + mapping `NGUOIDUNG`, nhung khong co customer master record hop le trong `KHACHHANG`
+  - solution fix de xuat:
+    - khong duoc cho tao account nhom `ChiNhanh` neu `EmployeeId` khong ton tai trong `NHANVIEN`
+    - khong duoc cho tao account nhom `KhachHang` neu `CustomerCMND` khong ton tai trong `KHACHHANG`
+    - validate ca 2 tang:
+      - app/service: check `EmployeeId` ton tai va thuoc `DefaultBranch`
+      - SQL `USP_AddUser`: enforce lai rule nay de chan du lieu sai neu app bi bypass
+    - giu ro boundary nghiep vu:
+      - tab `Nhan vien` tao/sua ban ghi master `NHANVIEN`
+      - tab `Tao nguoi dung` chi cap account cho nhan vien da ton tai
+  - retest sau fix:
+    - nhap `EmployeeId` khong ton tai -> khong duoc save, thong bao loi ro rang
+    - nhap `EmployeeId` ton tai dung chi nhanh -> tao account thanh cong
+    - nhap `CustomerCMND` khong ton tai hoac sai chi nhanh -> khong duoc save, thong bao loi ro rang
+    - nhap `CustomerCMND` ton tai dung chi nhanh -> tao account thanh cong
+    - qua tab `Nhan vien` / `Khach hang` thay du lieu master da ton tai san, account moi map dung vao record do
+  - trang thai: da update code o `BankDds.Infrastructure/Data/UserService.cs`, `sql/03_publisher_sp_views.sql`, `docs/sql/PATCH_RERUN_SECURITY_PROCS_2026-03-28.sql`; cho user rerun patch SQL va retest/passed
+- 23. [ ] REVIEW: bao cao giao dich/tra cuu theo khoang ngay bo sot giao dich trong ngay ket thuc, phai tang `Den ngay` len +1 ngay moi thay du lieu
+  - pham vi user report:
+    - tai khoan `BT0000001` co giao dich ngay `28/03/2026`
+    - khi role `NganHang` hoac `ChiNhanh` tra cuu/báo cáo voi `Den ngay = 28/03/2026` thi khong thay
+    - doi `Den ngay = 29/03/2026` moi thay giao dich ngay `28/03/2026`
+  - nguyen nhan root cause:
+    - `DatePicker` trong app tra ve gia tri ngay o moc `00:00:00`
+    - `BankDds.Infrastructure/Data/Repositories/ReportRepository.cs` da xu ly `end-of-day` cho `GetAccountStatementAsync`, nhung `GetTransactionSummaryAsync` va `GetAccountsOpenedInPeriodAsync` van truyen `toDate` raw xuong SQL
+    - trong `sql/03_publisher_sp_views.sql`, cac proc bao cao giao dich dang loc bang `NGAYGD BETWEEN @FromDate AND @ToDate`
+    - vi `@ToDate` = `2026-03-28 00:00:00`, moi giao dich phat sinh sau 00:00 trong ngay `28/03/2026` bi loai ra, nen user phai chon `29/03/2026` moi bao phu du lieu ngay `28/03/2026`
+  - solution fix de xuat:
+    - chuan hoa toan bo report date-range sang inclusive end-date
+    - tai repository/service, doi `toDate` thanh `toDate.Date.AddDays(1).AddMilliseconds(-3)` truoc khi goi SP cho cac report dung `datetime`
+    - ra soat va fix dong bo ca `SP_GetTransactionSummary`, `SP_GetAccountsOpenedInPeriod` va cac query giao dich/report nao dang dung `BETWEEN @FromDate AND @ToDate` voi tham so `datetime`
+  - retest sau fix:
+    - chon `Tu ngay = 28/02/2026`, `Den ngay = 28/03/2026` -> bao cao phai lay du giao dich ngay `28/03/2026`
+    - role `NganHang` va `ChiNhanh` deu cho ket qua dung
+    - khong can tang `Den ngay` len `29/03/2026`
+  - trang thai: da update code o `BankDds.Infrastructure/Data/Repositories/ReportRepository.cs` va `BankDds.Infrastructure/Data/Repositories/TransactionRepository.cs`; cho user retest va xac nhan `passed`
