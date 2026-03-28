@@ -2,6 +2,7 @@ using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
 using BankDds.Core.Validators;
 using Caliburn.Micro;
+using System.ComponentModel;
 using System.Collections.ObjectModel;
 
 namespace BankDds.Wpf.ViewModels
@@ -34,6 +35,7 @@ namespace BankDds.Wpf.ViewModels
             _userSession = userSession;
             _validator = validator;
             DisplayName = "Quản lý chi nhánh";
+            _editingBranch.PropertyChanged += OnEditingBranchPropertyChanged;
         }
         public ObservableCollection<Branch> Branches
         {
@@ -56,7 +58,14 @@ namespace BankDds.Wpf.ViewModels
             get => _editingBranch;
             set
             {
+                if (ReferenceEquals(_editingBranch, value))
+                {
+                    return;
+                }
+
+                _editingBranch.PropertyChanged -= OnEditingBranchPropertyChanged;
                 _editingBranch = value;
+                _editingBranch.PropertyChanged += OnEditingBranchPropertyChanged;
                 NotifyOfPropertyChange(() => EditingBranch);
                 NotifyOfPropertyChange(() => CanSave);
             }
@@ -92,6 +101,11 @@ namespace BankDds.Wpf.ViewModels
                 return;
             }
             await LoadBranchesAsync();
+        }
+
+        private void OnEditingBranchPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            NotifyOfPropertyChange(() => CanSave);
         }
 
         private async Task LoadBranchesAsync()

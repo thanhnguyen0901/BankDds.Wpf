@@ -510,6 +510,16 @@ Các câu trả lời đã được điều chỉnh để phù hợp với đề
 > - `Run continuously`: đồng bộ gần như liên tục, nhất quán cao hơn
 > - `Run on demand`: tự quản cao hơn, thích hợp khi các site có thể tạm disconnect
 
+> Trong môi trường lab của repo này, nếu muốn giả lập gần `Run continuously` trên SSMS qua `SQL Server Agent`, có thể cấu hình job `Merge Agent` với lịch:
+> - `Recurring`
+> - `Daily`
+> - `Occurs every 1 minute`
+> - `Starting at 12:00:00 AM`
+> - `Ending at 11:59:59 PM`
+> - `No end date`
+>
+> Đây là cấu hình nhanh, ổn định hơn so với thử `1 second`.
+
 ***
 > **Câu hỏi 30:** `Snapshot folder` là gì?
 >

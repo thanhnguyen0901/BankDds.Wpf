@@ -353,6 +353,51 @@ bật `Trust server certificate` cho kết nối instance liên quan.
 6. `Not synchronizing`:
 không phải lỗi nếu agent schedule là `Run on demand only`; chỉ cần xác nhận lần sync gần nhất đã thành công.
 
+### Bước 8.1: Tùy chọn đổi Merge Agent từ `Run on demand only` sang lịch chạy gần liên tục
+
+Mục tiêu:
+giảm độ trễ đồng bộ dữ liệu giữa publisher và subscriber trong môi trường lab/demo.
+
+Lưu ý:
+
+1. Đây là tùy chọn vận hành replication, không thay thế việc sửa bug logic app.
+2. Với đề tài này, `Run continuously` hoặc lịch lặp ngắn là hợp lệ nếu bạn vẫn giữ đúng mô hình publication/subscription/merge replication.
+3. Khuyến nghị thực tế trong lab:
+   - không dùng `1 second`
+   - nên dùng `1 minute`
+
+Các bước thực hiện trên Publisher:
+
+1. Mở `SQL Server Agent` -> `Jobs`.
+2. Tìm đúng job Merge Agent của subscription cần đổi.
+3. Pattern tên job thường gặp:
+   - `DESKTOP-JBB41QU-NGANHANG-PUB_BENTHANH-DESKTOP-JBB41QU\SQLSE-1`
+   - `DESKTOP-JBB41QU-NGANHANG-PUB_TANDINH-DESKTOP-JBB41QU\SQLSE-2`
+   - `DESKTOP-JBB41QU-NGANHANG-PUB_TRACUU-DESKTOP-JBB41QU\SQLSE-3`
+4. Chuột phải đúng job subscription đó -> `Properties`.
+5. Vào tab `Schedules`.
+6. Mở schedule `Replication agent schedule.`
+7. Chỉnh như sau:
+   - `Enabled` = tick
+   - `Schedule type` = `Recurring`
+   - `Occurs` = `Daily`
+   - `Recurs every` = `1 day`
+   - `Occurs every` = `1 minute`
+   - `Starting at` = `12:00:00 AM`
+   - `Ending at` = `11:59:59 PM`
+   - `No end date` = tick
+8. `OK` để lưu schedule.
+9. `OK` ở cửa sổ `Job Properties`.
+10. Chuột phải lại job -> `Start Job at Step...` để kích hoạt lần đầu.
+11. Mở `Replication Monitor` -> `Refresh`.
+12. Kiểm tra cột `Last Synchronization` của subscription có cập nhật lại theo chu kỳ.
+
+Kỳ vọng sau khi đổi lịch:
+
+1. `Last Synchronization` được cập nhật gần liên tục hơn.
+2. Trạng thái không còn chỉ mang nghĩa chạy thủ công như mode `Run on demand only`.
+3. Vẫn cần chạy `Snapshot Agent` riêng nếu bạn vừa thay đổi articles/schema/SP.
+
 Checklist DONE cho Bước 8:
 
 1. Snapshot Agent của `PUB_BENTHANH`, `PUB_TANDINH`, `PUB_TRACUU` đều `Succeeded`.

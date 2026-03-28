@@ -3,6 +3,7 @@ using Caliburn.Micro;
 using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
 using BankDds.Core.Validators;
+using System.ComponentModel;
 using System.Collections.ObjectModel;
 using System.Linq;
 
@@ -47,6 +48,8 @@ namespace BankDds.Wpf.ViewModels
             _validator = validator;
             _accountValidator = accountValidator;
             DisplayName = "Quản lý khách hàng";
+            _editingCustomer.PropertyChanged += OnEditingCustomerPropertyChanged;
+            _editingAccount.PropertyChanged += OnEditingAccountPropertyChanged;
         }
 
         #region Customer Properties
@@ -71,8 +74,16 @@ namespace BankDds.Wpf.ViewModels
             get => _editingCustomer;
             set
             {
+                if (ReferenceEquals(_editingCustomer, value))
+                {
+                    return;
+                }
+
+                _editingCustomer.PropertyChanged -= OnEditingCustomerPropertyChanged;
                 _editingCustomer = value;
+                _editingCustomer.PropertyChanged += OnEditingCustomerPropertyChanged;
                 NotifyOfPropertyChange(() => EditingCustomer);
+                NotifyOfPropertyChange(() => CanSave);
             }
         }
 
@@ -137,7 +148,14 @@ namespace BankDds.Wpf.ViewModels
             get => _editingAccount;
             set
             {
+                if (ReferenceEquals(_editingAccount, value))
+                {
+                    return;
+                }
+
+                _editingAccount.PropertyChanged -= OnEditingAccountPropertyChanged;
                 _editingAccount = value;
+                _editingAccount.PropertyChanged += OnEditingAccountPropertyChanged;
                 NotifyOfPropertyChange(() => EditingAccount);
                 NotifyOfPropertyChange(() => CanSaveAccount);
                 NotifyOfPropertyChange(() => AccountOpenBranchDisplayName);
@@ -232,6 +250,17 @@ namespace BankDds.Wpf.ViewModels
         {
             await base.OnActivateAsync(cancellationToken);
             await LoadCustomersAsync();
+        }
+
+        private void OnEditingCustomerPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            NotifyOfPropertyChange(() => CanSave);
+        }
+
+        private void OnEditingAccountPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            NotifyOfPropertyChange(() => CanSaveAccount);
+            NotifyOfPropertyChange(() => AccountOpenBranchDisplayName);
         }
 
         #region Customer Methods

@@ -259,7 +259,8 @@
                     Cursor="Hand"
                     FontSize="15"
                     FontWeight="SemiBold"
-                    Foreground="White">
+                    Foreground="White"
+                    IsDefault="True">
                     <Button.Style>
                         <Style TargetType="Button">
                             <Setter Property="Background" Value="#0078D7" />
@@ -290,4 +291,3 @@
         </Border>
     </Grid>
 </UserControl>
-

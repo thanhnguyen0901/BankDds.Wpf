@@ -493,3 +493,113 @@ Kết luận cuối:
 - 11. [x] DONE: can chinh lai 3 nut action tai khoan de ngang hang va deu nhau
   - nguyen nhan: `WrapPanel` tranh duoc viec bi cat nhung khong dam bao 3 nut thang hang va dong deu
   - cach sua: doi nhom button sang `Grid` 3 cot bang nhau de 3 nut cung hang va cung be ngang
+- 12. [ ] REVIEW: bug load/save truong `Phai` o form sua va can ra soat toan bo man dang dung dropdown `Phai`
+  - pham vi user report: role `ChiNhanh` vao tab `Khach hang`, chon 1 khach hang roi bam `Sua` thi truong `Phai` khong preselect; mo dropdown chon lai va `Save` thi bao loi
+  - nguyen nhan root cause:
+    - [CustomersView.xaml] form sua khach hang dang bind `ComboBox.SelectedValue` vao `EditingCustomer.Phai` nhung item lai khai bao bang `ComboBoxItem` tinh
+    - [EmployeesView.xaml] form sua nhan vien dang dung cung pattern bind sai voi `EditingEmployee.PHAI`
+    - model/repository/validator deu dang lam viec voi string gia tri `Nam`/`Nữ`, nhung UI lai dua vao `ComboBoxItem`; vi vay luc load edit khong map duoc item dang chon, va luc nguoi dung chon lai thi gia tri tra ve khong on dinh theo string domain mong doi
+  - doi chieu:
+    - `BankDds.Wpf/Views/CustomersView.xaml`: field `Phai` cua customer edit form
+    - `BankDds.Wpf/Views/EmployeesView.xaml`: field `Phai` cua employee edit form
+    - `BankDds.Core/Validators/CustomerValidator.cs`: validator chi chap nhan `Nam` hoac `Nữ`
+    - `BankDds.Core/Validators/EmployeeValidator.cs`: validator chi chap nhan `Nam` hoac `Nữ`
+    - `BankDds.Infrastructure/Data/Repositories/CustomerRepository.cs`: repository map `PHAI` thanh string trim
+    - `BankDds.Infrastructure/Data/Repositories/EmployeeRepository.cs`: repository map `PHAI` thanh string trim
+  - solution fix de xuat:
+    - doi toan bo dropdown `Phai` tu `ComboBoxItem` tinh sang binding string thuần, vi du `ItemsSource` = danh sach `Nam`, `Nữ`
+    - bind `SelectedItem` hai chieu truc tiep ve property string (`EditingCustomer.Phai`, `EditingEmployee.PHAI`) thay vi `SelectedValue`
+    - ra soat tat ca man/form dang edit `Phai` de dong bo 1 kieu binding, tranh lap lai bug cung class
+    - sau khi sua, retest 2 case:
+      - sua `Khach hang`: vao edit phai preselect dung gia tri cu va save thanh cong khi khong doi hoac doi `Phai`
+      - sua `Nhan vien`: mo edit phai preselect dung va save thanh cong
+  - trang thai: cho `approve` truoc khi update code
+- 13. [ ] REVIEW: button `Ghi khach hang` khong enable khi them moi du da nhap du lieu
+  - pham vi user report: role `ChiNhanh` vao tab `Khach hang`, bam `Them moi`, nhap day du form nhung button `Ghi khach hang` van disable nen khong save duoc
+  - nguyen nhan root cause:
+    - [CustomersViewModel.cs] `CanSave` dang phu thuoc vao `EditingCustomer.CMND`
+    - [CustomersView.xaml] form lai bind truc tiep vao property long nhau `EditingCustomer.*`
+    - [Customer.cs] la POCO thuong, khong phat `PropertyChanged`
+    - vi vay khi nguoi dung go vao `EditingCustomer.CMND`, `CustomersViewModel` khong nhan duoc thay doi de reevaluate `CanSave`; button `Save` bind theo convention cua Caliburn.Micro nen giu nguyen trang thai disable
+  - doi chieu:
+    - `BankDds.Wpf/ViewModels/CustomersViewModel.cs`: `CanSave`, setter `EditingCustomer`, setter `IsEditing`
+    - `BankDds.Wpf/Views/CustomersView.xaml`: cac field bind vao `EditingCustomer.CMND`, `EditingCustomer.Ho`, `EditingCustomer.Ten` va nut `x:Name="Save"`
+    - `BankDds.Core/Models/Customer.cs`: model khong co co che notify thay doi
+  - nhan dinh them ve scope:
+    - day la bug pattern, khong chi rieng `Khach hang`
+    - cac form khac co nguy co tuong tu vi `CanSave` cung phu thuoc vao `Editing...` nested object gom:
+      - `EmployeesViewModel.CanSave` voi `EditingEmployee`
+      - `BranchesViewModel.CanSave` voi `EditingBranch`
+      - `CustomersViewModel.CanSaveAccount` voi `EditingAccount`
+      - `AdminViewModel.CanSave` co mot phan phu thuoc vao `EditingUser.Username`
+  - solution fix de xuat:
+    - chot 1 co che dong bo cho cac edit form:
+      - hoac cho cac edit model (`Customer`, `Employee`, `Branch`, `Account`, `User`) implement `INotifyPropertyChanged` / `PropertyChangedBase` va ViewModel subscribe de raise lai `CanSave`, `CanSaveAccount`, cac display property lien quan
+      - hoac tao form state/wrapper trong ViewModel thay vi bind truc tiep vao POCO model
+    - trong scope pragmatical fix hien tai, uu tien:
+      - lam cho `EditingCustomer` phat/sync thay doi de `CanSave` duoc reevaluate ngay khi nhap
+      - dong bo cung pattern cho `EditingEmployee`, `EditingBranch`, `EditingAccount`, `EditingUser` de tranh lap lai bug cung loai
+  - retest sau fix:
+    - `Khach hang`: `Them moi` -> nhap `CMND` thi nut `Ghi khach hang` enable
+    - `Khach hang`: subform tai khoan -> nhap `SOTK` thi nut luu tai khoan enable dung
+    - `Nhan vien`: `Them moi/Sua` -> nhap `Ho/Ten` thi nut `Ghi` enable dung
+    - `Chi nhanh`: `Them moi` -> nhap `MACN/TENCN` thi nut `Ghi` enable dung
+    - `Quan tri`: tao user -> nhap `Username` va password hop le thi nut `Ghi` enable dung
+  - trang thai: cho `approve` truoc khi update code
+- 14. [x] DONE: vua add xong khach hang, mo sua ngay thi `Save` bao `Khong the luu khach hang`
+  - pham vi user report: role `ChiNhanh` vao tab `Khach hang`, `Them moi` thanh cong; sau do chon lai chinh khach hang vua tao, vao `Sua` va `Save` thi app bao `Khong the luu khach hang`
+  - nguyen nhan root cause:
+    - [CustomerService.cs] flow `UpdateCustomerAsync` dang goi `_customerRepository.GetCustomerByCMNDAsync(customer.CMND)` de tim ban ghi hien co truoc khi update
+    - [CustomerRepository.cs] `GetCustomerByCMNDAsync` lai doc tu publisher connection
+    - [CustomerRepository.cs] `AddCustomerAsync` thi ghi vao branch database cua `customer.MaCN`
+    - vi vay ngay sau khi add, neu replication tu branch len publisher chua kip dong bo, `GetCustomerByCMNDAsync` se tra `null`; service ket luan `existing == null` va tra `false`, UI hien `Khong the luu khach hang`
+  - doi chieu:
+    - `BankDds.Infrastructure/Data/CustomerService.cs`: `UpdateCustomerAsync`, `DeleteCustomerAsync`, `RestoreCustomerAsync`
+    - `BankDds.Infrastructure/Data/Repositories/CustomerRepository.cs`: `GetCustomerByCMNDAsync` dang dung publisher; `AddCustomerAsync` dang ghi branch DB
+    - `BankDds.Wpf/ViewModels/CustomersViewModel.cs`: UI hien message generic khi service tra `false`
+  - tac dong/risk:
+    - bug nay xuat hien ro nhat o case `add -> edit ngay`
+    - co the lap lai voi `Delete`/`Restore` customer neu publisher chua kip nhan replication
+    - ban chat day la bug consistency theo thoi diem giua write-path va read-path
+  - solution fix de xuat:
+    - tach ro lookup publisher va lookup branch-local
+    - voi mutate flow customer (`update/delete/restore`) cua role `ChiNhanh`, khong duoc check existence bang publisher; phai doc tu branch shard hien tai/branch cua customer
+    - neu can authorize theo branch goc, lay ban ghi tu branch-local source truoc roi moi `RequireCanModifyBranch`
+    - cai thien thong diep loi de phan biet ro case `khong tim thay customer trong branch scope` thay vi generic `Khong the luu khach hang`
+  - retest sau fix:
+    - `Them moi` customer -> save thanh cong
+    - chon lai ngay customer vua tao -> `Sua` -> `Save` thanh cong ngay lap tuc, khong can cho replication
+    - `Delete/Restore` customer moi tao van chay dung trong branch scope
+  - cach sua da ap dung:
+    - them branch-local lookup cho customer mutate flow
+    - `Update/Delete/Restore` customer cua `ChiNhanh` khong con check existence bang publisher
+    - giu publisher cho lookup lien chi nhanh/read-only
+  - ket qua user test: `passed`
+- 15. [x] DONE: man dang nhap ho tro nhan `Enter` de thuc hien login
+  - pham vi user report: sau khi nhap xong ten dang nhap va mat khau, nguoi dung muon nhan `Enter` thay vi phai click button `Dang nhap`
+  - nguyen nhan: nut `Login` chua duoc danh dau la default button cua form, nen phim `Enter` khong trigger action dang nhap
+  - cach sua da ap dung:
+    - dat `IsDefault=\"True\"` cho button `Login` trong `BankDds.Wpf/Views/LoginView.xaml`
+    - giu nguyen flow `Login()` hien tai, chi bo sung keyboard behavior theo chuan WPF
+  - ket qua: nhan `Enter` trong form login se goi cung action voi click button
+- 16. [ ] REVIEW: UI panel tai khoan o man `Khach hang` dang cat text nut `Mo tai khoan` va `Dong tai khoan`
+  - pham vi user report: role `ChiNhanh` dang nhap, vao tab `Khach hang`, chon 1 dong de hien panel thao tac tai khoan phia duoi; 2 nut `Mo tai khoan` va `Dong tai khoan` bi cat text
+  - nguyen nhan root cause:
+    - `BankDds.Wpf/Views/CustomersView.xaml`: panel ben phai dang bi khoa `ColumnDefinition Width=\"360\"`
+    - cung trong panel nay, 3 nut action dang duoc ep vao `Grid` 3 cot bang nhau, moi nut chi con khoang rong hien thi rat hep sau khi tru 2 khoang cach cot
+    - `BankDds.Wpf/Resources/Styles.xaml`: `BaseButtonStyle` dang co `MinWidth=100`, `Padding=15,8`; rieng `SuccessButtonStyle` dang day `Padding=25,10`, nen tong khong gian can cho text label dai vuot qua be rong moi cot
+    - ket qua la layout van giu 3 nut cung hang, nhung text bi cat do khong du be ngang de render day du
+  - nhan dinh them:
+    - day la regression layout sau lan doi tu `WrapPanel` sang `Grid` 3 cot bang nhau de giu 3 nut thang hang
+    - bug hien tai xuat hien cu the o panel thao tac tai khoan cua man `Khach hang`; chua thay cung pattern nay o cac man khac co label dai tuong tu
+  - solution fix de xuat:
+    - dieu chinh layout panel tai khoan theo huong responsive thay vi khoa chat be rong 360
+    - uu tien 1 trong 2 huong:
+      - noi rong cot panel ben phai va giam padding/min-width cua nhom button nay de label `Mo tai khoan` / `Dong tai khoan` hien du
+      - hoac giu panel rong hien tai nhung doi nhom action sang layout co kha nang wrap/xuong dong khi khong du rong
+    - neu muon giu 3 nut deu nhau va khong cat text, can tinh lai tong be rong thuc te cua panel + margin + padding style, khong the chi dua vao `*` columns
+  - retest sau fix:
+    - role `ChiNhanh` vao `Khach hang`, chon 1 customer de mo panel tai khoan
+    - xac nhan 3 nut `Mo tai khoan`, `Dong tai khoan`, `Mo lai` hien day du text, khong bi cat
+    - thu resize man hinh/app o be rong thong dung de bao dam khong tai phat
+  - trang thai: cho `approve` truoc khi update code

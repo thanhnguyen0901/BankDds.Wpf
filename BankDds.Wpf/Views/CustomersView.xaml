@@ -189,6 +189,7 @@
                             <TextBlock Style="{StaticResource StandardLabelStyle}" Text="Phái:" />
                             <ComboBox
                                 Margin="0,0,0,12"
+                                SelectedValuePath="Content"
                                 SelectedValue="{Binding EditingCustomer.Phai}"
                                 Style="{StaticResource StandardComboBoxStyle}">
                                 <ComboBoxItem Content="Nam" />
@@ -270,7 +271,7 @@
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="360" />
+                        <ColumnDefinition Width="430" />
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Grid.Column="0" Margin="0,0,20,0">
@@ -300,6 +301,7 @@
                             <Button
                                 x:Name="LookupAccountCustomer"
                                 Grid.Column="1"
+                                Margin="0"
                                 Content="Tra cứu CMND"
                                 Style="{StaticResource PrimaryButtonStyle}" />
                         </Grid>
@@ -316,18 +318,24 @@
                                 x:Name="AddAccount"
                                 Grid.Column="0"
                                 HorizontalAlignment="Stretch"
+                                Margin="0"
+                                Padding="12,8"
                                 Content="Mở tài khoản"
                                 Style="{StaticResource PrimaryButtonStyle}" />
                             <Button
                                 x:Name="CloseAccount"
                                 Grid.Column="2"
                                 HorizontalAlignment="Stretch"
+                                Margin="0"
+                                Padding="12,8"
                                 Content="Đóng tài khoản"
                                 Style="{StaticResource DangerButtonStyle}" />
                             <Button
                                 x:Name="ReopenAccount"
                                 Grid.Column="4"
                                 HorizontalAlignment="Stretch"
+                                Margin="0"
+                                Padding="12,8"
                                 Content="Mở lại"
                                 Style="{StaticResource SuccessButtonStyle}" />
                         </Grid>

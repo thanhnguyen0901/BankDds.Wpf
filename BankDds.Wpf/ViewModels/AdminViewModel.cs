@@ -2,6 +2,7 @@ using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
 using BankDds.Core.Validators;
 using Caliburn.Micro;
+using System.ComponentModel;
 using System.Collections.ObjectModel;
 using System.Linq;
 
@@ -39,6 +40,7 @@ namespace BankDds.Wpf.ViewModels
             _validator = validator;
             _branchService = branchService;
             DisplayName = PageTitle;
+            _editingUser.PropertyChanged += OnEditingUserPropertyChanged;
         }
 
         public ObservableCollection<User> Users
@@ -70,7 +72,14 @@ namespace BankDds.Wpf.ViewModels
             get => _editingUser;
             set
             {
+                if (ReferenceEquals(_editingUser, value))
+                {
+                    return;
+                }
+
+                _editingUser.PropertyChanged -= OnEditingUserPropertyChanged;
                 _editingUser = value;
+                _editingUser.PropertyChanged += OnEditingUserPropertyChanged;
                 _selectedEditingUserGroup = _editingUser.UserGroup;
                 NotifyOfPropertyChange(() => EditingUser);
                 NotifyOfPropertyChange(() => SelectedEditingUserGroup);
@@ -149,6 +158,7 @@ namespace BankDds.Wpf.ViewModels
                 _passwordValidationMessage = value;
                 NotifyOfPropertyChange(() => PasswordValidationMessage);
                 NotifyOfPropertyChange(() => IsPasswordValid);
+                NotifyOfPropertyChange(() => CanSave);
             }
         }
 
@@ -207,6 +217,11 @@ namespace BankDds.Wpf.ViewModels
             NotifyOfPropertyChange(() => AvailableUserGroups);
             await LoadBranchesAsync();
             await LoadUsersAsync();
+        }
+
+        private void OnEditingUserPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            NotifyOfPropertyChange(() => CanSave);
         }
 
         private void ValidatePassword()

@@ -2,6 +2,7 @@ using Caliburn.Micro;
 using BankDds.Core.Interfaces;
 using BankDds.Core.Models;
 using BankDds.Core.Validators;
+using System.ComponentModel;
 using System.Collections.ObjectModel;
 using System.Linq;
 
@@ -37,6 +38,7 @@ namespace BankDds.Wpf.ViewModels
             _validator = validator;
             _branchService = branchService;
             DisplayName = "Quản lý nhân viên";
+            _editingEmployee.PropertyChanged += OnEditingEmployeePropertyChanged;
         }
 
         public ObservableCollection<Employee> Employees
@@ -68,7 +70,14 @@ namespace BankDds.Wpf.ViewModels
             get => _editingEmployee;
             set
             {
+                if (ReferenceEquals(_editingEmployee, value))
+                {
+                    return;
+                }
+
+                _editingEmployee.PropertyChanged -= OnEditingEmployeePropertyChanged;
                 _editingEmployee = value;
+                _editingEmployee.PropertyChanged += OnEditingEmployeePropertyChanged;
                 NotifyOfPropertyChange(() => EditingEmployee);
                 NotifyOfPropertyChange(() => CanSave);
                 NotifyOfPropertyChange(() => EditingBranchDisplayName);
@@ -139,6 +148,12 @@ namespace BankDds.Wpf.ViewModels
             await base.OnActivateAsync(cancellationToken);
             await LoadBranchesAsync();
             await LoadEmployeesAsync();
+        }
+
+        private void OnEditingEmployeePropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            NotifyOfPropertyChange(() => CanSave);
+            NotifyOfPropertyChange(() => EditingBranchDisplayName);
         }
 
         private async Task LoadBranchesAsync()

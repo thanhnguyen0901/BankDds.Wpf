@@ -10,18 +10,22 @@ namespace BankDds.Infrastructure.Data
     {
         private readonly ICustomerRepository _customerRepository;
         private readonly IAuthorizationService _authorizationService;
+        private readonly IUserSession _userSession;
 
         /// <summary>
         /// Initializes customer service with repository and authorization services.
         /// </summary>
         /// <param name="customerRepository">Customer data repository.</param>
         /// <param name="authorizationService">Authorization service for role and branch checks.</param>
+        /// <param name="userSession">Current session branch scope for branch-local mutate flows.</param>
         public CustomerService(
             ICustomerRepository customerRepository,
-            IAuthorizationService authorizationService)
+            IAuthorizationService authorizationService,
+            IUserSession userSession)
         {
             _customerRepository = customerRepository;
             _authorizationService = authorizationService;
+            _userSession = userSession;
         }
 
         public Task<List<Customer>> GetCustomersByBranchAsync(string branchCode)
@@ -54,6 +58,12 @@ namespace BankDds.Infrastructure.Data
             return customer;
         }
 
+        public async Task<Customer?> GetCustomerByCMNDFromBranchAsync(string cmnd, string branchCode)
+        {
+            _authorizationService.RequireCanAccessBranch(branchCode);
+            return await _customerRepository.GetCustomerByCMNDFromBranchAsync(cmnd, branchCode);
+        }
+
         public async Task<bool> AddCustomerAsync(Customer customer)
         {
             _authorizationService.RequireCanModifyBranch(customer.MaCN);
@@ -62,7 +72,7 @@ namespace BankDds.Infrastructure.Data
 
         public async Task<bool> UpdateCustomerAsync(Customer customer)
         {
-            var existing = await _customerRepository.GetCustomerByCMNDAsync(customer.CMND);
+            var existing = await _customerRepository.GetCustomerByCMNDFromBranchAsync(customer.CMND, customer.MaCN);
 
             if (existing == null)
             {
@@ -76,7 +86,7 @@ namespace BankDds.Infrastructure.Data
 
         public async Task<bool> DeleteCustomerAsync(string cmnd)
         {
-            var customer = await _customerRepository.GetCustomerByCMNDAsync(cmnd);
+            var customer = await _customerRepository.GetCustomerByCMNDFromBranchAsync(cmnd, _userSession.SelectedBranch);
 
             if (customer == null)
             {
@@ -89,7 +99,7 @@ namespace BankDds.Infrastructure.Data
 
         public async Task<bool> RestoreCustomerAsync(string cmnd)
         {
-            var customer = await _customerRepository.GetCustomerByCMNDAsync(cmnd);
+            var customer = await _customerRepository.GetCustomerByCMNDFromBranchAsync(cmnd, _userSession.SelectedBranch);
 
             if (customer == null)
             {

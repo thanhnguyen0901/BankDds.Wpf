@@ -86,6 +86,21 @@ namespace BankDds.Infrastructure.Data
             return null;
         }
 
+        public async Task<Customer?> GetCustomerByCMNDFromBranchAsync(string cmnd, string branchCode)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionStringProvider.GetConnectionStringForBranch(branchCode));
+                await connection.OpenAsync();
+                using var command = new SqlCommand("SP_GetCustomerByCMND", connection) { CommandType = CommandType.StoredProcedure };
+                command.Parameters.AddWithValue("@CMND", cmnd);
+                using var reader = await command.ExecuteReaderAsync();
+                if (await reader.ReadAsync()) return MapFromReader(reader);
+            }
+            catch (SqlException ex) { throw new InvalidOperationException($"Database error retrieving branch customer '{cmnd}' from '{branchCode}': {ex.Message}", ex); }
+            return null;
+        }
+
         public async Task<bool> AddCustomerAsync(Customer customer)
         {
             try

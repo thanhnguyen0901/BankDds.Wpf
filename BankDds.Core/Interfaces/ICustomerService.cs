@@ -28,6 +28,14 @@ namespace BankDds.Core.Interfaces
         Task<Customer?> GetCustomerByCMNDAsync(string cmnd);
 
         /// <summary>
+        /// Gets a customer by CMND from a branch-local source for branch-scoped mutate workflows.
+        /// </summary>
+        /// <param name="cmnd">Customer national ID.</param>
+        /// <param name="branchCode">Branch code.</param>
+        /// <returns>The customer profile when found in the requested branch shard; otherwise null.</returns>
+        Task<Customer?> GetCustomerByCMNDFromBranchAsync(string cmnd, string branchCode);
+
+        /// <summary>
         /// Creates a new customer profile.
         /// </summary>
         /// <param name="customer">Customer entity.</param>
