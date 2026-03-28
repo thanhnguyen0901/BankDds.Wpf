@@ -371,9 +371,13 @@ CREATE OR ALTER PROCEDURE dbo.sp_TaoTaiKhoan
     @LOGIN    nvarchar(50),
     @PASS     nvarchar(128),
     @TENNHOM  nvarchar(128)
+WITH EXECUTE AS OWNER
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    DECLARE @OriginalLogin nvarchar(128) = ORIGINAL_LOGIN();
+    DECLARE @CallerDbUser  nvarchar(128) = NULL;
 
     IF @TENNHOM NOT IN (N'NGANHANG', N'CHINHANH', N'KHACHHANG')
     BEGIN
@@ -381,12 +385,34 @@ BEGIN
         RETURN;
     END
 
-    DECLARE @CallerRole nvarchar(128);
+    DECLARE @CallerRole nvarchar(128) = NULL;
+    DECLARE @CreateLoginSql nvarchar(max);
+    DECLARE @CreateUserSql  nvarchar(max);
+    DECLARE @AddRoleSql     nvarchar(max);
+    DECLARE @DropUserSql    nvarchar(max);
+    DECLARE @DropLoginSql   nvarchar(max);
+    DECLARE @CreatedLogin   bit = 0;
+    DECLARE @CreatedDbUser  bit = 0;
+
+    SELECT TOP 1
+        @CallerDbUser = dp.name
+    FROM sys.database_principals dp
+    WHERE dp.sid = SUSER_SID(@OriginalLogin)
+      AND dp.type IN ('S', 'U')
+    ORDER BY
+        CASE dp.type
+            WHEN 'S' THEN 1
+            ELSE 2
+        END;
+
+    IF @CallerDbUser IS NULL
+        SET @CallerDbUser = @OriginalLogin;
+
     SELECT TOP 1 @CallerRole = r.name
     FROM   sys.database_role_members rm
     JOIN   sys.database_principals   u ON u.principal_id = rm.member_principal_id
     JOIN   sys.database_principals   r ON r.principal_id = rm.role_principal_id
-    WHERE  u.name = USER_NAME()
+    WHERE  u.name = @CallerDbUser
       AND  r.name IN (N'NGANHANG', N'CHINHANH', N'KHACHHANG')
     ORDER BY
         CASE r.name
@@ -395,7 +421,7 @@ BEGIN
             WHEN N'KHACHHANG' THEN 3
         END ASC;
 
-    IF @CallerRole IS NULL AND (IS_MEMBER('db_owner') = 1 OR IS_SRVROLEMEMBER('sysadmin') = 1)
+    IF @CallerRole IS NULL AND IS_SRVROLEMEMBER('sysadmin', @OriginalLogin) = 1
         SET @CallerRole = N'NGANHANG';
 
     IF @CallerRole IS NULL
@@ -422,44 +448,74 @@ BEGIN
         RETURN;
     END
 
-    IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = @LOGIN)
-    BEGIN
-        EXEC sp_addlogin @loginame = @LOGIN, @passwd = @PASS, @defdb = N'NGANHANG';
+    BEGIN TRY
+        IF EXISTS (SELECT 1 FROM sys.server_principals WHERE name = @LOGIN)
+        BEGIN
+            RAISERROR(N'Login %s da ton tai. Khong duoc phep tao de ghi de account hien co.', 16, 1, @LOGIN);
+            RETURN;
+        END
+
+        SET @CreateLoginSql =
+            N'CREATE LOGIN ' + QUOTENAME(@LOGIN) +
+            N' WITH PASSWORD = N''' + REPLACE(@PASS, '''', '''''') +
+            N''', CHECK_POLICY = ON, CHECK_EXPIRATION = OFF, DEFAULT_DATABASE = [NGANHANG];';
+        EXEC (@CreateLoginSql);
+        SET @CreatedLogin = 1;
         PRINT N'Đã tạo login: ' + @LOGIN;
-    END
-    ELSE
-    BEGIN
-        RAISERROR(N'Login %s da ton tai. Khong duoc phep tao de ghi de account hien co.', 16, 1, @LOGIN);
+
+        IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = @LOGIN AND type IN ('S', 'U'))
+        BEGIN
+            SET @CreateUserSql = N'CREATE USER ' + QUOTENAME(@LOGIN) + N' FOR LOGIN ' + QUOTENAME(@LOGIN) + N';';
+            EXEC (@CreateUserSql);
+            SET @CreatedDbUser = 1;
+            PRINT N'Đã tạo DB user: ' + @LOGIN;
+        END
+        ELSE
+            PRINT N'DB user đã tồn tại: ' + @LOGIN;
+
+        IF NOT EXISTS (
+            SELECT 1
+            FROM   sys.database_role_members rm
+            JOIN   sys.database_principals   u ON u.principal_id = rm.member_principal_id
+            JOIN   sys.database_principals   r ON r.principal_id = rm.role_principal_id
+            WHERE  u.name = @LOGIN AND r.name = @TENNHOM
+        )
+        BEGIN
+            SET @AddRoleSql = N'ALTER ROLE ' + QUOTENAME(@TENNHOM) + N' ADD MEMBER ' + QUOTENAME(@LOGIN) + N';';
+            EXEC (@AddRoleSql);
+            PRINT N'Đã thêm user ' + @LOGIN + N' vào role ' + @TENNHOM;
+        END
+        ELSE
+            PRINT N'User ' + @LOGIN + N' đã thuộc role ' + @TENNHOM;
+
+        EXEC dbo.sp_SyncSecurityToSubscribers
+            @LOGIN   = @LOGIN,
+            @PASS    = @PASS,
+            @TENNHOM = @TENNHOM,
+            @MODE    = N'UPSERT';
+    END TRY
+    BEGIN CATCH
+        DECLARE @CreateErr nvarchar(4000) = ERROR_MESSAGE();
+
+        IF @CreatedDbUser = 1 AND DATABASE_PRINCIPAL_ID(@LOGIN) IS NOT NULL
+        BEGIN TRY
+            SET @DropUserSql = N'DROP USER ' + QUOTENAME(@LOGIN) + N';';
+            EXEC (@DropUserSql);
+        END TRY
+        BEGIN CATCH
+        END CATCH;
+
+        IF @CreatedLogin = 1 AND SUSER_ID(@LOGIN) IS NOT NULL
+        BEGIN TRY
+            SET @DropLoginSql = N'DROP LOGIN ' + QUOTENAME(@LOGIN) + N';';
+            EXEC (@DropLoginSql);
+        END TRY
+        BEGIN CATCH
+        END CATCH;
+
+        RAISERROR(N'Lỗi khi tạo tài khoản %s: %s', 16, 1, @LOGIN, @CreateErr);
         RETURN;
-    END
-
-    IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = @LOGIN AND type IN ('S', 'U'))
-    BEGIN
-        EXEC sp_grantdbaccess @loginame = @LOGIN, @name_in_db = @LOGIN;
-        PRINT N'Đã tạo DB user: ' + @LOGIN;
-    END
-    ELSE
-        PRINT N'DB user đã tồn tại: ' + @LOGIN;
-
-    IF NOT EXISTS (
-        SELECT 1
-        FROM   sys.database_role_members rm
-        JOIN   sys.database_principals   u ON u.principal_id = rm.member_principal_id
-        JOIN   sys.database_principals   r ON r.principal_id = rm.role_principal_id
-        WHERE  u.name = @LOGIN AND r.name = @TENNHOM
-    )
-    BEGIN
-        EXEC sp_addrolemember @rolename = @TENNHOM, @membername = @LOGIN;
-        PRINT N'Đã thêm user ' + @LOGIN + N' vào role ' + @TENNHOM;
-    END
-    ELSE
-        PRINT N'User ' + @LOGIN + N' đã thuộc role ' + @TENNHOM;
-
-    EXEC dbo.sp_SyncSecurityToSubscribers
-        @LOGIN   = @LOGIN,
-        @PASS    = @PASS,
-        @TENNHOM = @TENNHOM,
-        @MODE    = N'UPSERT';
+    END CATCH
 END
 GO
 
@@ -471,34 +527,77 @@ GO
 -- SP xóa tài khoản login (chỉ NGANHANG hoặc quản trị hệ thống).
 CREATE OR ALTER PROCEDURE dbo.sp_XoaTaiKhoan
     @LOGIN nvarchar(50)
+WITH EXECUTE AS OWNER
 AS
 BEGIN
     SET NOCOUNT ON;
-    IF IS_MEMBER('NGANHANG') <> 1
-       AND IS_MEMBER('db_owner') <> 1
-       AND IS_SRVROLEMEMBER('sysadmin') <> 1
+    DECLARE @OriginalLogin nvarchar(128) = ORIGINAL_LOGIN();
+    DECLARE @CallerDbUser  nvarchar(128) = NULL;
+    DECLARE @CallerRole    nvarchar(128) = NULL;
+    DECLARE @DropUserSql   nvarchar(max);
+    DECLARE @DropLoginSql  nvarchar(max);
+
+    SELECT TOP 1
+        @CallerDbUser = dp.name
+    FROM sys.database_principals dp
+    WHERE dp.sid = SUSER_SID(@OriginalLogin)
+      AND dp.type IN ('S', 'U')
+    ORDER BY
+        CASE dp.type
+            WHEN 'S' THEN 1
+            ELSE 2
+        END;
+
+    IF @CallerDbUser IS NULL
+        SET @CallerDbUser = @OriginalLogin;
+
+    SELECT TOP 1
+        @CallerRole = r.name
+    FROM sys.database_role_members rm
+    JOIN sys.database_principals u ON u.principal_id = rm.member_principal_id
+    JOIN sys.database_principals r ON r.principal_id = rm.role_principal_id
+    WHERE u.name = @CallerDbUser
+      AND r.name IN (N'NGANHANG', N'CHINHANH', N'KHACHHANG')
+    ORDER BY
+        CASE r.name
+            WHEN N'NGANHANG'  THEN 1
+            WHEN N'CHINHANH'  THEN 2
+            WHEN N'KHACHHANG' THEN 3
+        END;
+
+    IF @CallerRole <> N'NGANHANG'
+       AND IS_SRVROLEMEMBER('sysadmin', @OriginalLogin) <> 1
     BEGIN
         RAISERROR(N'Chỉ role NGANHANG mới được xóa tài khoản login.', 16, 1);
         RETURN;
     END
 
-    IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = @LOGIN AND type IN ('S', 'U'))
-    BEGIN
-        EXEC sp_revokedbaccess @name_in_db = @LOGIN;
-        PRINT N'Đã xóa DB user: ' + @LOGIN;
-    END
+    BEGIN TRY
+        IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = @LOGIN AND type IN ('S', 'U'))
+        BEGIN
+            SET @DropUserSql = N'DROP USER ' + QUOTENAME(@LOGIN) + N';';
+            EXEC (@DropUserSql);
+            PRINT N'Đã xóa DB user: ' + @LOGIN;
+        END
 
-    IF EXISTS (SELECT 1 FROM sys.server_principals WHERE name = @LOGIN)
-    BEGIN
-        EXEC sp_droplogin @loginame = @LOGIN;
-        PRINT N'Đã xóa login: ' + @LOGIN;
-    END
+        IF EXISTS (SELECT 1 FROM sys.server_principals WHERE name = @LOGIN)
+        BEGIN
+            SET @DropLoginSql = N'DROP LOGIN ' + QUOTENAME(@LOGIN) + N';';
+            EXEC (@DropLoginSql);
+            PRINT N'Đã xóa login: ' + @LOGIN;
+        END
 
-    EXEC dbo.sp_SyncSecurityToSubscribers
-        @LOGIN   = @LOGIN,
-        @PASS    = NULL,
-        @TENNHOM = NULL,
-        @MODE    = N'DROP';
+        EXEC dbo.sp_SyncSecurityToSubscribers
+            @LOGIN   = @LOGIN,
+            @PASS    = NULL,
+            @TENNHOM = NULL,
+            @MODE    = N'DROP';
+    END TRY
+    BEGIN CATCH
+        DECLARE @DeleteErr nvarchar(4000) = ERROR_MESSAGE();
+        RAISERROR(N'Lỗi khi xóa tài khoản %s: %s', 16, 1, @LOGIN, @DeleteErr);
+        RETURN;
+    END CATCH
 END
 GO
 
@@ -511,40 +610,89 @@ CREATE OR ALTER PROCEDURE dbo.sp_DoiMatKhau
     @LOGIN    nvarchar(50),
     @PASSCU   nvarchar(128),
     @PASSMOI  nvarchar(128)
+WITH EXECUTE AS OWNER
 AS
 BEGIN
     SET NOCOUNT ON;
+    DECLARE @OriginalLogin nvarchar(128) = ORIGINAL_LOGIN();
+    DECLARE @CallerDbUser  nvarchar(128) = NULL;
+    DECLARE @CallerRole    nvarchar(128) = NULL;
+    DECLARE @AlterLoginSql nvarchar(max);
 
-    IF @LOGIN = SYSTEM_USER
+    SELECT TOP 1
+        @CallerDbUser = dp.name
+    FROM sys.database_principals dp
+    WHERE dp.sid = SUSER_SID(@OriginalLogin)
+      AND dp.type IN ('S', 'U')
+    ORDER BY
+        CASE dp.type
+            WHEN 'S' THEN 1
+            ELSE 2
+        END;
+
+    IF @CallerDbUser IS NULL
+        SET @CallerDbUser = @OriginalLogin;
+
+    SELECT TOP 1
+        @CallerRole = r.name
+    FROM sys.database_role_members rm
+    JOIN sys.database_principals u ON u.principal_id = rm.member_principal_id
+    JOIN sys.database_principals r ON r.principal_id = rm.role_principal_id
+    WHERE u.name = @CallerDbUser
+      AND r.name IN (N'NGANHANG', N'CHINHANH', N'KHACHHANG')
+    ORDER BY
+        CASE r.name
+            WHEN N'NGANHANG'  THEN 1
+            WHEN N'CHINHANH'  THEN 2
+            WHEN N'KHACHHANG' THEN 3
+        END;
+
+    IF @LOGIN = @OriginalLogin
     BEGIN
-        EXEC sp_password @old = @PASSCU, @new = @PASSMOI, @loginame = @LOGIN;
-        PRINT N'Đã đổi mật khẩu cho: ' + @LOGIN;
+        BEGIN TRY
+            EXEC sp_password @old = @PASSCU, @new = @PASSMOI, @loginame = @LOGIN;
+            PRINT N'Đã đổi mật khẩu cho: ' + @LOGIN;
+
+            EXEC dbo.sp_SyncSecurityToSubscribers
+                @LOGIN   = @LOGIN,
+                @PASS    = @PASSMOI,
+                @TENNHOM = NULL,
+                @MODE    = N'PASSWORD';
+        END TRY
+        BEGIN CATCH
+            DECLARE @SelfPasswordErr nvarchar(4000) = ERROR_MESSAGE();
+            RAISERROR(N'Lỗi khi đổi mật khẩu cho %s: %s', 16, 1, @LOGIN, @SelfPasswordErr);
+            RETURN;
+        END CATCH;
+        RETURN;
+    END
+
+    IF @CallerRole <> N'NGANHANG'
+       AND IS_SRVROLEMEMBER('sysadmin', @OriginalLogin) <> 1
+    BEGIN
+        RAISERROR(N'Chỉ role NGANHANG mới được đặt lại mật khẩu cho tài khoản khác.', 16, 1);
+        RETURN;
+    END
+
+    BEGIN TRY
+        SET @AlterLoginSql =
+            N'ALTER LOGIN ' + QUOTENAME(@LOGIN) +
+            N' WITH PASSWORD = N''' + REPLACE(@PASSMOI, '''', '''''') +
+            N''', CHECK_POLICY = ON, CHECK_EXPIRATION = OFF;';
+        EXEC (@AlterLoginSql);
+        PRINT N'Đã đặt lại mật khẩu cho: ' + @LOGIN;
 
         EXEC dbo.sp_SyncSecurityToSubscribers
             @LOGIN   = @LOGIN,
             @PASS    = @PASSMOI,
             @TENNHOM = NULL,
             @MODE    = N'PASSWORD';
-
+    END TRY
+    BEGIN CATCH
+        DECLARE @ResetPasswordErr nvarchar(4000) = ERROR_MESSAGE();
+        RAISERROR(N'Lỗi khi đặt lại mật khẩu cho %s: %s', 16, 1, @LOGIN, @ResetPasswordErr);
         RETURN;
-    END
-
-    IF IS_MEMBER('NGANHANG') <> 1
-       AND IS_MEMBER('db_owner') <> 1
-       AND IS_SRVROLEMEMBER('sysadmin') <> 1
-    BEGIN
-        RAISERROR(N'Chỉ role NGANHANG mới được đặt lại mật khẩu cho tài khoản khác.', 16, 1);
-        RETURN;
-    END
-
-    EXEC sp_password @old = NULL, @new = @PASSMOI, @loginame = @LOGIN;
-    PRINT N'Đã đặt lại mật khẩu cho: ' + @LOGIN;
-
-    EXEC dbo.sp_SyncSecurityToSubscribers
-        @LOGIN   = @LOGIN,
-        @PASS    = @PASSMOI,
-        @TENNHOM = NULL,
-        @MODE    = N'PASSWORD';
+    END CATCH
 END
 GO
 

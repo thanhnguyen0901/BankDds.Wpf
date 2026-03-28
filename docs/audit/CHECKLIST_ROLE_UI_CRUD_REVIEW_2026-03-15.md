@@ -675,7 +675,7 @@ Kết luận cuối:
     - backspace/paste van hoat dong dung
     - `CanDeposit/CanWithdraw/CanTransfer` va submit van chay dung voi gia tri da format
   - trang thai: cho `approve` truoc khi update code
-- 20. [ ] REVIEW: role `ChiNhanh` tao user bi loi o buoc sync security sang subscriber
+- 20. [x] DONE: role `ChiNhanh` tao user bi loi o buoc sync security sang subscriber
   - pham vi user report: dang nhap role `ChiNhanh`, vao tab `Tao nguoi dung`, nhap thong tin tao account `KhachHang` thi app bao loi nhu anh chup
   - dau hieu loi tu thong diep:
     - `User does not have permission to perform this action.`
@@ -684,27 +684,34 @@ Kết luận cuối:
     - dong thoi van co cac dong `Da tao login`, `Da tao DB user`, `Da them user ... vao role KHACHHANG`
   - nguyen nhan root cause:
     - `BankDds.Infrastructure/Data/Repositories/UserRepository.cs`: flow tao user goi `sp_TaoTaiKhoan` truoc, neu SP nay throw thi app khong goi den `USP_AddUser`
-    - `sql/04_publisher_security.sql`: `sp_TaoTaiKhoan` sau khi tao login/user/role local se goi `sp_SyncSecurityToSubscribers`
-    - `sp_SyncSecurityToSubscribers` thuc thi remote SQL qua `LINK0/LINK1/LINK2`; trong case nay no fail ngay tai `LINK0` vi linked server chua co login mapping (`sp_addlinkedsrvlogin`) dung
-    - vi vay day la loi cau hinh security replication/linked server, khong phai loi validate UI
+    - `sql/04_publisher_security.sql`: cac proc security cu (`sp_TaoTaiKhoan`, `sp_XoaTaiKhoan`, `sp_DoiMatKhau`, `sp_SyncSecurityToSubscribers`) chua tach ro phan authorize caller va phan thuc thi dac quyen, nen role `ChiNhanh` fail khi tao SQL login/user/role va khi sync remote
+    - linked server `LINK0/LINK1/LINK2` tren Publisher dang luu sai remote SQL credential `sa`, dan den fail lan luot voi thong diep `Login failed for user 'sa'`
+    - `sql/03_publisher_sp_views.sql`: `USP_AddUser` chua duoc doi sang `EXECUTE AS OWNER`, nen sau khi `sp_TaoTaiKhoan` tao xong SQL principal thi proc mapping `NGUOIDUNG` van co the bao `Username ... chua duoc tao SQL login/user trong database`
+    - vi vay day la loi he thong SQL security + linked server credential, khong phai loi validate UI
   - van de phu quan trong:
     - `sp_TaoTaiKhoan` khong co co che rollback/compensation cho cac buoc da tao local truoc khi sync subscriber
     - ket qua la local login/user/role co the da duoc tao thanh cong, nhung `NGUOIDUNG` mapping chua duoc insert vi repository bi dung truoc `USP_AddUser`
     - neu user bam tao lai cung username, kha nang cao se gap loi `Login ... da ton tai` do partial state con lai
-  - solution fix de xuat:
-    - fix ngay o he thong SQL:
-      - cau hinh lai `LINK0` (va kiem tra luon `LINK1/LINK2`) dung theo huong dan `sp_addlinkedserver` + `sp_addlinkedsrvlogin`
-      - test bang `sp_testlinkedserver` va truy van thu truc tiep qua linked server
-    - fix hardening de tranh partial-create:
-      - bo sung rollback/cleanup neu `sp_SyncSecurityToSubscribers` fail sau khi da tao login/user/role local
-      - hoac doi trinh tu/transaction de khong de lai local state nua chung
-    - fix UX/app:
-      - giu/bo sung thong diep loi ro rang rang day la loi cau hinh `LINK0`/security sync, khong phai loi du lieu nguoi dung nhap
-  - retest sau fix:
+  - solution fix da ap dung:
+    - recreate dung `LINK0`, `LINK1`, `LINK2` tren Publisher theo password `sa` thuc te cua tung instance dich; test pass bang `sp_testlinkedserver` va `SELECT ... FROM [LINKx]...`
+    - dat `NGANHANG` tren Publisher:
+      - `owner = sa`
+      - `TRUSTWORTHY ON`
+    - patch SQL proc:
+      - `sql/04_publisher_security.sql`: `sp_SyncSecurityToSubscribers`, `sp_TaoTaiKhoan`, `sp_XoaTaiKhoan`, `sp_DoiMatKhau`
+      - `sql/03_publisher_sp_views.sql`: `USP_AddUser`
+    - cac proc nay da doi sang model:
+      - thao tac dac quyen chay bang `EXECUTE AS OWNER`
+      - phan authorize van dua tren `ORIGINAL_LOGIN()`
+      - `sp_TaoTaiKhoan` co cleanup best-effort neu fail de giam partial-create
+    - bo sung file runbook cho may khac:
+      - `docs/sql/PATCH_RERUN_SECURITY_PROCS_2026-03-28.sql`
+      - `docs/sql/RUNBOOK_FIX_TAO_USER_CHINHANH_2026-03-28.md`
+  - ket qua user test:
+    - `passed`
     - role `ChiNhanh` tao duoc account `KhachHang`
-    - sau khi tao xong co du ca 3 lop:
-      - SQL login
-      - DB user + role
-      - dong mapping `NGUOIDUNG`
-    - dang nhap bang account moi tao thanh cong tren workflow app
-  - trang thai: cho `approve` truoc khi update code
+    - dang nhap bang account moi tao thanh cong
+  - file huong dan rollout cho may khac:
+    - `docs/sql/HUONG_DAN_RESET_LINKED_SERVER_SQL_ONLY_2026-03-28.md`
+    - `docs/sql/PATCH_RERUN_SECURITY_PROCS_2026-03-28.sql`
+    - `docs/sql/RUNBOOK_FIX_TAO_USER_CHINHANH_2026-03-28.md`

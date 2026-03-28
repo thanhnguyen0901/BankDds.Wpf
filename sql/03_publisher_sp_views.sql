@@ -1119,9 +1119,13 @@ CREATE OR ALTER PROCEDURE dbo.USP_AddUser
     @DefaultBranch nvarchar(20),
     @CustomerCMND  nChar(10)    = NULL,
     @EmployeeId    nChar(10)    = NULL
+WITH EXECUTE AS OWNER
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    DECLARE @OriginalLogin nvarchar(128) = ORIGINAL_LOGIN();
+    DECLARE @CallerDbUser  nvarchar(128) = NULL;
 
     SET @Username      = LTRIM(RTRIM(@Username));
     SET @PasswordHash  = LTRIM(RTRIM(@PasswordHash));
@@ -1148,11 +1152,27 @@ BEGIN
     END
 
     DECLARE @CallerRole nvarchar(128) = NULL;
+    DECLARE @CallerEmployeeId nChar(10) = NULL;
+
+    SELECT TOP 1
+        @CallerDbUser = dp.name
+    FROM sys.database_principals dp
+    WHERE dp.sid = SUSER_SID(@OriginalLogin)
+      AND dp.type IN ('S', 'U')
+    ORDER BY
+        CASE dp.type
+            WHEN 'S' THEN 1
+            ELSE 2
+        END;
+
+    IF @CallerDbUser IS NULL
+        SET @CallerDbUser = @OriginalLogin;
+
     SELECT TOP 1 @CallerRole = r.name
     FROM   sys.database_role_members rm
     JOIN   sys.database_principals   u ON u.principal_id = rm.member_principal_id
     JOIN   sys.database_principals   r ON r.principal_id = rm.role_principal_id
-    WHERE  u.name = USER_NAME()
+    WHERE  u.name = @CallerDbUser
       AND  r.name IN (N'NGANHANG', N'CHINHANH', N'KHACHHANG')
     ORDER BY CASE r.name
                 WHEN N'NGANHANG'  THEN 1
@@ -1160,7 +1180,7 @@ BEGIN
                 WHEN N'KHACHHANG' THEN 3
              END;
 
-    IF @CallerRole IS NULL AND (IS_MEMBER('db_owner') = 1 OR IS_SRVROLEMEMBER('sysadmin') = 1)
+    IF @CallerRole IS NULL AND IS_SRVROLEMEMBER('sysadmin', @OriginalLogin) = 1
         SET @CallerRole = N'NGANHANG';
 
     IF @CallerRole IS NULL
@@ -1190,16 +1210,18 @@ BEGIN
     IF @CallerRole = N'CHINHANH'
     BEGIN
         DECLARE @CallerBranch nChar(10) = NULL;
-        SELECT TOP 1 @CallerBranch = DefaultBranch
+        SELECT TOP 1
+            @CallerBranch = DefaultBranch,
+            @CallerEmployeeId = EmployeeId
         FROM dbo.NGUOIDUNG
-        WHERE Username = SYSTEM_USER
+        WHERE Username IN (@OriginalLogin, @CallerDbUser)
           AND TrangThaiXoa = 0;
 
         IF @CallerBranch IS NULL
         BEGIN
             SELECT TOP 1 @CallerBranch = MACN
             FROM dbo.NHANVIEN
-            WHERE MANV = SYSTEM_USER
+            WHERE MANV IN (@OriginalLogin, @CallerEmployeeId)
               AND TrangThaiXoa = 0;
         END
 

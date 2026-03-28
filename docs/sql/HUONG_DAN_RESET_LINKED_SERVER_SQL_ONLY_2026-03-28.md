@@ -385,6 +385,23 @@ EXEC dbo.sp_TaoTaiKhoan
 GO
 ```
 
+## Script 5c: Rerun cac proc security sau khi cap nhat SQL trong repo
+
+Sau khi pull code moi co patch security, tren Publisher `DESKTOP-JBB41QU` dang nhap bang `sa` va rerun lai cac block trong file [sql/04_publisher_security.sql](/d:/Projects/SV/CSDL-PT/BankDds.Wpf/sql/04_publisher_security.sql):
+
+- `CREATE OR ALTER PROCEDURE dbo.sp_SyncSecurityToSubscribers`
+- `CREATE OR ALTER PROCEDURE dbo.sp_TaoTaiKhoan`
+- `CREATE OR ALTER PROCEDURE dbo.sp_XoaTaiKhoan`
+- `CREATE OR ALTER PROCEDURE dbo.sp_DoiMatKhau`
+- `CREATE OR ALTER PROCEDURE dbo.USP_AddUser`
+
+Ly do:
+
+- cac proc nay da duoc doi sang mo hinh `EXECUTE AS OWNER`
+- phan kiem tra quyen nay dua tren `ORIGINAL_LOGIN()`, khong con phu thuoc `USER_NAME()` cua owner context
+- `sp_TaoTaiKhoan` co cleanup local `LOGIN/USER` neu sync remote fail, tranh partial-create
+- `USP_AddUser` cung can rerun de nhin thay SQL principal/role vua tao va giu dung phan quyen caller theo `ORIGINAL_LOGIN()`
+
 Neu proc path pass, cleanup account test:
 
 ```sql
@@ -398,6 +415,19 @@ Neu proc path van fail sau buoc nay:
 
 - gui lai exact error message moi
 - luc do moi tiep tuc khoanh vung o layer SQL security/module execution context
+
+Neu loi moi la:
+
+- `Sync security to LINK0 failed: Login failed for user 'sa'.`
+- hoac tuong tu voi `LINK1` / `LINK2`
+
+thi nghia la linked server da qua buoc mapping/trust, nhung credential `sa` dang luu trong linked server khong dang nhap duoc vao instance dich. Khi do phai kiem tra lai tren instance dich:
+
+- login `sa` co duoc enable khong
+- mat khau `sa` da dung chua
+- linked server `@rmtpassword` da nhap dung chua
+
+Day la loi ha tang SQL/credential tren may dich, khong phai loi app.
 
 ## Script 6: Cleanup user tao do neu bi partial state
 
@@ -449,8 +479,9 @@ Roi kiem tra lai 4 query tren den khi sach.
 4. Chay Script 4 tren Publisher.
 5. Chay Script 5 tren Publisher bang login app, vi du `NV_BT`.
 6. Neu proc path bao `current security context is not trusted`, chay them Script 5b tren Publisher bang `sa`.
-7. Neu da on, chay Script 6 neu can cleanup username tao do.
-8. Quay lai app, tao user lai.
+7. Rerun Script 5c neu vua cap nhat SQL patch trong repo.
+8. Neu da on, chay Script 6 neu can cleanup username tao do.
+9. Quay lai app, tao user lai.
 
 ## Ket qua mong doi
 
