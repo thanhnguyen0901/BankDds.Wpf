@@ -715,3 +715,20 @@ Kết luận cuối:
     - `docs/sql/HUONG_DAN_RESET_LINKED_SERVER_SQL_ONLY_2026-03-28.md`
     - `docs/sql/PATCH_RERUN_SECURITY_PROCS_2026-03-28.sql`
     - `docs/sql/RUNBOOK_FIX_TAO_USER_CHINHANH_2026-03-28.md`
+- 21. [ ] REVIEW: man `Tao nguoi dung` giu lai password cu trong `PasswordBox` sau khi bam `Them nguoi dung`, lam `Ghi` khong enable du thong tin tren UI nhin nhu da day du
+  - pham vi user report: sau khi tao account `KhachHang` xong, bam `Them nguoi dung`, form moi hien san 2 o password voi gia tri cu; user de nguyen, doi `Nhom nguoi dung` sang `ChiNhanh`, nhap them thong tin con lai thi thay `Ghi` khong enable
+  - nguyen nhan root cause:
+    - `BankDds.Wpf/ViewModels/AdminViewModel.cs`: `Add()` co reset `NewPassword` va `ConfirmPassword` ve rong
+    - `BankDds.Wpf/Views/AdminView.xaml`: 2 o password dung `PasswordBox`, khong bind hai chieu vao ViewModel
+    - `BankDds.Wpf/Views/AdminView.xaml.cs`: ViewModel chi nhan gia tri moi khi `PasswordChanged`; khi bam `Them nguoi dung`, UI `PasswordBox` van giu text cu nhung ViewModel da bi reset ve rong
+    - ket qua la nguoi dung thay password van con tren man hinh, nhung `CanSave` dang tinh tren `NewPassword/ConfirmPassword` rong nen `Ghi` khong enable; chi khi nguoi dung sua lai password thi event moi ban gia tri xuong ViewModel va `Ghi` moi enable
+  - solution fix de xuat:
+    - dong bo state giua `PasswordBox` va ViewModel khi vao form `Add/Edit`
+    - cach fix an toan nhat la clear truc tiep 2 `PasswordBox` trong view khi `Add()`/`Cancel()`/sau `Save`, de UI va ViewModel cung ve rong
+    - co the ket hop attached property/helper cho `PasswordBox` neu muon bind nhat quan hon, nhung khong can neu chi can fix triệt để bug state hien tai
+  - retest sau fix:
+    - tao xong 1 user, bam `Them nguoi dung`
+    - 2 o password phai rong that su tren UI
+    - chon `ChiNhanh`, nhap `Ma nhan vien`, username, password moi -> `Ghi` enable dung
+    - chuyen qua `KhachHang` va lap lai de xac nhan khong con stale state
+  - trang thai: cho `approve` truoc khi update code
