@@ -759,7 +759,7 @@ Kết luận cuối:
     - nhap `CustomerCMND` ton tai dung chi nhanh -> tao account thanh cong
     - qua tab `Nhan vien` / `Khach hang` thay du lieu master da ton tai san, account moi map dung vao record do
   - trang thai: da update code o `BankDds.Infrastructure/Data/UserService.cs`, `sql/03_publisher_sp_views.sql`, `docs/sql/PATCH_RERUN_SECURITY_PROCS_2026-03-28.sql`; cho user rerun patch SQL va retest/passed
-- 23. [ ] REVIEW: bao cao giao dich/tra cuu theo khoang ngay bo sot giao dich trong ngay ket thuc, phai tang `Den ngay` len +1 ngay moi thay du lieu
+- 23. [x] DONE: bao cao giao dich/tra cuu theo khoang ngay bo sot giao dich trong ngay ket thuc, phai tang `Den ngay` len +1 ngay moi thay du lieu
   - pham vi user report:
     - tai khoan `BT0000001` co giao dich ngay `28/03/2026`
     - khi role `NganHang` hoac `ChiNhanh` tra cuu/báo cáo voi `Den ngay = 28/03/2026` thi khong thay
@@ -777,4 +777,6 @@ Kết luận cuối:
     - chon `Tu ngay = 28/02/2026`, `Den ngay = 28/03/2026` -> bao cao phai lay du giao dich ngay `28/03/2026`
     - role `NganHang` va `ChiNhanh` deu cho ket qua dung
     - khong can tang `Den ngay` len `29/03/2026`
-  - trang thai: da update code o `BankDds.Infrastructure/Data/Repositories/ReportRepository.cs` va `BankDds.Infrastructure/Data/Repositories/TransactionRepository.cs`; cho user retest va xac nhan `passed`
+  - trang thai:
+    - da update code o `BankDds.Infrastructure/Data/Repositories/ReportRepository.cs` va `BankDds.Infrastructure/Data/Repositories/TransactionRepository.cs`
+    - user retest `passed`: giao dich ngay `28/03/2026` da hien dung khi chon `Den ngay = 28/03/2026`, khong can tang len `29/03/2026`
